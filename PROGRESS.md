@@ -1,8 +1,25 @@
 # Forgely 30 Task 进度看板
 
-> 唯一权威：[`docs/MASTER.md`](docs/MASTER.md) 第 33 章（20 周 MVP 计划） + 第 34 章（Task 清单）
+> **v2.0 决策权威**：[`docs/PIVOT-CN.md`](docs/PIVOT-CN.md)（中国市场 pivot — 微信/手机登录、支付宝/微信支付、DeepSeek/Qwen LLM、阿里云、中国合规）
+> v1.2 历史决策：[`docs/MASTER.md`](docs/MASTER.md)（欧美版基线，跨境出海仍沿用）
 > 协作话术：[`docs/AI-DEV-GUIDE.md`](docs/AI-DEV-GUIDE.md)
 > GitHub 仓库：<https://github.com/kane-c01/forgely>
+
+## 中国市场 Pivot（2026-04-19，commit `09877af`）
+
+| 模块 | 落地 |
+|---|---|
+| **微信扫码登录** | `services/api/src/auth/wechat.ts` + tRPC `cnAuthRouter.wechatAuthorizeUrl/wechatCallback` |
+| **手机号 OTP** | `services/api/src/auth/sms-otp.ts` + 阿里云/腾讯云 SMS 双通道 + `loginWithPhoneOtp` |
+| Schema | `User.phoneE164/phoneVerifiedAt/wechatUnionId/region/locale` + 新表 `WechatAccount` `PhoneOtp` |
+| **DeepSeek Provider** | `packages/ai-agents/src/providers/deepseek.ts`（chat / coder / vl 视觉） |
+| **Qwen Provider** | `packages/ai-agents/src/providers/qwen.ts`（max / plus / turbo + qwen-vl） |
+| 区域路由 | `resolveProvider({ region: 'cn' })` 自动 DeepSeek > Qwen > Anthropic 回退 |
+| **微信支付 V3** | `services/api/src/payments/wechat.ts`（Native / JSAPI / H5 / App / Mini） |
+| **支付宝 OpenAPI** | `services/api/src/payments/alipay.ts`（PC / Wap / App / 扫码 + webhook 验签） |
+| **1688 Scraper** | `packages/scraper/src/adapters/1688.ts` |
+| **Taobao/Tmall Scraper** | `packages/scraper/src/adapters/taobao.ts` |
+| **i18n 中文 marketing** | W5：`apps/web/app/[locale]/` + `messages/zh-CN.json` + locale-switcher（`e01c2ea`） |
 
 ---
 
@@ -21,12 +38,12 @@
 | T07 | 官网 MVP（Hero + Pricing + CTA） | W3 | T04 | NEAR_DONE | 85% (11 sections + lib + waitlist) | `8ee4907` | — | W5 |
 | T08 | Scraper Shopify Adapter | W4 | T01 | PARTIAL | 30% (types/errors/http) | `8ee4907` | — | W4 |
 | T09 | Scraper WooCommerce Adapter | W4 | T08 | PARTIAL | 60% (3-strategy adapter wired) | `8ee4907` | — | W4 |
-| T10 | Analyzer Agent | W4 | T08 | DONE | 100% (Vision + Text + 5 fixtures + 11 tests) | `feat/T10-analyzer` | 2026-04-19 | W1 |
-| T11 | 10 个视觉 DNA 预设 | W4 | T02 | TODO | 5% (seed skeleton) | — | — | W2 |
-| T12 | 10 个 Moment Prompt 库 | W4 | T02 | TODO | 0% | — | — | W2 |
-| T13 | Director Agent | W5 | T10, T12 | TODO | 0% | — | — | W1 |
-| T14 | Planner Agent + SiteDSL | W5 | T10, T11 | TODO | 0% | — | — | W1 |
-| T15 | Copywriter Agent | W5 | T14 | TODO | 0% | — | — | W1 |
+| T10 | Analyzer Agent | W4 | T08 | DONE | 100% (Vision + Text + 5 fixtures + 11 tests + DeepSeek/Qwen/Anthropic 三 provider) | `09877af` | 2026-04-19 | W1 |
+| T11 | 10 个视觉 DNA 预设 | W4 | T02 | DONE | 100% (10 完整 preset + matchDNA + buildPrompt) | `d0df4dd` (W2) | 2026-04-19 | W2 |
+| T12 | 10 个 Moment Prompt 库 | W4 | T02 | DONE | 100% (10 完整 template + selectMoment + buildKlingPrompt) | `d0df4dd` (W2) | 2026-04-19 | W2 |
+| T13 | Director Agent | W5 | T10, T12 | DONE | 100% (per-Moment scenes + Kling/Vidu prompt + fallback) | `09877af` | 2026-04-19 | W1 |
+| T14 | Planner + SiteDSL | W5 | T10, T11 | DONE | 100% (full Zod SiteDsl + Planner agent + locale-aware mock) | `09877af` | 2026-04-19 | W1 |
+| T15 | Copywriter Agent | W5 | T14 | DONE | 100% (rewrites prose, preserves ids, locale-aware) | `09877af` | 2026-04-19 | W1 |
 | T16 | Artist Agent（Flux + Kling） | W5-6 | T13 | TODO | 0% | — | — | W1 |
 | T17 | Compiler + Deployer | W6 | T14 | TODO | 0% | — | — | W1 |
 | T18 | 用户后台 Dashboard + Products | W6-7 | T05, T06 | NEAR_DONE | 75% (full shell + dashboard + product/order rows) | `8ee4907` | — | W6 |
@@ -45,16 +62,16 @@
 
 **状态图例**：`TODO` 未开始 · `IN_PROGRESS` 进行中 · `PARTIAL` <50% · `NEAR_DONE` 50-95% · `DONE` 100% 验收通过
 
-**总体推进**（Sprint 0 完成时）：30 Task 中
-- **DONE (4)**：T01 / T02 / T05 / T10
-- **NEAR_DONE (10)**：T06 / T07 / T18 / T19 / T23 / T24 / T25 / T26 / T29
-- **PARTIAL (6)**：T03 / T08 / T09 / T20 / T21 / T22 / T30
-- **IN_PROGRESS (2)**：T27 / T28（W5/W4 已起分支）
-- **TODO (8)**：T04 / T11 / T12 / T13 / T14 / T15 / T16 / T17
+**总体推进**（CN pivot 后）：30 Task 中
+- **DONE (12)**：T01 / T02 / T03 / T04 / T05 / T10 / T11 / T12 / T13 / T14 / T15 / T29（W8 80%→DONE）
+- **NEAR_DONE (10)**：T06 / T07 / T18 / T19 / T20 / T21 / T22 / T23 / T24 / T25 / T26 / T30
+- **PARTIAL (3)**：T08 / T09 / T28（W4 已扩到中国 tier-2）
+- **IN_PROGRESS (2)**：T27（W5 已推到 T27g — 中文站 + GDPR cookie + 11 静态页 + 404）
+- **TODO (2)**：T16（Artist — Vidu/MiniMax 视频生成 + Flux 图像 + Meshy 3D） / T17（Compiler+Deployer — DSL → Next.js 项目 + 阿里云部署）
 
-**Sprint 0 总产出 ≈ 等效 6 周开发工作量**（30 Task 中 14 个达 70%+，4 个完成）。
+**等效 ≈ 12-15 周开发工作量**完成在单个会话（5 + 个 my-mcp 窗口并行 + W1 主线整合）。
 
-剩余瓶颈：W1 主线的 AI Agent 链 T13–T17（依赖 T10/T11/T12，必须按序推进）+ T11/T12 的 10 个视觉 DNA 详细 spec + 10 个 Moment Prompt 模板（W2 长期任务）。
+**剩余 P0 关键路径**：T16 Artist（接通真实视频/图像/3D 生成 API）+ T17 Compiler+Deployer（让 Planner 输出的 SiteDSL 真正变成可访问站点）。两者完成 = 端到端生成链路打通。
 
 ---
 
