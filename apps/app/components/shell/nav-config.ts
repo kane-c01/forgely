@@ -45,6 +45,13 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Growth',
+    items: [
+      { label: 'SEO + GEO', href: '/sites/{siteId}/seo', icon: 'Globe', scope: 'site' },
+      { label: 'Compliance', href: '/sites/{siteId}/compliance', icon: 'Check', scope: 'site' },
+    ],
+  },
+  {
     label: 'Account',
     items: [
       { label: 'Billing', href: '/billing', icon: 'Wallet', scope: 'global' },
