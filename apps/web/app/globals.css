@@ -82,13 +82,86 @@ body {
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(120deg, rgba(255, 209, 102, 0.7), rgba(255, 107, 26, 0.4) 50%, transparent 80%);
+    background: linear-gradient(
+      120deg,
+      rgba(255, 209, 102, 0.7),
+      rgba(255, 107, 26, 0.4) 50%,
+      transparent 80%
+    );
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
+  }
+}
+
+@layer components {
+  .prose-forgely {
+    color: var(--forgely-text-secondary);
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+  .prose-forgely h2 {
+    font-family: var(--font-display), 'Fraunces', serif;
+    font-weight: 300;
+    color: var(--forgely-text-primary);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.15;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+  .prose-forgely h3 {
+    font-family: var(--font-heading), 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--forgely-text-primary);
+    font-size: 1.125rem;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+  .prose-forgely p {
+    margin: 0 0 1.25rem;
+  }
+  .prose-forgely ul,
+  .prose-forgely ol {
+    margin: 0 0 1.25rem 1.4rem;
+  }
+  .prose-forgely li {
+    margin-bottom: 0.4rem;
+  }
+  .prose-forgely a {
+    color: var(--forgely-forge-orange);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prose-forgely a:hover {
+    color: var(--forgely-forge-amber);
+  }
+  .prose-forgely strong {
+    color: var(--forgely-text-primary);
+    font-weight: 600;
+  }
+  .prose-forgely code {
+    font-family: var(--font-mono), 'JetBrains Mono', monospace;
+    background: var(--forgely-bg-elevated);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--forgely-text-primary);
+  }
+  .prose-forgely hr {
+    border: none;
+    border-top: 1px solid var(--forgely-border-subtle);
+    margin: 2.5rem 0;
+  }
+  .prose-forgely .not-prose,
+  .prose-forgely .not-prose * {
+    color: revert;
+    margin: revert;
+    padding: revert;
+    list-style: revert;
   }
 }
 
