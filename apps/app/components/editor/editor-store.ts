@@ -1,23 +1,10 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  type ReactNode,
-} from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
 import { createElement } from 'react'
 
 import { themePages, themeVersions } from '@/lib/mocks'
-import type {
-  BlockType,
-  DevicePreset,
-  ThemeBlock,
-  ThemePage,
-  ThemeVersion,
-} from '@/lib/types'
+import type { BlockType, DevicePreset, ThemeBlock, ThemePage, ThemeVersion } from '@/lib/types'
 
 /**
  * Theme Editor — single-source-of-truth state.
@@ -237,21 +224,17 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       if (!MUTATING.has(action.type)) return state
       const nextPresent = applyDocAction(state.present, action)
       const past = [...state.past, state.present].slice(-HISTORY_LIMIT)
-      // For add-block, also auto-select the new block
       let selected = state.selectedBlockId
-      if (action.type === 'add-block' || action.type === 'duplicate-block') {
+      if (action.type === 'add-block') {
         const page = nextPresent.pages.find((p) => p.id === action.pageId)
-        const last = page?.blocks[page.blocks.length - 1]
+        selected = page?.blocks[page.blocks.length - 1]?.id ?? selected
+      } else if (action.type === 'duplicate-block') {
+        const page = nextPresent.pages.find((p) => p.id === action.pageId)
         const after = page?.blocks.findIndex((b) => b.id === action.blockId)
-        selected =
-          action.type === 'duplicate-block' && page && typeof after === 'number' && after >= 0
-            ? page.blocks[after + 1]?.id ?? selected
-            : last?.id ?? selected
-      }
-      if (
-        action.type === 'remove-block' &&
-        state.selectedBlockId === action.blockId
-      ) {
+        if (page && typeof after === 'number' && after >= 0) {
+          selected = page.blocks[after + 1]?.id ?? selected
+        }
+      } else if (action.type === 'remove-block' && state.selectedBlockId === action.blockId) {
         selected = null
       }
       return {
@@ -322,37 +305,39 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     [activePage, state.selectedBlockId],
   )
 
-  const value = useMemo<EditorContextValue>(() => ({
-    pages: state.present.pages,
-    activePageId: state.activePageId,
-    selectedBlockId: state.selectedBlockId,
-    device: state.device,
-    versions: state.versions,
-    unsaved: state.unsaved,
-    canUndo: state.past.length > 0,
-    canRedo: state.future.length > 0,
-    activePage,
-    selectedBlock,
-    selectPage: (pageId) => dispatch({ type: 'select-page', pageId }),
-    selectBlock: (blockId) => dispatch({ type: 'select-block', blockId }),
-    setDevice: (device) => dispatch({ type: 'set-device', device }),
-    updateBlockProp: (blockId, key, val) =>
-      dispatch({ type: 'update-block-prop', pageId: activePage.id, blockId, key, value: val }),
-    toggleBlockVisible: (blockId) =>
-      dispatch({ type: 'toggle-block-visible', pageId: activePage.id, blockId }),
-    reorderBlock: (blockId, direction) =>
-      dispatch({ type: 'reorder-block', pageId: activePage.id, blockId, direction }),
-    removeBlock: (blockId) =>
-      dispatch({ type: 'remove-block', pageId: activePage.id, blockId }),
-    addBlock: (blockType, afterId) =>
-      dispatch({ type: 'add-block', pageId: activePage.id, blockType, afterId }),
-    duplicateBlock: (blockId) =>
-      dispatch({ type: 'duplicate-block', pageId: activePage.id, blockId }),
-    restoreVersion: (versionId) => dispatch({ type: 'restore-version', versionId }),
-    undo: () => dispatch({ type: 'undo' }),
-    redo: () => dispatch({ type: 'redo' }),
-    markSaved: () => dispatch({ type: 'mark-saved' }),
-  }), [state, activePage, selectedBlock])
+  const value = useMemo<EditorContextValue>(
+    () => ({
+      pages: state.present.pages,
+      activePageId: state.activePageId,
+      selectedBlockId: state.selectedBlockId,
+      device: state.device,
+      versions: state.versions,
+      unsaved: state.unsaved,
+      canUndo: state.past.length > 0,
+      canRedo: state.future.length > 0,
+      activePage,
+      selectedBlock,
+      selectPage: (pageId) => dispatch({ type: 'select-page', pageId }),
+      selectBlock: (blockId) => dispatch({ type: 'select-block', blockId }),
+      setDevice: (device) => dispatch({ type: 'set-device', device }),
+      updateBlockProp: (blockId, key, val) =>
+        dispatch({ type: 'update-block-prop', pageId: activePage.id, blockId, key, value: val }),
+      toggleBlockVisible: (blockId) =>
+        dispatch({ type: 'toggle-block-visible', pageId: activePage.id, blockId }),
+      reorderBlock: (blockId, direction) =>
+        dispatch({ type: 'reorder-block', pageId: activePage.id, blockId, direction }),
+      removeBlock: (blockId) => dispatch({ type: 'remove-block', pageId: activePage.id, blockId }),
+      addBlock: (blockType, afterId) =>
+        dispatch({ type: 'add-block', pageId: activePage.id, blockType, afterId }),
+      duplicateBlock: (blockId) =>
+        dispatch({ type: 'duplicate-block', pageId: activePage.id, blockId }),
+      restoreVersion: (versionId) => dispatch({ type: 'restore-version', versionId }),
+      undo: () => dispatch({ type: 'undo' }),
+      redo: () => dispatch({ type: 'redo' }),
+      markSaved: () => dispatch({ type: 'mark-saved' }),
+    }),
+    [state, activePage, selectedBlock],
+  )
 
   return createElement(EditorContext.Provider, { value }, children)
 }
@@ -377,10 +362,7 @@ export function useEditorShortcuts() {
       const target = e.target as HTMLElement | null
       const tag = target?.tagName?.toLowerCase()
       const isEditable =
-        tag === 'input' ||
-        tag === 'textarea' ||
-        tag === 'select' ||
-        target?.isContentEditable
+        tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable
       if (isEditable) return
 
       const meta = e.metaKey || e.ctrlKey
