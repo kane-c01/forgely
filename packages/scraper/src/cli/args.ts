@@ -34,7 +34,9 @@ OPTIONS
   --max-products <n>         Cap products fetched (saves API credits)
   --site-id <id>             Tag mirrored assets under this site folder
   --mirror                   Mirror images into local storage (default: off in CLI)
-  --skip-screenshots         Skip browser screenshots (default: on, no browser bundled)
+  --with-screenshots         Capture screenshots via @forgely/scraper-playwright
+                              (requires playwright browsers — run "pnpm exec playwright install chromium" once)
+  --skip-screenshots         Skip browser screenshots (default)
   --country <cc>             ScraperAPI country override (e.g. cn, us, de)
   --api-key <key>            ScraperAPI key (or set SCRAPERAPI_KEY env)
   --no-color                 Disable ANSI colors

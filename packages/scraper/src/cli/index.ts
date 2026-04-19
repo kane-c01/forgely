@@ -48,8 +48,40 @@ export async function runCli(
   const scraperApiKey = args.scraperApiKey ?? env['SCRAPERAPI_KEY']
 
   let scrape = io.scrape
+  let teardown: (() => Promise<void>) | null = null
   if (!scrape) {
     const storage = args.mirror ? new InMemoryAssetStorage() : undefined
+
+    let browser:
+      | { screenshot: unknown; renderHtml: unknown; close?: () => Promise<void> }
+      | undefined
+
+    if (!args.skipScreenshots) {
+      try {
+        // Loaded only when --with-screenshots is requested. Optional dep —
+        // not declared in package.json so plain installs stay light. Users
+        // explicitly install @forgely/scraper-playwright + run
+        // `pnpm exec playwright install chromium` to enable.
+        // @ts-expect-error optional peer; resolved dynamically at runtime
+        const mod = (await import('@forgely/scraper-playwright')) as {
+          PlaywrightBrowserAdapter: new () => {
+            screenshot: unknown
+            renderHtml: unknown
+            close: () => Promise<void>
+          }
+        }
+        const adapter = new mod.PlaywrightBrowserAdapter()
+        browser = adapter
+        teardown = () => adapter.close()
+      } catch (err) {
+        io.stderr(
+          `${paint('!', 'yellow', { useColor: !args.noColor })} Could not load @forgely/scraper-playwright (${
+            (err as Error).message
+          }). Falling back to --skip-screenshots.\n`,
+        )
+      }
+    }
+
     const registry = buildDefaultScraperRegistry({
       ...(scraperApiKey
         ? {
@@ -62,6 +94,7 @@ export async function runCli(
           ? { scraperApi: { countryCode: args.countryCode } }
           : {}),
       ...(storage ? { storage } : {}),
+      ...(browser ? { browser: browser as never } : {}),
     })
     scrape = registry.scrape.bind(registry)
   }
@@ -78,8 +111,13 @@ export async function runCli(
   try {
     data = await scrape(args.url, scrapeOptions)
   } catch (err) {
+    if (teardown) await teardown()
     return reportError(err, io, args)
+  } finally {
+    // teardown only runs on the success path here; the catch block above
+    // handles the error path explicitly so error reporting goes out first.
   }
+  if (teardown) await teardown()
   const durationMs = Date.now() - startedAt
 
   const output = renderOutput(data, args)
