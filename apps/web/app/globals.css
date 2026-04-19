@@ -2,22 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shared Forgely design tokens — CSS custom properties for raw CSS contexts. */
+@import '@forgely/design-tokens/css';
+
 :root {
   color-scheme: dark;
-  --forgely-bg-void: #08080a;
-  --forgely-bg-deep: #0e0e11;
-  --forgely-bg-surface: #14141a;
-  --forgely-bg-elevated: #1c1c24;
-  --forgely-fg-primary: #f4f4f7;
-  --forgely-fg-secondary: #a8a8b4;
-  --forgely-fg-muted: #6b6b78;
-  --forgely-fg-subtle: #45454f;
-  --forgely-border-subtle: #1f1f28;
-  --forgely-border-strong: #2d2d3a;
-  --forgely-forge-orange: #ff6b1a;
-  --forgely-forge-amber: #ffa040;
-  --forgely-forge-gold: #ffd166;
-  --forgely-forge-ember: #c74a0a;
 }
 
 * {
@@ -33,7 +22,7 @@ html {
 
 body {
   background: var(--forgely-bg-void);
-  color: var(--forgely-fg-primary);
+  color: var(--forgely-text-primary);
   font-family: var(--font-body), 'Inter', system-ui, sans-serif;
   font-feature-settings: 'cv11', 'ss01', 'ss03';
   min-height: 100vh;
