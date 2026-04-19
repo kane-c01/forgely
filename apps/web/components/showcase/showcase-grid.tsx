@@ -172,8 +172,8 @@ function ShowcaseCard({ item }: { item: ShowcaseItem }) {
       />
 
       <div className="flex items-start justify-between">
-        <Badge tone="default">{item.dna}</Badge>
-        <Badge tone="forge">{item.moment}</Badge>
+        <Badge variant="default">{item.dna}</Badge>
+        <Badge variant="forge">{item.moment}</Badge>
       </div>
 
       <div className="flex flex-col gap-1.5">

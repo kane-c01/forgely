@@ -63,7 +63,7 @@ export function SiteFooter() {
             </span>
           </Link>
           <p className="text-small text-text-muted max-w-sm">{siteConfig.slogan}</p>
-          <LocaleSwitcher current="en" />
+          <LocaleSwitcher />
           <p className="text-caption text-text-subtle font-mono uppercase tracking-[0.2em]">
             © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>

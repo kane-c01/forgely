@@ -257,7 +257,7 @@ export function InteractiveDemo({ className }: { className?: string }) {
                 />
                 Forgely Copilot · demo
               </span>
-              <Badge tone="forge">offline · scripted</Badge>
+              <Badge variant="forge">offline · scripted</Badge>
             </header>
 
             <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto p-5">
@@ -297,7 +297,7 @@ export function InteractiveDemo({ className }: { className?: string }) {
                 aria-label="Demo prompt (read-only)"
                 className="bg-bg-deep text-small text-text-secondary flex-1 rounded-md border border-transparent px-3 py-2"
               />
-              <Button type="submit" variant="forge" size="sm">
+              <Button type="submit" variant="primary" size="sm">
                 {done ? 'Replay' : 'Streaming'}
                 {done ? (
                   <ArrowUp className="ml-1 h-4 w-4" aria-hidden="true" />

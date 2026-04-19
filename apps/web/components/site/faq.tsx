@@ -1,13 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@forgely/ui'
 import { SectionHeading } from '@/components/ui/section-heading'
-import { faqItems } from '@/lib/faq'
+import { faqKeys, type FaqItem } from '@/lib/faq'
 
 export function Faq() {
+  const t = useTranslations('faq')
+  const tItems = useTranslations('faq.items')
   const [open, setOpen] = useState<number | null>(0)
+
+  const items = useMemo<FaqItem[]>(
+    () =>
+      faqKeys.map((key) => ({
+        question: tItems(`${key}.question`),
+        answer: tItems(`${key}.answer`),
+      })),
+    [tItems],
+  )
+
   return (
     <section
       id="faq"
@@ -16,13 +29,13 @@ export function Faq() {
     >
       <div className="container-page grid gap-12 lg:grid-cols-[1fr_2fr] lg:gap-20">
         <SectionHeading
-          eyebrow="FAQ"
-          title={<span id="faq-title">Common questions, answered straight.</span>}
-          description="Anything missing? Email hello@forgely.com — we'll send you a real reply, not a chatbot."
+          eyebrow={t('eyebrow')}
+          title={<span id="faq-title">{t('title')}</span>}
+          description={t('description')}
         />
 
         <ul className="divide-border-subtle border-border-subtle flex flex-col divide-y border-y">
-          {faqItems.map((item, idx) => {
+          {items.map((item, idx) => {
             const isOpen = open === idx
             return (
               <li key={item.question}>

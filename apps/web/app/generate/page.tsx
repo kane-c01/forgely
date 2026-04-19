@@ -29,7 +29,7 @@ export default function GeneratePage() {
         </span>
         <Link
           href={siteConfig.appUrl}
-          className={buttonClasses({ size: 'sm', variant: 'outline' })}
+          className={buttonClasses({ size: 'sm', variant: 'secondary' })}
           target="_blank"
           rel="noreferrer"
         >

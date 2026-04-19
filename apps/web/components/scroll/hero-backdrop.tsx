@@ -1,11 +1,26 @@
 'use client'
 
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 
 export interface VideoSource {
   src: string
   type: 'video/mp4' | 'video/webm' | 'video/x-matroska'
+}
+
+/**
+ * Optional remote source descriptor. The component fetches the URL,
+ * expects a JSON payload `{ sources: VideoSource[], poster?: string }`,
+ * and only flips the `<video>` over if the response is well-formed AND
+ * loading the actual media succeeds. Any failure (network, schema,
+ * decode error) silently keeps the local `sources` from props — the
+ * Pexels placeholders today, the Vidu / Kling renders tomorrow.
+ */
+export interface RemoteVideoConfig {
+  /** Endpoint to call. Server is owned by W3 (services/api). */
+  url: string
+  /** Optional cache-busting hint forwarded as `?v=`. */
+  version?: string
 }
 
 export interface HeroBackdropVideoProps {
@@ -18,6 +33,8 @@ export interface HeroBackdropVideoProps {
   overlayClass?: string
   /** Subtle parallax shift, in pixels, applied via CSS variable. */
   parallaxPx?: number
+  /** Optional remote source. When the fetch + load succeed it replaces `sources`. */
+  remote?: RemoteVideoConfig
 }
 
 export interface HeroBackdropStaticProps {
@@ -76,9 +93,58 @@ function RemoteBackdrop({ render }: { render: () => React.ReactNode }) {
   )
 }
 
-function VideoBackdrop({ sources, poster, overlayClass, parallaxPx = 0 }: HeroBackdropVideoProps) {
+function VideoBackdrop({
+  sources: localSources,
+  poster: localPoster,
+  overlayClass,
+  parallaxPx = 0,
+  remote,
+}: HeroBackdropVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+  const [sources, setSources] = useState<VideoSource[]>(localSources)
+  const [poster, setPoster] = useState<string>(localPoster)
+
+  useEffect(() => {
+    if (!remote || typeof window === 'undefined') return
+    const ctrl = new AbortController()
+    const url = remote.version ? `${remote.url}?v=${remote.version}` : remote.url
+    fetch(url, { signal: ctrl.signal, cache: 'force-cache' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Remote backdrop ${res.status}`)
+        return res.json()
+      })
+      .then((data: unknown) => {
+        if (!data || typeof data !== 'object') return
+        const payload = data as { sources?: unknown; poster?: unknown }
+        if (!Array.isArray(payload.sources) || payload.sources.length === 0) return
+        const validated = payload.sources.filter(
+          (s): s is VideoSource =>
+            !!s &&
+            typeof s === 'object' &&
+            typeof (s as VideoSource).src === 'string' &&
+            typeof (s as VideoSource).type === 'string',
+        )
+        if (validated.length === 0) return
+        setSources(validated)
+        if (typeof payload.poster === 'string') setPoster(payload.poster)
+      })
+      .catch(() => {
+        /* Keep local sources — graceful degrade. */
+      })
+    return () => ctrl.abort()
+  }, [remote])
+
+  // If the remote sources later fail to decode, swap back to the local ones.
+  function onVideoError() {
+    if (sources === localSources) return
+    setSources(localSources)
+    setPoster(localPoster)
+  }
+
+  // Re-bind <source> when sources change.
+  const sourceKey = useMemo(() => sources.map((s) => s.src).join('|'), [sources])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -158,6 +224,7 @@ function VideoBackdrop({ sources, poster, overlayClass, parallaxPx = 0 }: HeroBa
     >
       <video
         ref={videoRef}
+        key={sourceKey}
         className="h-full w-full object-cover"
         autoPlay
         muted
@@ -166,6 +233,7 @@ function VideoBackdrop({ sources, poster, overlayClass, parallaxPx = 0 }: HeroBa
         preload="metadata"
         poster={poster}
         aria-hidden="true"
+        onError={onVideoError}
       >
         {sources.map((s) => (
           <source key={s.src} src={s.src} type={s.type} />

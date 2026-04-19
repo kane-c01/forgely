@@ -9,13 +9,21 @@ import type { ScrollAct } from '@/components/scroll/scroll-acts'
  *   - `3d`    : lazy-loaded R3F scene (later)
  *
  * Video URLs default to free Pexels CC0 placeholders so the experience
- * works without fetching any private CDN asset. Once Kling generates the
- * real Forgely workshop / fade-in / "FORGED" reveal etc., swap them in
- * via the same `backdrop` slot — no other code change required.
+ * works without fetching any private CDN asset. Once Kling / Vidu /
+ * R2-cached renders are available, the W3 endpoint at
+ * `/api/video/hero?dna=<dna>&moment=<moment>` returns a JSON payload
+ * `{ sources: VideoSource[], poster?: string }` and `<HeroBackdrop>`
+ * swaps over silently — no other code change required.
  */
 
 export const PLACEHOLDER_VIDEO_NOTICE =
   'Pexels CC0 placeholder — replaced with Kling-rendered Forgely reels in production.'
+
+const VIDU_HERO_ENDPOINT = '/api/video/hero'
+const remoteFor = (dna: string, moment: string) => ({
+  url: `${VIDU_HERO_ENDPOINT}?dna=${encodeURIComponent(dna)}&moment=${encodeURIComponent(moment)}`,
+  version: '1',
+})
 
 export const forgeReelActs: ScrollAct[] = [
   {
@@ -40,6 +48,7 @@ export const forgeReelActs: ScrollAct[] = [
       overlayClass:
         'bg-gradient-to-b from-bg-void/55 via-bg-void/40 to-bg-void/85 mix-blend-multiply',
       parallaxPx: 80,
+      remote: remoteFor('nordic_minimal', 'M01_arrival'),
     },
   },
   {
@@ -63,6 +72,7 @@ export const forgeReelActs: ScrollAct[] = [
       ],
       overlayClass: 'bg-bg-void/55 mix-blend-multiply',
       parallaxPx: 60,
+      remote: remoteFor('clinical_wellness', 'M02_split'),
     },
   },
   {
@@ -96,6 +106,7 @@ export const forgeReelActs: ScrollAct[] = [
       ],
       overlayClass: 'bg-bg-void/40 mix-blend-multiply',
       parallaxPx: 40,
+      remote: remoteFor('bold_rebellious', 'M04_reveal'),
     },
   },
   {
@@ -129,6 +140,7 @@ export const forgeReelActs: ScrollAct[] = [
       ],
       overlayClass: 'bg-bg-void/55 mix-blend-multiply',
       parallaxPx: 30,
+      remote: remoteFor('california_wellness', 'M06_ignition'),
     },
   },
 ]

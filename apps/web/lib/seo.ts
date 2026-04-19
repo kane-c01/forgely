@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { localeOgMap, routing, type Locale } from '@/i18n/routing'
 import { siteConfig } from './site'
 
 interface BuildMetadataOptions {
@@ -15,6 +16,24 @@ interface BuildMetadataOptions {
   ogLocale?: string
   /** Optional og:alternateLocale list (default omitted). */
   ogAlternateLocales?: string[]
+  /**
+   * When provided, the helper auto-fills `ogLocale`, `ogAlternateLocales`
+   * and `hreflang` for every supported locale (mirroring the next-intl
+   * routing config). Per-locale overrides above still win.
+   */
+  locale?: Locale
+}
+
+function autoHreflangFor(locale: Locale): Record<string, string> {
+  const out: Record<string, string> = { 'x-default': siteConfig.url }
+  for (const code of routing.locales) {
+    const path = code === routing.defaultLocale ? '' : `/${code}`
+    out[code === 'zh' ? 'zh-CN' : code] = `${siteConfig.url}${path}`
+  }
+  // Also expose the active locale so search engines see a self-reference.
+  out[locale === 'zh' ? 'zh-CN' : locale] =
+    locale === routing.defaultLocale ? siteConfig.url : `${siteConfig.url}/${locale}`
+  return out
 }
 
 /**
@@ -29,9 +48,16 @@ export function buildMetadata(options: BuildMetadataOptions = {}): Metadata {
     image,
     noIndex = false,
     hreflang,
-    ogLocale = 'en_US',
+    ogLocale,
     ogAlternateLocales,
+    locale,
   } = options
+
+  const resolvedOgLocale = ogLocale ?? (locale ? localeOgMap[locale] : 'en_US')
+  const resolvedOgAlternates =
+    ogAlternateLocales ??
+    (locale ? routing.locales.filter((c) => c !== locale).map((c) => localeOgMap[c]) : undefined)
+  const resolvedHreflang = hreflang ?? (locale ? autoHreflangFor(locale) : undefined)
 
   const fullTitle = title
     ? `${title} — ${siteConfig.name}`
@@ -53,16 +79,16 @@ export function buildMetadata(options: BuildMetadataOptions = {}): Metadata {
     publisher: siteConfig.name,
     alternates: {
       canonical: url,
-      ...(hreflang ? { languages: hreflang } : {}),
+      ...(resolvedHreflang ? { languages: resolvedHreflang } : {}),
     },
     openGraph: {
       type: 'website',
-      locale: ogLocale,
+      locale: resolvedOgLocale,
       url,
       title: fullTitle,
       description: desc,
       siteName: siteConfig.name,
-      ...(ogAlternateLocales ? { alternateLocale: ogAlternateLocales } : {}),
+      ...(resolvedOgAlternates ? { alternateLocale: resolvedOgAlternates } : {}),
       ...(overrideImage ? { images: overrideImage } : {}),
     },
     twitter: {
