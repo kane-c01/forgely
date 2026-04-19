@@ -182,7 +182,7 @@ export function ForgePipelineRunner({
         />
         <Button
           type="submit"
-          variant="forge"
+          variant="primary"
           size="lg"
           disabled={state.status === 'running'}
           className="h-12 px-6"
@@ -379,7 +379,7 @@ function SummaryRow({
       </div>
       <div className="text-right">
         {tone === 'forge' ? (
-          <Badge tone="forge">{value}</Badge>
+          <Badge variant="forge">{value}</Badge>
         ) : (
           <div className="text-body-lg text-text-primary font-mono">{value}</div>
         )}

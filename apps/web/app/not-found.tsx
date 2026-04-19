@@ -23,15 +23,15 @@ export default function NotFound() {
             jump straight to the things people usually look for.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/" className={buttonClasses({ variant: 'forge' })}>
+            <Link href="/" className={buttonClasses({ variant: 'primary' })}>
               <Home className="-ml-1 h-4 w-4" aria-hidden="true" />
               Back to home
             </Link>
-            <Link href="/#pricing" className={buttonClasses({ variant: 'outline' })}>
+            <Link href="/#pricing" className={buttonClasses({ variant: 'secondary' })}>
               See pricing
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <Link href="/the-forge" className={buttonClasses({ variant: 'outline' })}>
+            <Link href="/the-forge" className={buttonClasses({ variant: 'secondary' })}>
               The forge preview
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>

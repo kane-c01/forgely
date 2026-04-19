@@ -28,7 +28,7 @@ export default function GeneratePage() {
         </span>
         <Link
           href="https://app.forgely.com"
-          className={buttonClasses({ size: 'sm', variant: 'outline' })}
+          className={buttonClasses({ size: 'sm', variant: 'secondary' })}
           target="_blank"
           rel="noreferrer"
         >

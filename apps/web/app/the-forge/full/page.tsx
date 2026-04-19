@@ -31,7 +31,7 @@ export default function TheForgeFullPage() {
         <span className="text-caption text-text-muted font-mono uppercase tracking-[0.24em]">
           T27 · full Terminal preview · staging
         </span>
-        <Link href="#waitlist" className={buttonClasses({ size: 'sm', variant: 'outline' })}>
+        <Link href="#waitlist" className={buttonClasses({ size: 'sm', variant: 'secondary' })}>
           Waitlist
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
@@ -74,7 +74,7 @@ export default function TheForgeFullPage() {
               every visitor lands here. Until then, click back to the live MVP and join the waitlist
               to get a generation invite.
             </p>
-            <Link href="/" className={buttonClasses({ variant: 'forge', size: 'lg' })}>
+            <Link href="/" className={buttonClasses({ variant: 'primary', size: 'lg' })}>
               Back to live homepage
               <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>

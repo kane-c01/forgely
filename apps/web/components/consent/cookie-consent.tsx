@@ -54,7 +54,7 @@ export function CookieConsent() {
             for details.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button variant="forge" size="sm" onClick={accept}>
+            <Button variant="primary" size="sm" onClick={accept}>
               Accept analytics
             </Button>
             <Button variant="secondary" size="sm" onClick={decline}>

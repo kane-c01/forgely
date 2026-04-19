@@ -20,14 +20,42 @@ export interface PricingFeature {
 
 export type PricingPlanId = 'free' | 'starter' | 'pro' | 'agency' | 'enterprise'
 
-export interface PricingPlan {
-  id: PricingPlanId
+export type CurrencyCode = 'USD' | 'CNY'
+
+/**
+ * Per-currency pricing tuple. The CN pivot wants RMB on /, USD on /en.
+ * Stripe still settles in USD; the CNY column is a marketing convenience.
+ */
+export interface PricingAmount {
   monthly: number | null
   annual: number | null
+}
+
+export const CURRENCY_SYMBOL: Record<CurrencyCode, string> = {
+  USD: '$',
+  CNY: '¥',
+}
+
+export const LOCALE_CURRENCY: Record<'en' | 'zh', CurrencyCode> = {
+  en: 'USD',
+  zh: 'CNY',
+}
+
+export interface PricingPlan {
+  id: PricingPlanId
+  /** Default monthly amount (USD), kept for backwards compatibility. */
+  monthly: number | null
+  annual: number | null
+  /** Per-currency overrides. Falls back to USD `monthly`/`annual` when missing. */
+  amounts?: Partial<Record<CurrencyCode, PricingAmount>>
   recommended?: boolean
   ctaHref: string
   features: PricingFeature[]
   hasFootnote?: boolean
+}
+
+export function planAmount(plan: PricingPlan, currency: CurrencyCode): PricingAmount {
+  return plan.amounts?.[currency] ?? { monthly: plan.monthly, annual: plan.annual }
 }
 
 export const pricingPlans: PricingPlan[] = [
@@ -35,6 +63,7 @@ export const pricingPlans: PricingPlan[] = [
     id: 'free',
     monthly: 0,
     annual: 0,
+    amounts: { CNY: { monthly: 0, annual: 0 } },
     ctaHref: '/waitlist?plan=free',
     features: [
       { key: 'credits', hasValue: true },
@@ -50,6 +79,7 @@ export const pricingPlans: PricingPlan[] = [
     id: 'starter',
     monthly: 29,
     annual: 261,
+    amounts: { CNY: { monthly: 199, annual: 1791 } },
     ctaHref: '/waitlist?plan=starter',
     hasFootnote: true,
     features: [
@@ -66,6 +96,7 @@ export const pricingPlans: PricingPlan[] = [
     id: 'pro',
     monthly: 99,
     annual: 891,
+    amounts: { CNY: { monthly: 599, annual: 5391 } },
     recommended: true,
     ctaHref: '/waitlist?plan=pro',
     hasFootnote: true,
@@ -83,6 +114,7 @@ export const pricingPlans: PricingPlan[] = [
     id: 'agency',
     monthly: 299,
     annual: 2691,
+    amounts: { CNY: { monthly: 1999, annual: 17991 } },
     ctaHref: '/waitlist?plan=agency',
     features: [
       { key: 'credits', hasValue: true },
@@ -98,6 +130,7 @@ export const pricingPlans: PricingPlan[] = [
     id: 'enterprise',
     monthly: null,
     annual: null,
+    amounts: { CNY: { monthly: null, annual: null } },
     ctaHref: 'mailto:hello@forgely.com?subject=Enterprise',
     features: [
       { key: 'creditPool' },

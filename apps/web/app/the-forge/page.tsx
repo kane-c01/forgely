@@ -27,7 +27,7 @@ export default function TheForgePage() {
         <span className="text-caption text-text-muted font-mono uppercase tracking-[0.24em]">
           T27a · scroll foundation · preview
         </span>
-        <Link href="#act-6-cta" className={buttonClasses({ size: 'sm', variant: 'outline' })}>
+        <Link href="#act-6-cta" className={buttonClasses({ size: 'sm', variant: 'secondary' })}>
           Skip to CTA
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
