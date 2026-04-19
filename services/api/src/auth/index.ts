@@ -1,13 +1,14 @@
 /**
  * Public surface of `@forgely/api/auth`.
  *
- * apps/app NextAuth integration (T06 W6 follow-up) imports from here:
- *   - `signupWithPassword` / `signinWithPassword` for credential login
- *   - `validateSession` for cookie-based session reads
- *   - `requireUser` / `requireSuperAdmin` for route guards
- *   - `prisma` (re-export) so the Auth.js Prisma adapter can be wired up
+ * Subpath consumers:
+ *   - apps/app's NextAuth route → `buildNextAuthConfig`, `prismaAdapter`
+ *   - apps/app's pages/forms    → signup/signin, password reset, email verify, TOTP
+ *   - tRPC middleware           → `validateSession`, `requireUser`,
+ *                                 `requireSuperAdmin`, `assertFoundAndOwned`
+ *   - super-admin tooling       → `recordAudit`, `AUDIT_ACTIONS`
  *
- * @owner W3 (T06)
+ * @owner W3
  */
 
 export { getAuthConfig, setAuthConfig, resetAuthConfig, assertProductionReady } from './config.js'
@@ -37,8 +38,8 @@ export type { CreatedSession, SessionDevice } from './sessions.js'
 
 export { assertNotLocked, recordFailedLogin, recordSuccessfulLogin } from './lockout.js'
 
-export { recordLoginEvent, recordAuthAudit } from './audit.js'
-export type { LoginEventInput, AuthAuditInput } from './audit.js'
+export { recordLoginEvent, recordAudit, recordAuthAudit, AUDIT_ACTIONS } from './audit.js'
+export type { LoginEventInput, AuditInput, AuthAuditInput, AuditAction } from './audit.js'
 
 export {
   signupWithPassword,
@@ -62,3 +63,38 @@ export type { AuthLikeContext } from './policies.js'
 
 export { ownedScopeWhere, isOwnedBy, assertOwnership, assertFoundAndOwned } from './tenant.js'
 export type { TenantContext } from './tenant.js'
+
+export { buildNextAuthConfig, prismaAdapter } from './next-auth.js'
+export type { BuildNextAuthConfigOptions } from './next-auth.js'
+
+export {
+  requestPasswordReset,
+  consumePasswordReset,
+  purgeExpiredPasswordResets,
+} from './password-reset.js'
+export type {
+  RequestPasswordResetInput,
+  RequestPasswordResetResult,
+  ConsumePasswordResetInput,
+  ConsumePasswordResetResult,
+} from './password-reset.js'
+
+export {
+  sendEmailVerification,
+  verifyEmail,
+  purgeExpiredVerificationTokens,
+} from './email-verify.js'
+export type {
+  SendEmailVerificationResult,
+  VerifyEmailInput,
+  VerifyEmailResult,
+} from './email-verify.js'
+
+export {
+  beginTotpEnrollment,
+  confirmTotpEnrollment,
+  verifyTotp,
+  verifyTotpCode,
+  disableTotp,
+} from './totp.js'
+export type { BeginTotpEnrollmentResult } from './totp.js'
