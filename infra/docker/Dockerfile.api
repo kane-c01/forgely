@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1.7
+# Forgely Core API (services/api) — tRPC + Prisma + Auth
+# Build:  docker build -f infra/docker/Dockerfile.api -t forgely/api .
+# Run:    docker run --env-file .env -p 4000:4000 forgely/api
+
+ARG NODE_VERSION=20
+ARG PNPM_VERSION=9.12.0
+
+# ──────────────── Stage 1: deps ────────────────
+FROM node:${NODE_VERSION}-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/web/package.json apps/web/
+COPY apps/app/package.json apps/app/
+COPY apps/storefront/package.json apps/storefront/
+COPY services/api/package.json services/api/
+COPY services/worker/package.json services/worker/
+COPY services/medusa/package.json services/medusa/
+COPY services/deploy/package.json services/deploy/
+COPY packages/3d/package.json packages/3d/
+COPY packages/ai-agents/package.json packages/ai-agents/
+COPY packages/animations/package.json packages/animations/
+COPY packages/api-client/package.json packages/api-client/
+COPY packages/charts/package.json packages/charts/
+COPY packages/compliance/package.json packages/compliance/
+COPY packages/design-tokens/package.json packages/design-tokens/
+COPY packages/dsl/package.json packages/dsl/
+COPY packages/icons/package.json packages/icons/
+COPY packages/product-moments/package.json packages/product-moments/
+COPY packages/scraper/package.json packages/scraper/
+COPY packages/seo/package.json packages/seo/
+COPY packages/ui/package.json packages/ui/
+COPY packages/visual-dna/package.json packages/visual-dna/
+
+ENV HUSKY=0
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# ──────────────── Stage 2: build ────────────────
+FROM node:${NODE_VERSION}-alpine AS build
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+COPY --from=deps /repo/node_modules ./node_modules
+COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /repo/apps/app/node_modules ./apps/app/node_modules
+COPY --from=deps /repo/services/api/node_modules ./services/api/node_modules
+COPY . .
+
+RUN pnpm --filter @forgely/api prisma:generate
+
+# ──────────────── Stage 3: runtime ────────────────
+FROM node:${NODE_VERSION}-alpine AS runtime
+RUN apk add --no-cache libc6-compat openssl tini
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+ENV NODE_ENV=production
+ENV HUSKY=0
+ENV PORT=4000
+
+COPY --from=build /repo /repo
+
+EXPOSE 4000
+USER node
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["pnpm", "--filter", "@forgely/api", "exec", "tsx", "src/index.ts"]

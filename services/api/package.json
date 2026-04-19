@@ -42,6 +42,11 @@
       "import": "./src/errors.ts",
       "default": "./src/errors.ts"
     },
+    "./health": {
+      "types": "./src/health.ts",
+      "import": "./src/health.ts",
+      "default": "./src/health.ts"
+    },
     "./payments": {
       "types": "./src/payments/index.ts",
       "import": "./src/payments/index.ts",
@@ -77,6 +82,7 @@
     "@forgely/seo": "workspace:*",
     "@forgely/worker": "workspace:*",
     "@prisma/client": "^5.22.0",
+    "@sentry/node": "^8.42.0",
     "@trpc/server": "^10.45.2",
     "argon2": "^0.41.1",
     "jose": "^5.9.6",

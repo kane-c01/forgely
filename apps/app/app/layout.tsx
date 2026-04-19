@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
 
+import { PosthogProvider } from '@/components/analytics/posthog-provider'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -41,18 +42,14 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${interHeading.variable} ${jetbrains.variable}`}
     >
-      <body className="min-h-screen bg-bg-void font-body text-text-primary antialiased">
-        {children}
+      <body className="bg-bg-void font-body text-text-primary min-h-screen antialiased">
+        <PosthogProvider>{children}</PosthogProvider>
       </body>
     </html>
   )

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://uptime.betterstack.com/openapi/openapi.json",
+  "_doc": "Declarative Better Stack monitor list. Sync via scripts/sync-better-stack.sh (BETTER_STACK_API_TOKEN env required).",
+  "monitors": [
+    {
+      "url": "https://forgely.cn",
+      "monitor_type": "status",
+      "expected_status_codes": [200, 301, 302],
+      "check_frequency": 60,
+      "request_timeout": 30,
+      "regions": ["us", "eu", "as"],
+      "pronounceable_name": "forgely.cn marketing"
+    },
+    {
+      "url": "https://forgely.cn/api/health",
+      "monitor_type": "expected_status_code",
+      "expected_status_codes": [200],
+      "check_frequency": 60,
+      "request_timeout": 15,
+      "regions": ["us", "eu", "as"],
+      "pronounceable_name": "forgely.cn /api/health"
+    },
+    {
+      "url": "https://app.forgely.cn",
+      "monitor_type": "status",
+      "expected_status_codes": [200, 301, 302, 307, 401],
+      "check_frequency": 60,
+      "request_timeout": 30,
+      "regions": ["us", "eu", "as"],
+      "pronounceable_name": "app.forgely.cn dashboard"
+    },
+    {
+      "url": "https://app.forgely.cn/api/health",
+      "monitor_type": "keyword",
+      "required_keyword": "\"ok\":true",
+      "check_frequency": 30,
+      "request_timeout": 15,
+      "regions": ["us", "eu", "as"],
+      "pronounceable_name": "app.forgely.cn API health"
+    },
+    {
+      "url": "https://api.forgely.cn/api/health",
+      "monitor_type": "keyword",
+      "required_keyword": "\"ok\":true",
+      "check_frequency": 30,
+      "request_timeout": 10,
+      "regions": ["us", "eu", "as"],
+      "pronounceable_name": "api.forgely.cn health"
+    },
+    {
+      "url": "https://demo.forgely.app",
+      "monitor_type": "status",
+      "expected_status_codes": [200, 301, 302],
+      "check_frequency": 300,
+      "request_timeout": 30,
+      "regions": ["us", "eu"],
+      "pronounceable_name": "*.forgely.app sentinel (demo)"
+    }
+  ],
+  "status_page": {
+    "company_name": "Forgely",
+    "company_url": "https://forgely.cn",
+    "subdomain": "status-forgely",
+    "design": "v2",
+    "theme": "dark"
+  },
+  "heartbeats": [
+    {
+      "name": "worker.generation-pipeline",
+      "period": 300,
+      "grace": 60,
+      "_doc": "Hit BETTER_STACK_HEARTBEAT_URL from services/worker every 5 min."
+    },
+    {
+      "name": "worker.cron.monthly-credits",
+      "period": 86400,
+      "grace": 1800,
+      "_doc": "Daily heartbeat from monthly credit reset cron."
+    }
+  ]
+}

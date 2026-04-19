@@ -1,0 +1,107 @@
+name: Preview Deploy (Cloudflare Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: preview-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  HUSKY: 0
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.app }} preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      deployments: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: '@forgely/web'
+            dir: apps/web
+            project_secret: CF_PAGES_PROJECT_WEB
+          - app: '@forgely/app'
+            dir: apps/app
+            project_secret: CF_PAGES_PROJECT_APP
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+          run_install: false
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @forgely/api prisma:generate
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - name: Build ${{ matrix.app }}
+        run: pnpm --filter ${{ matrix.app }} build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_URL: https://app.forgely.cn
+          NEXT_PUBLIC_WEB_URL: https://forgely.cn
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ secrets.NEXT_PUBLIC_PLAUSIBLE_DOMAIN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
+      - name: Resolve Pages project name
+        id: project
+        run: |
+          PROJECT="${{ secrets[matrix.project_secret] }}"
+          if [ -z "$PROJECT" ]; then
+            echo "::warning::Secret ${{ matrix.project_secret }} not set; falling back to default"
+            case "${{ matrix.app }}" in
+              "@forgely/web") PROJECT="forgely-web" ;;
+              "@forgely/app") PROJECT="forgely-app" ;;
+            esac
+          fi
+          echo "name=$PROJECT" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Cloudflare Pages (preview)
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ steps.project.outputs.name }}
+          directory: ${{ matrix.dir }}/.next
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: preview-${{ github.sha }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Skip deploy notice
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: |
+          echo "::notice::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID secret not set — skipping Pages deploy."
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+# Get account_id + zone_id from dash.cloudflare.com → Overview right sidebar.
+account_id        = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
+zone_id_cn        = "REPLACE_WITH_FORGELY_CN_ZONE_ID"
+zone_id_app       = "REPLACE_WITH_FORGELY_APP_ZONE_ID"
+production_branch = "main"
+project           = "forgely"
+env               = "staging"

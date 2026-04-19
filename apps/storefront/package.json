@@ -15,6 +15,7 @@
     "@forgely/design-tokens": "workspace:*",
     "@forgely/dsl": "workspace:*",
     "@forgely/ui": "workspace:*",
+    "@sentry/nextjs": "^8.42.0",
     "next": "14.2.13",
     "react": "18.3.1",
     "react-dom": "18.3.1"

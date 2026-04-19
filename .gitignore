@@ -18,6 +18,17 @@ coverage/
 .env.*
 !.env.example
 !.env.*.example
+!.env.template
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+*.tfvars
+!*.tfvars.example
 
 # Logs
 *.log
