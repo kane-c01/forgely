@@ -53,6 +53,14 @@ const nextConfig = {
         },
       ]
     }
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /@opentelemetry\/instrumentation/ },
+      { module: /require-in-the-middle/ },
+      { module: /@prisma\/instrumentation/ },
+      { message: /Critical dependency: the request of a dependency is an expression/ },
+      { message: /Critical dependency: require function is used in a way/ },
+    ]
     return config
   },
 }
