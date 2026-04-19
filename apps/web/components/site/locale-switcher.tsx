@@ -1,100 +1,47 @@
-'use client'
-
-import { useLocale, useTranslations } from 'next-intl'
-import { useTransition } from 'react'
+import Link from 'next/link'
 import { Globe } from 'lucide-react'
-import { usePathname, useRouter } from '@/i18n/navigation'
-import { localeLabels, routing, type Locale } from '@/i18n/routing'
+import { LOCALE_HREF, LOCALE_LABEL, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 interface LocaleSwitcherProps {
-  variant?: 'inline' | 'compact'
+  /** Currently active locale, used to highlight the link. */
+  current: Locale
   className?: string
-  onSwitch?: () => void
 }
 
-export function LocaleSwitcher({
-  variant = 'compact',
-  className,
-  onSwitch,
-}: LocaleSwitcherProps) {
-  const t = useTranslations('common')
-  const locale = useLocale() as Locale
-  const pathname = usePathname()
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-
-  const switchTo = (next: Locale) => {
-    if (next === locale) return
-    startTransition(() => {
-      router.replace(pathname, { locale: next })
-      onSwitch?.()
-    })
-  }
-
-  if (variant === 'inline') {
-    return (
-      <div
-        role="group"
-        aria-label={t('switchLanguage')}
-        className={cn(
-          'inline-flex items-center gap-1 rounded-full border border-border-subtle bg-bg-elevated/60 p-1',
-          className,
-        )}
-      >
-        {routing.locales.map((loc) => {
-          const isActive = loc === locale
-          return (
-            <button
-              key={loc}
-              type="button"
-              onClick={() => switchTo(loc)}
-              disabled={isPending && !isActive}
-              aria-pressed={isActive}
-              className={cn(
-                'rounded-full px-3 py-1 font-mono text-caption uppercase tracking-[0.16em] transition',
-                isActive
-                  ? 'bg-forge-orange text-bg-void shadow-glow-forge'
-                  : 'text-text-secondary hover:text-text-primary',
-              )}
-            >
-              {loc === 'zh' ? '中' : 'EN'}
-            </button>
-          )
-        })}
-      </div>
-    )
-  }
-
+/**
+ * Tiny pill-style locale switcher rendered in the footer + every
+ * locale-specific layout. Uses real anchor links (so it works without
+ * JS and so search engines can crawl all locales).
+ */
+export function LocaleSwitcher({ current, className }: LocaleSwitcherProps) {
   return (
     <div
-      role="group"
-      aria-label={t('switchLanguage')}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-border-subtle bg-bg-elevated/60 px-2 py-1',
+        'border-border-strong bg-bg-elevated inline-flex items-center gap-1 rounded-full border p-1',
         className,
       )}
+      role="group"
+      aria-label="Choose language"
     >
-      <Globe className="h-3.5 w-3.5 text-text-muted" aria-hidden="true" />
-      {routing.locales.map((loc) => {
-        const isActive = loc === locale
+      <Globe aria-hidden="true" className="text-text-muted ml-2 h-3.5 w-3.5" />
+      {SUPPORTED_LOCALES.map((locale) => {
+        const active = locale === current
         return (
-          <button
-            key={loc}
-            type="button"
-            onClick={() => switchTo(loc)}
-            disabled={isPending && !isActive}
-            aria-pressed={isActive}
-            title={localeLabels[loc]}
+          <Link
+            key={locale}
+            href={LOCALE_HREF[locale]}
+            hrefLang={locale}
+            aria-current={active ? 'page' : undefined}
             className={cn(
-              'rounded-full px-2 py-0.5 font-mono text-caption uppercase tracking-[0.18em] transition',
-              isActive
-                ? 'text-forge-orange'
-                : 'text-text-muted hover:text-text-primary',
+              'text-caption rounded-full px-3 py-1 font-mono uppercase tracking-[0.18em] transition',
+              active
+                ? 'bg-forge-orange text-bg-void'
+                : 'text-text-secondary hover:text-text-primary',
             )}
           >
-            {loc === 'zh' ? '中' : 'EN'}
-          </button>
+            {LOCALE_LABEL[locale]}
+          </Link>
         )
       })}
     </div>

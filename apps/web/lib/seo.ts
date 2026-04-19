@@ -1,62 +1,47 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
 import { siteConfig } from './site'
-import { localeOgMap, routing, type Locale } from '@/i18n/routing'
 
 interface BuildMetadataOptions {
-  locale?: Locale
   title?: string
   description?: string
-  /** Path *within* the locale (e.g. '/pricing' for /zh/pricing). Defaults to '/'. */
   path?: string
+  /** Override the OG image. When omitted, Next.js auto-injects
+   *  `app/opengraph-image.tsx` so we leave the field undefined. */
   image?: string
   noIndex?: boolean
-}
-
-function localizedUrl(locale: Locale, path: string): string {
-  const cleanPath = path === '/' ? '' : path
-  if (locale === routing.defaultLocale) {
-    return `${siteConfig.url}${cleanPath || '/'}`
-  }
-  return `${siteConfig.url}/${locale}${cleanPath}`
+  /** Optional locale alternates emitted as <link rel="alternate" hreflang>. */
+  hreflang?: Record<string, string>
+  /** Override the og:locale (default `en_US`). */
+  ogLocale?: string
+  /** Optional og:alternateLocale list (default omitted). */
+  ogAlternateLocales?: string[]
 }
 
 /**
- * Build a locale-aware Next.js Metadata object.
+ * Build a Next.js Metadata object based on Forgely's brand defaults.
+ * Use on every page; pass page-specific overrides as needed.
  */
-export async function buildMetadata(
-  options: BuildMetadataOptions = {},
-): Promise<Metadata> {
+export function buildMetadata(options: BuildMetadataOptions = {}): Metadata {
   const {
-    locale = routing.defaultLocale,
     title,
     description,
     path = '/',
     image,
     noIndex = false,
+    hreflang,
+    ogLocale = 'en_US',
+    ogAlternateLocales,
   } = options
-
-  const t = await getTranslations({ locale, namespace: 'metadata.site' })
-  const tagline = t('tagline')
-  const slogan = t('slogan')
-  const defaultDesc = t('description')
 
   const fullTitle = title
     ? `${title} — ${siteConfig.name}`
-    : `${siteConfig.name} — ${tagline}`
-  const desc = description ?? defaultDesc
-  const url = localizedUrl(locale, path)
+    : `${siteConfig.name} — ${siteConfig.tagline}`
+  const desc = description ?? siteConfig.description
+  const url = `${siteConfig.url}${path}`
 
   const overrideImage = image
-    ? [{ url: image, width: 1200, height: 630, alt: slogan }]
+    ? [{ url: image, width: 1200, height: 630, alt: siteConfig.slogan }]
     : undefined
-
-  const languageAlternates = Object.fromEntries(
-    routing.locales.map((loc: Locale) => [
-      loc === 'zh' ? 'zh-CN' : 'en',
-      localizedUrl(loc, path),
-    ]),
-  )
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -68,21 +53,16 @@ export async function buildMetadata(
     publisher: siteConfig.name,
     alternates: {
       canonical: url,
-      languages: {
-        ...languageAlternates,
-        'x-default': localizedUrl(routing.defaultLocale, path),
-      },
+      ...(hreflang ? { languages: hreflang } : {}),
     },
     openGraph: {
       type: 'website',
-      locale: localeOgMap[locale],
-      alternateLocale: routing.locales
-        .filter((l: Locale) => l !== locale)
-        .map((l: Locale) => localeOgMap[l]),
+      locale: ogLocale,
       url,
       title: fullTitle,
       description: desc,
       siteName: siteConfig.name,
+      ...(ogAlternateLocales ? { alternateLocale: ogAlternateLocales } : {}),
       ...(overrideImage ? { images: overrideImage } : {}),
     },
     twitter: {

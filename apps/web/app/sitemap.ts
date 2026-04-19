@@ -1,45 +1,50 @@
 import type { MetadataRoute } from 'next'
 import { siteConfig } from '@/lib/site'
-import { routing, type Locale } from '@/i18n/routing'
-
-function localizedUrl(locale: Locale, suffix = ''): string {
-  if (locale === routing.defaultLocale) {
-    return `${siteConfig.url}${suffix}` || siteConfig.url
-  }
-  return `${siteConfig.url}/${locale}${suffix}`
-}
-
-function buildAlternates(suffix = '') {
-  const languages = Object.fromEntries(
-    routing.locales.map((loc: Locale) => [
-      loc === 'zh' ? 'zh-CN' : 'en',
-      localizedUrl(loc, suffix),
-    ]),
-  )
-  return { languages }
-}
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
-  const sections: Array<{
-    suffix: string
-    priority: number
-    freq: 'weekly' | 'monthly'
-  }> = [
-    { suffix: '', priority: 1, freq: 'weekly' },
-    { suffix: '/#pricing', priority: 0.8, freq: 'monthly' },
-    { suffix: '/#how-it-works', priority: 0.7, freq: 'monthly' },
-    { suffix: '/#showcase', priority: 0.6, freq: 'monthly' },
-    { suffix: '/#faq', priority: 0.6, freq: 'monthly' },
-  ]
-
-  return routing.locales.flatMap((locale: Locale) =>
-    sections.map(({ suffix, priority, freq }) => ({
-      url: localizedUrl(locale, suffix),
+  return [
+    {
+      url: siteConfig.url,
       lastModified: now,
-      changeFrequency: freq,
-      priority,
-      alternates: buildAlternates(suffix),
-    })),
-  )
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    {
+      url: `${siteConfig.url}/#pricing`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${siteConfig.url}/#how-it-works`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${siteConfig.url}/#showcase`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteConfig.url}/#faq`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteConfig.url}/zh`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+      alternates: {
+        languages: {
+          en: siteConfig.url,
+          'zh-CN': `${siteConfig.url}/zh`,
+        },
+      },
+    },
+  ]
 }

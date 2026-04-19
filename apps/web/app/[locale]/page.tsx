@@ -1,6 +1,3 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server'
-import { hasLocale } from 'next-intl'
-import { notFound } from 'next/navigation'
 import { SiteNav } from '@/components/site/nav'
 import { Hero } from '@/components/site/hero'
 import { SocialProof } from '@/components/site/social-proof'
@@ -11,39 +8,24 @@ import { Pricing } from '@/components/site/pricing'
 import { Faq } from '@/components/site/faq'
 import { FinalCta } from '@/components/site/final-cta'
 import { SiteFooter } from '@/components/site/footer'
-import { getFaqItems } from '@/lib/faq'
+import { faqItems } from '@/lib/faq'
 import { faqSchema, jsonLd } from '@/lib/schema'
 import { buildMetadata } from '@/lib/seo'
-import { routing, type Locale } from '@/i18n/routing'
+import { siteConfig } from '@/lib/site'
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) return {}
-  const t = await getTranslations({ locale, namespace: 'metadata.home' })
-  return buildMetadata({
-    locale: locale as Locale,
-    title: t('title'),
-    description: t('description'),
-  })
-}
+export const metadata = buildMetadata({
+  title: 'Brand operating system for the AI era',
+  description:
+    'Forgely turns any product link into a cinematic, fully-stocked brand site — designed by AI, hosted on us, ready to sell in 5 minutes.',
+  ogAlternateLocales: ['zh_CN'],
+  hreflang: {
+    en: siteConfig.url,
+    'zh-CN': `${siteConfig.url}/zh`,
+    'x-default': siteConfig.url,
+  },
+})
 
-export default async function HomePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) {
-    notFound()
-  }
-  setRequestLocale(locale)
-
-  const faqItems = await getFaqItems(locale as Locale)
-
+export default function HomePage() {
   return (
     <>
       <SiteNav />
