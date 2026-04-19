@@ -30,6 +30,16 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.__forgelyPrisma = prisma
 }
 
+// ─── Multi-tenant middleware re-exports ────────────────────────────────────
+export {
+  attachTenantMiddleware,
+  getActiveTenant,
+  runWithBypass,
+  runWithTenant,
+  tenantExtension,
+  TENANT_MODELS,
+} from './db/tenant-middleware.js'
+
 // ─── Re-exports for downstream callers ──────────────────────────────────────
 export { Prisma } from '@prisma/client'
 export type {
