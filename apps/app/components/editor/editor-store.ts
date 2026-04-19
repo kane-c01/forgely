@@ -51,6 +51,8 @@ type EditorAction =
     }
   | { type: 'toggle-block-visible'; pageId: string; blockId: string }
   | { type: 'reorder-block'; pageId: string; blockId: string; direction: 'up' | 'down' }
+  | { type: 'move-block'; pageId: string; blockId: string; targetIndex: number }
+  | { type: 'toggle-device-hide'; pageId: string; blockId: string; device: DevicePreset }
   | { type: 'remove-block'; pageId: string; blockId: string }
   | { type: 'add-block'; pageId: string; blockType: BlockType; afterId?: string }
   | { type: 'duplicate-block'; pageId: string; blockId: string }
@@ -63,6 +65,8 @@ const MUTATING: ReadonlySet<EditorAction['type']> = new Set([
   'update-block-prop',
   'toggle-block-visible',
   'reorder-block',
+  'move-block',
+  'toggle-device-hide',
   'remove-block',
   'add-block',
   'duplicate-block',
@@ -145,6 +149,38 @@ function applyDocAction(doc: DocumentSnapshot, action: EditorAction): DocumentSn
           ;[next[idx], next[swap]] = [next[swap]!, next[idx]!]
           return { ...p, blocks: next }
         }),
+      }
+    case 'move-block':
+      return {
+        pages: doc.pages.map((p) => {
+          if (p.id !== action.pageId) return p
+          const idx = p.blocks.findIndex((b) => b.id === action.blockId)
+          if (idx < 0) return p
+          const target = Math.max(0, Math.min(p.blocks.length - 1, action.targetIndex))
+          if (target === idx) return p
+          const next = p.blocks.slice()
+          const [moved] = next.splice(idx, 1)
+          next.splice(target, 0, moved!)
+          return { ...p, blocks: next }
+        }),
+      }
+    case 'toggle-device-hide':
+      return {
+        pages: doc.pages.map((p) =>
+          p.id === action.pageId
+            ? {
+                ...p,
+                blocks: p.blocks.map((b) => {
+                  if (b.id !== action.blockId) return b
+                  const hidden = (b.props.hideOn as DevicePreset[] | undefined) ?? []
+                  const next = hidden.includes(action.device)
+                    ? hidden.filter((d) => d !== action.device)
+                    : [...hidden, action.device]
+                  return { ...b, props: { ...b.props, hideOn: next } }
+                }),
+              }
+            : p,
+        ),
       }
     case 'remove-block':
       return {
@@ -267,6 +303,8 @@ interface EditorContextValue {
   updateBlockProp: (blockId: string, key: string, value: unknown) => void
   toggleBlockVisible: (blockId: string) => void
   reorderBlock: (blockId: string, direction: 'up' | 'down') => void
+  moveBlock: (blockId: string, targetIndex: number) => void
+  toggleDeviceHide: (blockId: string, device: DevicePreset) => void
   removeBlock: (blockId: string) => void
   addBlock: (blockType: BlockType, afterId?: string) => void
   duplicateBlock: (blockId: string) => void
@@ -326,6 +364,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'toggle-block-visible', pageId: activePage.id, blockId }),
       reorderBlock: (blockId, direction) =>
         dispatch({ type: 'reorder-block', pageId: activePage.id, blockId, direction }),
+      moveBlock: (blockId, targetIndex) =>
+        dispatch({ type: 'move-block', pageId: activePage.id, blockId, targetIndex }),
+      toggleDeviceHide: (blockId, device) =>
+        dispatch({ type: 'toggle-device-hide', pageId: activePage.id, blockId, device }),
       removeBlock: (blockId) => dispatch({ type: 'remove-block', pageId: activePage.id, blockId }),
       addBlock: (blockType, afterId) =>
         dispatch({ type: 'add-block', pageId: activePage.id, blockType, afterId }),

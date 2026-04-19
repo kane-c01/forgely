@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
 import { Field, Input, Textarea } from '@/components/ui/input'
 import { useCopilot } from '@/components/copilot/copilot-provider'
-import type { ThemeBlock } from '@/lib/types'
+import { cn } from '@/lib/cn'
+import type { DevicePreset, ThemeBlock } from '@/lib/types'
 
 import { EditorAIChat } from './editor-ai-chat'
 import { VersionHistory } from './version-history'
@@ -13,12 +14,12 @@ import { VersionHistory } from './version-history'
 export function PropertiesPanel() {
   const editor = useEditor()
   return (
-    <aside className="flex h-full w-[360px] shrink-0 flex-col border-l border-border-subtle bg-bg-deep">
-      <div className="border-b border-border-subtle px-4 py-3">
-        <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+    <aside className="border-border-subtle bg-bg-deep flex h-full w-[360px] shrink-0 flex-col border-l">
+      <div className="border-border-subtle border-b px-4 py-3">
+        <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
           {editor.selectedBlock ? 'Selected block' : 'No selection'}
         </p>
-        <p className="mt-1 font-heading text-h3 text-text-primary">
+        <p className="font-heading text-h3 text-text-primary mt-1">
           {editor.selectedBlock
             ? prettyBlockName(editor.selectedBlock)
             : 'Click a block to edit it'}
@@ -47,6 +48,7 @@ function BlockInspector({ block }: { block: ThemeBlock }) {
   const editor = useEditor()
   const copilot = useCopilot()
   const set = (k: string, v: unknown) => editor.updateBlockProp(block.id, k, v)
+  const hideOn = (block.props.hideOn as DevicePreset[] | undefined) ?? []
 
   const fieldsByType: Record<string, () => React.ReactNode> = {
     hero: () => (
@@ -83,7 +85,7 @@ function BlockInspector({ block }: { block: ThemeBlock }) {
         </Field>
         <Field label="Alignment">
           <select
-            className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none"
+            className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none"
             value={(block.props.alignment as string) ?? 'left'}
             onChange={(e) => set('alignment', e.target.value)}
           >
@@ -94,7 +96,7 @@ function BlockInspector({ block }: { block: ThemeBlock }) {
         </Field>
         <Field label="Intensity">
           <select
-            className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none"
+            className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none"
             value={(block.props.intensity as string) ?? 'cinematic'}
             onChange={(e) => set('intensity', e.target.value)}
           >
@@ -193,15 +195,45 @@ function BlockInspector({ block }: { block: ThemeBlock }) {
     ),
   }
 
-  const renderFields = fieldsByType[block.type] ?? (() => (
-    <p className="text-small text-text-muted">No properties available.</p>
-  ))
+  const renderFields =
+    fieldsByType[block.type] ??
+    (() => <p className="text-small text-text-muted">No properties available.</p>)
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Per-device visibility */}
+      <div className="border-border-subtle bg-bg-surface rounded-md border p-3">
+        <p className="text-caption text-text-muted mb-2 inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.12em]">
+          <Icon.Eye size={12} /> Show on
+        </p>
+        <div className="flex items-center gap-1.5">
+          {(['desktop', 'tablet', 'mobile'] as DevicePreset[]).map((d) => {
+            const I = d === 'desktop' ? Icon.Desktop : d === 'tablet' ? Icon.Tablet : Icon.Mobile
+            const visible = !hideOn.includes(d)
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => editor.toggleDeviceHide(block.id, d)}
+                aria-pressed={visible}
+                className={cn(
+                  'text-caption inline-flex flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1.5 font-mono uppercase tracking-[0.12em] transition-colors',
+                  visible
+                    ? 'border-forge-orange/40 bg-bg-elevated text-forge-amber'
+                    : 'border-border-subtle bg-bg-deep text-text-muted hover:text-text-secondary',
+                )}
+              >
+                <I size={12} />
+                {d[0]}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {renderFields()}
-      <div className="rounded-md border border-forge-orange/20 bg-bg-surface p-3">
-        <p className="mb-2 inline-flex items-center gap-1.5 font-mono text-caption uppercase tracking-[0.12em] text-forge-amber">
+      <div className="border-forge-orange/20 bg-bg-surface rounded-md border p-3">
+        <p className="text-caption text-forge-amber mb-2 inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.12em]">
           <Icon.Sparkle size={12} /> Ask Copilot to edit this block
         </p>
         <Button
