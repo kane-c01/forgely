@@ -4,6 +4,10 @@ import { Inter, Fraunces, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { buildMetadata } from '@/lib/seo'
 import { jsonLd, organizationSchema, softwareApplicationSchema } from '@/lib/schema'
+import { ConsentProvider } from '@/components/consent/consent-provider'
+import { CookieConsent } from '@/components/consent/cookie-consent'
+import { PlausibleAnalytics } from '@/components/analytics/plausible'
+import { WebVitalsReporter } from '@/components/analytics/web-vitals-reporter'
 import './globals.css'
 
 const fontBody = Inter({
@@ -57,18 +61,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-bg-void text-text-primary font-body antialiased">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-forge-orange focus:px-4 focus:py-2 focus:text-bg-void"
+          className="focus:bg-forge-orange focus:text-bg-void sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:px-4 focus:py-2"
         >
           Skip to content
         </a>
-        {children}
+        <ConsentProvider>
+          {children}
+          <CookieConsent />
+          <PlausibleAnalytics />
+          <WebVitalsReporter />
+        </ConsentProvider>
         <Toaster
           position="bottom-right"
           theme="dark"
           toastOptions={{
             classNames: {
-              toast:
-                'bg-bg-elevated border border-border-strong text-text-primary',
+              toast: 'bg-bg-elevated border border-border-strong text-text-primary',
             },
           }}
         />
