@@ -9,7 +9,7 @@
 
 import { z } from 'zod'
 
-import { recordAuthAudit } from '../auth/audit.js'
+import { recordAudit } from '../auth/audit.js'
 import { assertFoundAndOwned, ownedScopeWhere } from '../auth/index.js'
 import { errors } from '../errors.js'
 
@@ -141,13 +141,16 @@ export const sitesRouter = router({
         data: { deletedAt: new Date(), status: 'suspended' },
       })
 
-      await recordAuthAudit({
+      await recordAudit({
         actorId: ctx.user.id,
-        action: 'auth.signout', // placeholder — replaced by 'sites.archive' once T26 expands the action enum
+        action: 'sites.archive',
         targetType: 'site',
         targetId: site.id,
         before: { status: site.status },
+        after: { status: 'suspended', deletedAt: new Date().toISOString() },
         reason: input.reason,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
       })
 
       return { id: site.id, archivedAt: new Date() }

@@ -19,6 +19,7 @@ import { mediaRouter } from './media.js'
 import { ordersRouter } from './orders.js'
 import { productsRouter } from './products.js'
 import { sitesRouter } from './sites.js'
+import { superCreditsRouter, superFinanceRouter } from './super-finance.js'
 
 export const tenantRouters = router({
   sites: sitesRouter,
@@ -42,4 +43,6 @@ export {
   ordersRouter,
   productsRouter,
   sitesRouter,
+  superCreditsRouter,
+  superFinanceRouter,
 }
