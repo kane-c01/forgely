@@ -5,21 +5,40 @@
 > 协作话术：[`docs/AI-DEV-GUIDE.md`](docs/AI-DEV-GUIDE.md)
 > GitHub 仓库：<https://github.com/kane-c01/forgely>
 
-## 中国市场 Pivot（2026-04-19，commit `09877af`）
+## Pivot：中国 B 端用户运营海外品牌站（2026-04-19，commit `09877af` / `472b2c6`）
+
+> **关键定位**：付费用户来自中国（用微信付月费），生成的独立站给海外消费者用（用 Stripe 收 USD）。两层完全独立。详见 [`docs/PIVOT-CN.md`](docs/PIVOT-CN.md)。
+
+### Forgely 平台层（中国 B 端付费用户 — Forgely 自己收钱的部分）
 
 | 模块 | 落地 |
 |---|---|
 | **微信扫码登录** | `services/api/src/auth/wechat.ts` + tRPC `cnAuthRouter.wechatAuthorizeUrl/wechatCallback` |
 | **手机号 OTP** | `services/api/src/auth/sms-otp.ts` + 阿里云/腾讯云 SMS 双通道 + `loginWithPhoneOtp` |
 | Schema | `User.phoneE164/phoneVerifiedAt/wechatUnionId/region/locale` + 新表 `WechatAccount` `PhoneOtp` |
-| **DeepSeek Provider** | `packages/ai-agents/src/providers/deepseek.ts`（chat / coder / vl 视觉） |
-| **Qwen Provider** | `packages/ai-agents/src/providers/qwen.ts`（max / plus / turbo + qwen-vl） |
-| 区域路由 | `resolveProvider({ region: 'cn' })` 自动 DeepSeek > Qwen > Anthropic 回退 |
-| **微信支付 V3** | `services/api/src/payments/wechat.ts`（Native / JSAPI / H5 / App / Mini） |
-| **支付宝 OpenAPI** | `services/api/src/payments/alipay.ts`（PC / Wap / App / 扫码 + webhook 验签） |
-| **1688 Scraper** | `packages/scraper/src/adapters/1688.ts` |
-| **Taobao/Tmall Scraper** | `packages/scraper/src/adapters/taobao.ts` |
-| **i18n 中文 marketing** | W5：`apps/web/app/[locale]/` + `messages/zh-CN.json` + locale-switcher（`e01c2ea`） |
+| **微信支付 V3 收订阅** | `services/api/src/payments/wechat.ts`（Native / JSAPI / H5 / App / Mini） |
+| **支付宝收订阅** | `services/api/src/payments/alipay.ts`（PC / Wap / App / 扫码 + webhook 验签） |
+| **B 端中文 UI** | W5：`apps/web/app/[locale]/` + `messages/zh-CN.json` + locale-switcher（`e01c2ea`） |
+| **服务端 LLM**（国内部署） | DeepSeek 主 + Qwen 备 — `resolveProvider({ region: 'cn' })` |
+
+### 用户生成的独立站层（站给海外消费者 — 用户自己收钱的部分）
+
+| 模块 | 现状 |
+|---|---|
+| 站点默认语言 | **英文**（W5 已经做）+ 多语言（i18n W5 在路由层支持） |
+| 站点收款 | **Stripe + PayPal**（Stripe Connect 待加，让用户 OAuth 授权 Forgely 替代他下单） |
+| 站点合规 | **FTC / FDA / CPSIA / GDPR / Prop65 / COPPA** — `packages/compliance/src/rules/regional/*` ✓（W8 80%）|
+| 站点托管 | **Cloudflare Pages**（保留 v1.2 决策） |
+| 站点 SEO | Google + Bing + Perplexity（保留 v1.2 决策） |
+| 站点 LLM 文案 | Claude Sonnet 4 + Kling 2.0 + Flux + Meshy（海外节点 / 服务端按 region 选）|
+
+### 跨两层共用（中国老板的核心使用场景）
+
+| 模块 | 落地 |
+|---|---|
+| **DeepSeek + Qwen Provider** | 国内服务端用，省 API 成本 + 国内访问稳 |
+| **1688 Scraper** | 中国老板把自己 1688 工厂源货搬到海外独立站 — `adapters/1688.ts` |
+| **Taobao/Tmall Scraper** | 已有 Tmall 旗舰店，复刻海外版 — `adapters/taobao.ts` |
 
 ---
 

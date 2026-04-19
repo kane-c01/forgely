@@ -1,21 +1,39 @@
-# Forgely 中国市场 Pivot 决策（v2.0 中国版）
+# Forgely 中国 B 端用户运营海外品牌站 Pivot（v2.0）
 
-> **决策日期**：2026-04-19
-> **状态**：锁定（覆盖 docs/MASTER.md v1.2 FINAL 中"欧美市场"决策）
-> **执行优先级**：所有窗口（W1-W10）从 Sprint 2 起按本文档执行
+> **决策日期**：2026-04-19（2026-04-19 重订正）
+> **状态**：锁定
+> **核心定位**：付费用户（B 端）来自中国，生成的独立站面向海外（欧美 DTC）消费者
 
-## 1. 产品定位调整
+## 0. 关键定位（必读）
 
-| 维度 | v1.2 FINAL（旧） | v2.0 中国版（新） |
+**两层完全分离的产品**：
+
+| 层 | 给谁用 | 语言 | 登录 | 收款 | 合规 | LLM | 部署 |
+|---|---|---|---|---|---|---|---|
+| **Forgely 平台**（forgely.cn / app.forgely.cn — B 端工具） | **中国 B 端付费用户**（工厂主/品牌主/出海卖家） | **中文** | **微信扫码 / 手机号 OTP** | **微信支付 / 支付宝**（Forgely 月费订阅） | 国内：广告法 / 个保法 / 电商法 | DeepSeek / Qwen（成本 + 稳定） | 阿里云 / 腾讯云国内节点 |
+| **用户生成的独立站**（toybloom.forgely.app / 自定义域 — C 端店铺） | **海外终端消费者**（US/EU/UK/CA） | **英文优先** + 多语言 | 标准 email / Google OAuth | **Stripe + PayPal**（用户店铺收款） | **FTC / FDA / CPSIA / GDPR / DSA / Prop65**（站点目标受众的法规） | Claude Sonnet 4 + Kling 2.0 + Flux + Meshy | **Cloudflare Pages + Workers + R2** |
+
+**核心 Persona**：
+- **A（中国工厂出海）** ← 主力，70% 流量预期：中国珠三角 / 长三角工厂主，想做自己的欧美品牌但英文差、不会做站、不懂海外审美和合规。Forgely 帮他们用中文操作、生成英文电商站、部署在 Cloudflare 卖给老外、用 Stripe 收美元。
+- **B（中国新锐 DTC 出海）**：美妆 / 玩具 / 家居 / 服饰品牌，已经有产品但卡在"做不出 BIOLOGICA / Aesop 那种站"。
+
+**不做**：
+- ❌ 给国内 C 端消费者卖货的站（天猫 / 拼多多 / 抖店生态）
+- ❌ 微信小程序商城（不在 Cloudflare Pages 范围）
+
+---
+
+## 1. 用户语言：B 端中文 / 站点英文
+
+| 维度 | Forgely 平台 | 用户生成的独立站 |
 |---|---|---|
-| 主目标市场 | 欧美（US + EU + UK + CA） | **中国大陆**（一线 + 新一线品牌方） |
-| 用户语言 | 英文优先 | **中文优先**（i18n 仍保留英文，便于跨境品牌） |
-| 出海版仍存在？ | — | 是（用户后台可一键切换"国内站 / 海外站"，海外站走原 v1.2 链路） |
-| 核心 Persona | A（中国工厂出海）+ C（欧美 DTC） | **A（中国工厂出海，但站点同时上国内 + 海外）** + 新增 D（国内新锐 DTC 品牌） |
+| 默认 UI 语言 | **`zh-CN` 简体中文** | **`en` 英文** |
+| 备选 | `en`（让外籍合伙人 / Agency 用） | `de` / `fr` / `es` / `pt` 等海外多语 |
+| 客服 / 文档 | 中文为主 | 英文为主 |
 
-## 2. 登录与身份
+## 2. 登录与身份（**仅 Forgely 平台 = B 端**）
 
-**完全替换** v1.2 的 `Email/Password + Google OAuth` 方案：
+> 这层只影响**中国 B 端用户登录 Forgely 后台**。用户**生成的独立站**给海外消费者用，仍是标准 email / Google OAuth + Apple ID（沿用 W3/W6 已实现）。
 
 | 方式 | 优先级 | 实现 | 服务商 |
 |---|---|---|---|
@@ -32,17 +50,29 @@
 
 **审计**：保留 W3 实现的 LoginEvent + AuditLog，新增 `provider` 字段记录 `wechat` / `phone` / `email`。
 
-## 3. 支付层
+## 3. 支付层 — **两层完全独立的支付**
 
-**双轨并行**（用户后台可勾选启用哪些）：
+### 3.1 Forgely 平台收 B 端订阅 / 积分（中国 B 端用户付月费）
 
-| 渠道 | 用途 | 实现 |
+| 渠道 | 优先级 | 实现 |
 |---|---|---|
-| **微信支付（JSAPI / Native / H5）** | P0，国内主用 | 微信支付 V3 API，独立 SDK |
-| **支付宝（PC / Wap / App）** | P0，国内主用 | 支付宝开放平台 V3 API |
-| **银联云闪付** | P2 | 银联开放平台 |
-| Stripe | P1，海外站继续用 | 沿用 W3 已实现的 Stripe 链路 |
-| NOWPayments（crypto） | P2 | 沿用 |
+| **微信支付（JSAPI / Native / H5）** | P0 | `services/api/src/payments/wechat.ts` |
+| **支付宝（PC / Wap / App）** | P0 | `services/api/src/payments/alipay.ts` |
+| 银联云闪付 | P2 | TBD |
+| Stripe / PayPal | 备用（接外籍 Agency 客户） | 沿用 W3 已实现 |
+
+**计费货币**：Forgely 平台月费 / 积分包 = **CNY**（外籍客户可切 USD）
+
+### 3.2 用户独立站收 C 端货款（海外消费者刷信用卡）
+
+| 渠道 | 优先级 | 实现 |
+|---|---|---|
+| **Stripe Connect**（推荐，分账）| P0 | 用户在 Forgely 后台 OAuth 授权 → 走 Stripe Connect 模式，平台抽成可选 |
+| **PayPal** | P0 | 沿用 |
+| **Apple Pay / Google Pay** | P0 | Stripe 内置 |
+| **NOWPayments（crypto）** | P1 | 沿用 |
+
+**计费货币**：用户店铺默认 **USD**，可设 EUR / GBP / CAD 等
 
 **自研模块**：`services/api/src/payments/{wechat,alipay,unionpay}.ts`，统一接口 `PaymentProvider`：
 ```ts
@@ -55,19 +85,19 @@ interface PaymentProvider {
 
 **计费货币**：默认 CNY（人民币），跨境站可切 USD。
 
-## 4. AI / LLM 层
+## 4. AI / LLM 层 — **服务端按部署区域选**
 
-**Claude 在国内访问不稳**，新增国内 LLM Provider，走同一 `LlmProvider` 接口：
+> 这层与"站点 / 平台"无关，是**服务端调用 LLM 时**的物流选择。Forgely 服务端在国内部署 → 走国内 LLM 减少延迟 + 成本；海外部署 → 走 Claude。
 
-| Provider | 用途 | 模型 |
-|---|---|---|
-| **DeepSeek** | P0，主力推理 | `deepseek-chat` / `deepseek-coder` / `deepseek-vl`（视觉） |
-| **通义千问（Qwen）** | P0，主力推理 + 视觉 | `qwen-max` / `qwen-vl-max` |
-| Kimi（Moonshot） | P1 | `moonshot-v1-128k`（长上下文） |
-| 智谱 GLM | P1 | `glm-4` / `glm-4v` |
-| Claude（海外通道） | 跨境站继续 | 沿用 |
+| Provider | 用途 | 模型 | 何时用 |
+|---|---|---|---|
+| **DeepSeek** | P0 国内默认 | `deepseek-chat` / `coder` / `vl`（视觉） | 服务端 deploy 在中国 → 主用 |
+| **通义千问（Qwen）** | P0 国内备份 | `qwen-max` / `qwen-vl-max` | DeepSeek 限流时切 |
+| **Claude Sonnet 4 / Opus 4** | P0 海外默认 | `claude-sonnet-4` / `opus-4` | 服务端 deploy 在 Cloudflare/Vercel 海外 → 主用，质量最佳 |
+| Kimi（Moonshot） | P1 | `moonshot-v1-128k` | 长上下文场景 |
+| 智谱 GLM | P1 | `glm-4` / `glm-4v` | 备份 |
 
-**provider 解析**：环境变量 `FORGELY_LLM_REGION=cn`（默认走 DeepSeek/Qwen），`=global` 走 Claude。
+**provider 解析**：`FORGELY_LLM_REGION=cn`（默认走 DeepSeek/Qwen），`=global`（走 Claude）。**生成的独立站质量完全不受影响**——给海外消费者看的英文文案、视频 prompt 都来自统一 `LlmProvider` 接口。
 
 ## 5. 视频 / 图像生成
 
@@ -77,86 +107,120 @@ interface PaymentProvider {
 | 图像 | Flux 1.1 Pro + Ideogram 3.0 | 通义万相 / Recraft / Flux（保留） |
 | 3D | Meshy + Tripo | Meshy（保留） + Vega3D |
 
-## 6. 部署 / CDN / 存储
+## 6. 部署 / CDN / 存储 — **两层不同**
 
-**Cloudflare Pages 在中国不稳**，迁到国内 PaaS：
+### 6.1 Forgely 平台基础设施（B 端付费用户在国内访问）
 
-| 层 | 旧 | 新 |
+| 层 | 实现 |
+|---|---|
+| 前端托管（forgely.cn / app.forgely.cn） | **Vercel 中国节点 + EdgeOne**（腾讯云 CDN，备 ICP）/ 阿里云 OSS+CDN |
+| Workers / Edge | 腾讯云 SCF / 阿里云 FC |
+| 对象存储（用户上传素材） | **阿里云 OSS**（国内访问快） |
+| Redis | 阿里云 Redis 标准版 |
+| Postgres | **阿里云 PolarDB-PG** |
+| 邮件（B 端通知） | 阿里云邮件推送 + 短信 OTP |
+| 监控 | Sentry + 神策 |
+| ICP 备案 | forgely.cn 平台域名必备 |
+
+### 6.2 用户独立站基础设施（站点给海外消费者访问）
+
+| 层 | 实现 |
+|---|---|
+| 前端托管 | **Cloudflare Pages**（保留 v1.2 决策，全球 200+ 节点） |
+| Workers / Edge | **Cloudflare Workers** |
+| 对象存储 | **Cloudflare R2**（同区域低延迟） |
+| 域名 | `*.forgely.app` 通配符 + 用户绑定自定义海外域名 |
+| 监控 | Sentry + Plausible（GDPR 友好） |
+| ICP 备案 | **不需要**（站点不在中国，托管在 Cloudflare）|
+
+## 7. 爬虫源站（**核心场景：中国老板抓自己/竞品的源 SKU 重建海外独立站**）
+
+W4 已完成 6 adapter（Shopify/WooCommerce/Amazon/AliExpress/Etsy/GenericAI），新增以下 P0 是因为**中国 B 端用户最常见的输入是这些**：
+
+| 平台 | 优先级 | 用途 | 实现 |
+|---|---|---|---|
+| **1688** | P0 | 工厂主把自己的 1688 店铺源货搬到海外独立站 | `packages/scraper/src/adapters/1688.ts` ✓ |
+| **Taobao / 天猫** | P0 | 国内已有 Tmall 旗舰店，要复刻一个海外版 | `taobao.ts` ✓ |
+| **京东** | P1 | 同上 | TBD（W4 T28 路线）|
+| Shopify | 已有 | 已经有 Shopify 想换 Forgely | `shopify.ts` ✓ |
+| Amazon | 已有 | 抓竞品 listing 找差异化 | `amazon.ts` ✓ |
+| AliExpress | 已有 | 国内 / 海外都用 | `aliexpress.ts` ✓ |
+| Etsy | 已有 | 手作类源站 | `etsy.ts` ✓ |
+| **抖店 / 快手小店** | P2 | 需要 OAuth，优先级低于 1688/Tmall | TBD |
+| **Shopee** | P2 | 东南亚出海 | TBD |
+
+## 8. 合规层 — **两层独立**
+
+### 8.1 Forgely 平台对中国 B 端用户的合规
+
+| 法规 | 适用 | 用途 |
 |---|---|---|
-| 前端托管 | Cloudflare Pages | **Vercel 中国节点 + EdgeOne**（腾讯云 CDN，备 ICP）/ 阿里云 OSS+CDN |
-| Workers / Edge | Cloudflare Workers | 腾讯云 SCF / 阿里云 FC |
-| 对象存储 | Cloudflare R2 | **阿里云 OSS** / 腾讯云 COS |
-| Redis | Upstash | 阿里云 Redis 标准版 |
-| Postgres | Neon / Supabase | **阿里云 PolarDB-PG** / 腾讯云 PostgreSQL |
-| 邮件 | Resend | 阿里云邮件推送（v1）+ 短信 OTP（主） |
-| 监控 | Sentry / PostHog | Sentry（保留）/ 神策 / 友盟+ |
+| **《电子商务法》** | 平台经营者 | 平台资质 / 实名 |
+| **《个人信息保护法》（PIPL）** | 必须 | 中文隐私政策 + Cookie banner |
+| **《广告法》** | 平台对外宣传 | "最佳/国家级"绝对化用语自检 |
+| **ICP 备案** | 平台域名 | forgely.cn 必备案 |
 
-**ICP 备案**：用户绑定自定义域名时，需引导完成 ICP 备案（提供阿里云/腾讯云一键备案链接）。
+### 8.2 用户独立站对海外 C 端消费者的合规（**Compliance Agent 主体**）
 
-## 7. 爬虫源站（Sprint 2 重点）
+> 这是 W8 已经实现的 `packages/compliance` 主战场，沿用原 v1.2 决策。
 
-W4 已完成 6 adapter，新增 P0：
-
-| 平台 | 优先级 | 实现 |
+| 法规 | 地区 | 实现 |
 |---|---|---|
-| **1688** | P0 | Playwright + 已抓的部分（`packages/scraper/src/adapters/aliexpress.ts` 复用） |
-| **Taobao / 天猫** | P0 | Playwright + 国内代理池 |
-| **京东** | P1 | Browse API 部分公开 + 爬虫 |
-| **拼多多** | P2 | 反爬最重，最后做 |
-| **抖店 / 快手小店** | P2 | OAuth API |
-| Shopline | 已有部分（W4），保持 |
-| Shopee（东南亚出海） | P2 | 跨境用 |
+| **FTC** 广告诚实 | 🇺🇸 | `packages/compliance/src/rules/regional/ftc.ts` ✓ |
+| **FDA** 保健品 / 化妆品 | 🇺🇸 | `fda.ts` ✓ |
+| **CPSIA** 儿童用品安全 | 🇺🇸 | `cpsia.ts` ✓ |
+| **CA Prop 65** 化学物质警告 | 🇺🇸 | `prop65.ts` ✓ |
+| **COPPA** 儿童隐私 | 🇺🇸 | `coppa.ts` ✓ |
+| **GDPR** 数据保护 | 🇪🇺 | `gdpr.ts` ✓ |
+| **DSA** 数字服务法 | 🇪🇺 | TBD（W8） |
+| **CE 标志** | 🇪🇺 | TBD（W8） |
+| **ASA** 广告标准 | 🇬🇧 | TBD（W8） |
+| **CASL** 反垃圾邮件 | 🇨🇦 | TBD（W8） |
 
-## 8. 合规层
+## 9. SEO / GEO — **用户独立站走海外搜索**
 
-**完全替换** v1.2 的 FTC/FDA/GDPR 规则：
-
-| 法规 | 适用 | 实现 |
+| 维度 | 用户独立站（海外） | Forgely 平台官网（B 端） |
 |---|---|---|
-| **《中华人民共和国电子商务法》** | 必须 | `packages/compliance/src/rules/regional/cn-ecommerce.ts` |
-| **《个人信息保护法》（PIPL）** | 必须 | `cn-pipl.ts` — 隐私政策模板 + Cookie banner 中文 |
-| **《广告法》** | 必须 | `cn-advertising.ts` — 禁用"最佳/第一/国家级"等绝对化用语 |
-| **《消费者权益保护法》** | 必须 | `cn-consumer.ts` — 7 天无理由退货、三包条款 |
-| **《网络安全法》/ 等保 2.0** | P1 | 数据本地化、日志保留 6 月+ |
-| 行业特殊：保健品 / 化妆品 / 儿童 | 必须 | `category/cn-{health,cosmetics,kids}.ts` |
-| 跨境海外站 | 保留 | 走原 v1.2 FTC/FDA/GDPR/CPSIA 链路 |
+| 主搜索 | **Google + Bing + Perplexity + ChatGPT 答疑** | 百度 + 微信指数 + 知乎 |
+| 关键词工具 | DataForSEO（保留 W8 实现） | 5118 + 百度统计 |
+| Schema.org JSON-LD | ✅ 必须 | ✅ 必须 |
+| sitemap.xml | ✅ 自动生成（W8 T30） | ✅ |
+| `llms.txt` / `llms-full.txt` | ✅ 必须 | ✅ |
+| 海外结构化数据 | Product / Review / FAQPage 等 | SoftwareApplication / Organization |
 
-## 9. SEO / GEO
+## 10. UI 文案与 i18n — **两层不同**
 
-| 维度 | 旧 | 新 |
-|---|---|---|
-| 主搜索 | Google + 答疑 AI（Perplexity 等） | **百度 + 必应中国 + 神马**（移动）+ DeepSeek/Kimi/豆包 |
-| 关键词工具 | DataForSEO | **百度统计 + 5118 + 站长平台 API** |
-| Schema.org | 保留 | 保留（百度也支持 JSON-LD） |
-| sitemap | 保留 | 保留（提交到百度站长平台） |
-| `llms.txt` / `llms-full.txt` | 保留 | 保留（中文 LLM 也读） |
+### 10.1 Forgely 平台（apps/web 官网 + apps/app 后台）
 
-## 10. UI 文案与 i18n
+W5 已经启动 i18n 框架（`apps/web/i18n/` + `[locale]` 路由 + locale-switcher）。
 
-W5 已经启动 i18n 框架（`apps/web/i18n/` + `[locale]` 路由 + locale-switcher）。Sprint 2 任务：
-
-- 默认语言：`zh-CN`
-- 备选语言：`en` / `zh-HK` / `zh-TW`（跨境站用）
-- 所有文案抽到 `apps/web/messages/zh-CN.json` 和 `messages/en.json`
-- 字体：中文用 `Noto Sans SC` + `Source Han Sans`（包含商用授权）
+- **默认语言：`zh-CN` 简体中文**
+- 备选：`en`（让外籍合伙人 / Agency 用）
+- 字体：中文用 `Noto Sans SC` + `Source Han Sans`（含商用授权）
 - 用户后台 (`apps/app`) 同步加 i18n（W6 任务）
 
-## 11. 商业模式 / 定价
+### 10.2 用户生成的独立站 (apps/storefront 模板)
 
-| 项 | 旧 | 新（中国版） |
+- **默认语言：`en` 英文**
+- 备选：`de` / `fr` / `es` / `pt` / `ja` / `it` 等（用户在后台勾选启用）
+- 字体：英文用 Inter / Fraunces / Inter Display（已配）
+- AI 一键翻译（Copywriter Agent T15 — 已实现 locale-aware）
+
+## 11. Forgely 平台对中国 B 端用户的定价
+
+| 项 | 旧 USD | 新（人民币 CNY） |
 |---|---|---|
-| 货币 | USD | **CNY** |
-| Free | $0 | ¥0 — 同条件 |
-| Starter | $29/月 | **¥199/月**（≈ Starter 海外的 7 折，国内付费意愿） |
-| Pro（主力） | $99/月 | **¥599/月** |
-| Agency | $299/月 | **¥1,999/月** |
+| Free | $0 | ¥0 — 1 个 .forgely.app 子域 + 水印 |
+| Starter | $29/月 | **¥199/月**（≈ 1 个 EUR/USD 海外站 + 1500 积分） |
+| Pro（主力） | $99/月 | **¥599/月**（≈ 5 个海外站 + 6000 积分 + 3D + 代码导出） |
+| Agency | $299/月 | **¥1,999/月**（无限站 + 25000 积分 + 白标） |
 | Enterprise | $2,000+/月 | **¥10,000+/月**（按需报价） |
 | 积分包 Mini | $5/500 | **¥39/500** |
 | 积分包 Standard | $20/2,800 | **¥149/2,800** |
 | 一次性服务 Code Export | $499 | **¥2,999** |
 | 一次性服务 DFY Launch | $1,999 | **¥12,800** |
 
-跨境用户（海外站）继续走 USD 定价，Stripe 收款。
+**注**：定价是 Forgely 平台对**中国 B 端用户**收的钱（用微信支付/支付宝结算）。**用户独立站对海外 C 端消费者收的钱**（USD/EUR）走 Stripe Connect，平台可选抽成 0%/1%（订阅版）或更高（白牌）。
 
 ## 12. 优先级 / 路线图（Sprint 2-4）
 
