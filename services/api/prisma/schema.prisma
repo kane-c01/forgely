@@ -898,3 +898,89 @@ model GenerationStep {
   @@index([generationId, ordinal])
   @@index([status, startedAt])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  W7 Sprint 3 — super-admin enrichment models
+//  Added by W7 (T26 / Sprint 3) for the /super console.
+//  Migration: run `pnpm prisma:migrate` (W3 owns the migration commit).
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Time-boxed impersonation grant. The super-admin requests one; the
+/// target user must approve it before a JWT can be issued. The ticket
+/// (and the JWT) expire 30 minutes after creation.
+///
+/// Lifecycle:  awaiting_user → granted | denied | expired | consumed
+model LoginAsTicket {
+  id              String    @id @default(cuid())
+  /// super-admin who initiated the request.
+  requestedBy     String
+  /// user being impersonated.
+  targetUserId    String
+  /// awaiting_user | granted | denied | expired | consumed
+  status          String    @default("awaiting_user")
+  reason          String    @db.Text
+  /// Hash of the impersonation JWT — for revocation. We never store the
+  /// raw token. Populated after the target user grants access.
+  jwtHash         String?
+  ipAddress       String?
+  userAgent       String?   @db.Text
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  decidedAt       DateTime?
+  consumedAt      DateTime?
+
+  @@index([requestedBy, createdAt])
+  @@index([targetUserId, status])
+  @@index([status, expiresAt])
+}
+
+/// Outbound email campaign launched from /super/marketing.
+/// Provider can be Klaviyo, Mailchimp, Resend, or "internal" SMTP.
+model EmailCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  /// klaviyo | mailchimp | resend | internal
+  provider    String    @default("resend")
+  /// draft | queued | sending | sent | failed | scheduled
+  status      String    @default("draft")
+  subject     String
+  /// Body in MJML / Markdown / HTML — provider determines the renderer.
+  body        String    @db.Text
+  /// Audience targeting in JSON (segment id, plan filter, country, etc.).
+  audience    Json
+  /// Estimated audience size at last preview.
+  audienceSize Int      @default(0)
+  /// `delivered`, `opens`, `clicks`, `bounces`, `unsubscribes`.
+  stats       Json?
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([provider, status])
+}
+
+/// Direct push (web push, in-app, optional WeChat / Mini-App template
+/// message). Distinct from EmailCampaign because the lifecycle and
+/// per-channel quotas differ.
+model PushBroadcast {
+  id          String    @id @default(cuid())
+  /// webpush | inapp | wechat_template | system_banner
+  channel     String
+  title       String
+  body        String    @db.Text
+  /// JSON segment definition.
+  audience    Json
+  audienceSize Int      @default(0)
+  /// queued | sending | sent | failed
+  status      String    @default("queued")
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  @@index([status, scheduledAt])
+  @@index([channel, status])
+}

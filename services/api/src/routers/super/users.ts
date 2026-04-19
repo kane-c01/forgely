@@ -1,36 +1,46 @@
 /**
  * /super > Users tRPC sub-router.
  *
- * Depends on (provided by W3):
- *   - `superAdminProcedure` from `../../trpc`
- *     (a procedure that already enforces `session.role === 'super_admin'`
- *      and exposes `ctx.prisma`, `ctx.session`, `ctx.request`)
- *   - `router` factory from `../../trpc`
+ * Combines four concerns:
  *
- * Until those land, the imports below are flagged as "unresolved" by the
- * IDE but will compile cleanly the moment T06 wires them up.
+ *   1. List + detail of platform users
+ *   2. Suspend / unsuspend (soft-delete via `deletedAt`)
+ *   3. Grant credits (writes both `UserCredits` and a `CreditTransaction`)
+ *   4. Login-as-User flow (request → user-decide → super-admin-consume,
+ *      30-minute JWT lifecycle, see `./_login-as.ts`)
+ *
+ * Every mutation records to `AuditLog` through `recordAudit()`.
  */
 
-import { router, superAdminProcedure } from '../../trpc'
 import { TRPCError } from '@trpc/server'
-import { assertCan } from './_acl'
-import { recordAudit, SUPER_ACTIONS } from './_audit-log'
+
+import { protectedProcedure, router, superAdminProcedure } from '../../router/trpc.js'
+import { assertCan } from './_acl.js'
+import { recordAudit, SUPER_ACTIONS } from './_audit-log.js'
 import {
+  consumeLoginAsTicket,
+  createLoginAsTicket,
+  resolveLoginAsTicket,
+  type LoginAsPrismaShim,
+} from './_login-as.js'
+import {
+  consumeLoginAsTicketInput,
   grantCreditsInput,
+  listMyLoginAsTicketsInput,
   listUsersInput,
   requestLoginAsInput,
   respondLoginAsInput,
   suspendUserInput,
   userIdInput,
-} from './_schemas'
+} from './_schemas.js'
 
 export const superUsersRouter = router({
   list: superAdminProcedure.input(listUsersInput).query(async ({ ctx, input }) => {
     assertCan(ctx.user?.role, 'users.read')
     const where = {
       AND: [
-        input.status ? { status: input.status } : {},
-        input.plan ? { plan: input.plan } : {},
+        input.status === 'suspended' ? { deletedAt: { not: null } } : {},
+        input.status === 'active' ? { deletedAt: null } : {},
         input.search
           ? {
               OR: [
@@ -45,8 +55,6 @@ export const superUsersRouter = router({
     const [rows, total] = await Promise.all([
       ctx.prisma.user.findMany({
         where,
-        // `lastSeenAt` will be added by W3 in a follow-up; sort by
-        // `createdAt` desc as a sensible fallback.
         orderBy: { createdAt: 'desc' },
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
@@ -58,9 +66,6 @@ export const superUsersRouter = router({
 
   detail: superAdminProcedure.input(userIdInput).query(async ({ ctx, input }) => {
     assertCan(ctx.user?.role, 'users.detail.read')
-    // NOTE: `creditTransactions` relation will be added by W3 in a follow-up
-    // schema migration. Until then we cast to satisfy the typecheck and skip
-    // the relation include — the route still returns the core User row.
     const user = await ctx.prisma.user.findUnique({
       where: { id: input.userId },
       include: {
@@ -75,9 +80,6 @@ export const superUsersRouter = router({
     assertCan(ctx.user?.role, 'users.suspend')
     const before = await ctx.prisma.user.findUnique({ where: { id: input.userId } })
     if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
-    // `User.status` doesn't exist on the current Prisma schema yet — W3
-    // owns adding it. We approximate via `deletedAt` (soft-delete) so the
-    // suspend / unsuspend round-trip still works at runtime.
     const after = await ctx.prisma.user.update({
       where: { id: input.userId },
       data: { deletedAt: new Date() },
@@ -120,7 +122,7 @@ export const superUsersRouter = router({
     await ctx.prisma.creditTransaction.create({
       data: {
         userId: input.userId,
-        type: 'grant',
+        type: 'gift',
         amount: input.amount,
         balance: credits.balance,
         description: `Manual grant by super-admin (${input.reason})`,
@@ -136,42 +138,108 @@ export const superUsersRouter = router({
     return { ok: true as const, balance: credits.balance }
   }),
 
+  // ─── Login as User ───────────────────────────────────────────────
+
   requestLoginAs: superAdminProcedure
     .input(requestLoginAsInput)
     .mutation(async ({ ctx, input }) => {
       assertCan(ctx.user?.role, 'users.login_as.request')
-      // Real impl: insert into LoginAsTicket table + push websocket message
-      // to the target user. For MVP the client polls and the user clicks
-      // Allow / Deny in apps/app.
+      if (!ctx.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' })
+      }
+      const ticket = await createLoginAsTicket(ctx.prisma as unknown as LoginAsPrismaShim, {
+        requestedBy: ctx.user.id,
+        targetUserId: input.userId,
+        reason: input.reason,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+      })
       await recordAudit(ctx, {
         action: SUPER_ACTIONS.LOGIN_AS_REQUEST,
         targetType: 'user',
         targetId: input.userId,
         reason: input.reason,
-        after: { ticketId: input.ticketId, ttlMinutes: 30 },
+        after: { ticketId: ticket.id, expiresAt: ticket.expiresAt.toISOString() },
       })
       return {
-        ticketId: input.ticketId,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        status: 'awaiting_user' as const,
+        ticketId: ticket.id,
+        expiresAt: ticket.expiresAt.toISOString(),
+        status: ticket.status as 'awaiting_user',
       }
     }),
 
-  respondLoginAs: superAdminProcedure
-    .input(respondLoginAsInput)
+  /**
+   * Called by the *target user* (not the super-admin), so it sits on
+   * `protectedProcedure`. The shim helper checks `actorUserId === targetUserId`.
+   */
+  respondLoginAs: protectedProcedure.input(respondLoginAsInput).mutation(async ({ ctx, input }) => {
+    const ticket = await resolveLoginAsTicket(ctx.prisma as unknown as LoginAsPrismaShim, {
+      ticketId: input.ticketId,
+      decision: input.decision,
+      actorUserId: ctx.user.id,
+    })
+    await recordAudit(ctx, {
+      action:
+        input.decision === 'allow' ? SUPER_ACTIONS.LOGIN_AS_GRANT : SUPER_ACTIONS.LOGIN_AS_DENY,
+      targetType: 'login_as_ticket',
+      targetId: input.ticketId,
+      after: { status: ticket.status, decision: input.decision },
+    })
+    return { ok: true as const, status: ticket.status }
+  }),
+
+  consumeLoginAs: superAdminProcedure
+    .input(consumeLoginAsTicketInput)
     .mutation(async ({ ctx, input }) => {
-      // Called by the *target user* — the procedure check therefore needs
-      // to be relaxed in W3's wiring; for now we leave it on
-      // superAdminProcedure as a placeholder and the real `userProcedure`
-      // will replace it.
+      assertCan(ctx.user?.role, 'users.login_as.request')
+      if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+      const result = await consumeLoginAsTicket(ctx.prisma as unknown as LoginAsPrismaShim, {
+        ticketId: input.ticketId,
+        actorUserId: ctx.user.id,
+      })
       await recordAudit(ctx, {
-        action:
-          input.decision === 'allow' ? SUPER_ACTIONS.LOGIN_AS_GRANT : SUPER_ACTIONS.LOGIN_AS_DENY,
+        action: SUPER_ACTIONS.LOGIN_AS_GRANT,
         targetType: 'login_as_ticket',
         targetId: input.ticketId,
-        after: { decision: input.decision },
+        after: {
+          consumedAt: result.ticket.consumedAt?.toISOString() ?? null,
+          jwtHash: result.ticket.jwtHash,
+          targetUserId: result.ticket.targetUserId,
+        },
+        reason: 'super_admin_consumed',
       })
-      return { ok: true as const }
+      return {
+        jwt: result.jwt,
+        expiresAt: result.expiresAt.toISOString(),
+        targetUserId: result.ticket.targetUserId,
+      }
+    }),
+
+  /**
+   * Lets a target user list their own pending impersonation tickets so the
+   * UI can render an inline Allow / Deny banner.
+   */
+  myPendingLoginAs: protectedProcedure
+    .input(listMyLoginAsTicketsInput)
+    .query(async ({ ctx, input }) => {
+      const tickets = (await (ctx.prisma as unknown as LoginAsPrismaShim).loginAsTicket.findUnique) // typed shim only has findUnique — fall through to raw
+        ? []
+        : []
+      void input // silence unused-var until we wire findMany on the shim
+      void tickets
+      // For MVP we surface from raw prisma client (the shim covers writes,
+      // queries can use the full client). Returns the most recent 5 tickets
+      // for this user that are not yet decided.
+      const rows = await ctx.prisma.loginAsTicket.findMany({
+        where: {
+          targetUserId: ctx.user.id,
+          status: input.status ?? 'awaiting_user',
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      })
+      return rows
     }),
 })
 
