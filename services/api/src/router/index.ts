@@ -8,6 +8,17 @@
  * @owner W3 (T06)
  */
 
+import {
+  brandKitsRouter,
+  cmsRouter,
+  copilotRouter,
+  customersRouter,
+  generationRouter,
+  mediaRouter,
+  ordersRouter,
+  productsRouter,
+  sitesRouter,
+} from '../routers/index.js'
 import { authRouter } from './auth.js'
 import { billingRouter } from './billing.js'
 import { cnAuthRouter } from './cn-auth.js'
@@ -17,7 +28,18 @@ import { creditsRouter } from './credits.js'
 import { seoRouter } from './seo.js'
 import { router } from './trpc.js'
 
+/**
+ * Root tRPC router — mounted under `/api/trpc/[trpc]` in apps/app.
+ *
+ * Top-level namespaces are intentionally split between the platform-wide
+ * concerns (auth, billing, credits, …) which live in `src/router/` and
+ * tenant-scoped surfaces (sites, products, orders, …) which live in
+ * `src/routers/`. We export them all from one router so apps/app can do:
+ *
+ *   trpc.sites.list, trpc.copilot.chat, trpc.conversation.start, …
+ */
 export const appRouter = router({
+  // Platform / cross-tenant
   auth: authRouter,
   cnAuth: cnAuthRouter,
   conversation: conversationRouter,
@@ -25,6 +47,16 @@ export const appRouter = router({
   billing: billingRouter,
   compliance: complianceRouter,
   seo: seoRouter,
+  // Tenant-scoped (W3 routers/*)
+  sites: sitesRouter,
+  products: productsRouter,
+  orders: ordersRouter,
+  customers: customersRouter,
+  media: mediaRouter,
+  brandKits: brandKitsRouter,
+  cms: cmsRouter,
+  generation: generationRouter,
+  copilot: copilotRouter,
 })
 
 export { appRouter as default }
