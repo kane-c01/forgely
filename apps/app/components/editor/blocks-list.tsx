@@ -113,6 +113,14 @@ export function BlocksList() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => editor.duplicateBlock(b.id)}
+                    aria-label="Duplicate block"
+                    className="rounded p-1 text-text-muted hover:text-forge-amber"
+                  >
+                    <Icon.Plus size={12} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => editor.removeBlock(b.id)}
                     aria-label="Delete block"
                     className="rounded p-1 text-text-muted hover:text-error"

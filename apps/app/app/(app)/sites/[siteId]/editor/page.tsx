@@ -4,9 +4,10 @@ import { useEffect } from 'react'
 
 import { useCopilotContext } from '@/components/copilot/copilot-provider'
 import { BlocksList } from '@/components/editor/blocks-list'
-import { EditorProvider, useEditor } from '@/components/editor/editor-store'
+import { EditorProvider, useEditor, useEditorShortcuts } from '@/components/editor/editor-store'
 import { EditorPreview } from '@/components/editor/preview'
 import { PropertiesPanel } from '@/components/editor/properties-panel'
+import { ShortcutsLegend } from '@/components/editor/shortcuts-legend'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
@@ -27,6 +28,7 @@ function EditorScaffold({ siteId }: { siteId: string }) {
     selectedBlockId: editor.selectedBlockId ?? undefined,
     selectedBlockType: editor.selectedBlock?.type,
   })
+  useEditorShortcuts()
 
   // The editor wants edge-to-edge layout, but the (app) layout adds
   // `px-8 py-6`. We compensate with negative margins so users get the
@@ -55,6 +57,26 @@ function EditorScaffold({ siteId }: { siteId: string }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={!editor.canUndo}
+            onClick={() => editor.undo()}
+            aria-label="Undo (⌘Z)"
+            className="grid h-8 w-8 place-items-center rounded-md border border-border-subtle bg-bg-elevated text-text-secondary transition-colors hover:border-forge-orange/40 hover:text-forge-amber disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <Icon.History size={14} />
+          </button>
+          <button
+            type="button"
+            disabled={!editor.canRedo}
+            onClick={() => editor.redo()}
+            aria-label="Redo (⌘⇧Z)"
+            className="grid h-8 w-8 place-items-center rounded-md border border-border-subtle bg-bg-elevated text-text-secondary transition-colors hover:border-forge-orange/40 hover:text-forge-amber disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <Icon.History size={14} className="-scale-x-100" />
+          </button>
+          <ShortcutsLegend />
+          <span className="mx-1 h-5 w-px bg-border-subtle" aria-hidden />
           {editor.unsaved ? (
             <Badge tone="warning" dot>
               unsaved changes
@@ -64,9 +86,6 @@ function EditorScaffold({ siteId }: { siteId: string }) {
               saved
             </Badge>
           )}
-          <Button size="sm" variant="ghost">
-            <Icon.History size={14} /> Versions
-          </Button>
           <Button size="sm" variant="secondary" onClick={() => editor.markSaved()}>
             <Icon.Check size={14} /> Save draft
           </Button>

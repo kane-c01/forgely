@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   type ReactNode,
@@ -25,13 +26,24 @@ import type {
  * blocks. The preview renders directly from this state, so visual edits,
  * AI conversations and version restore all converge to the same tree.
  *
- * NOTE: We deliberately **do not** persist to a real backend in this
- * demo. The point is to prove the UX of the editor; once T17 (Compiler)
- * lands we wrap reducer actions in tRPC `theme.update*` mutations.
+ * History model:
+ *   • `past`    — snapshots of `present` BEFORE a mutating action
+ *   • `present` — current document
+ *   • `future`  — snapshots popped from `past` by undo, awaiting redo
+ *
+ * Actions tagged `MUTATING` push the previous `present` onto `past` and
+ * clear `future`. Selection / device changes are non-undoable to keep
+ * history meaningful.
  */
 
-interface EditorState {
+interface DocumentSnapshot {
   pages: ThemePage[]
+}
+
+interface EditorState {
+  past: DocumentSnapshot[]
+  present: DocumentSnapshot
+  future: DocumentSnapshot[]
   activePageId: string
   selectedBlockId: string | null
   device: DevicePreset
@@ -54,10 +66,23 @@ type EditorAction =
   | { type: 'reorder-block'; pageId: string; blockId: string; direction: 'up' | 'down' }
   | { type: 'remove-block'; pageId: string; blockId: string }
   | { type: 'add-block'; pageId: string; blockType: BlockType; afterId?: string }
+  | { type: 'duplicate-block'; pageId: string; blockId: string }
   | { type: 'restore-version'; versionId: string }
+  | { type: 'undo' }
+  | { type: 'redo' }
   | { type: 'mark-saved' }
 
+const MUTATING: ReadonlySet<EditorAction['type']> = new Set([
+  'update-block-prop',
+  'toggle-block-visible',
+  'reorder-block',
+  'remove-block',
+  'add-block',
+  'duplicate-block',
+])
+
 let blockSeq = 100
+const HISTORY_LIMIT = 50
 
 function defaultPropsFor(t: BlockType): Record<string, unknown> {
   switch (t) {
@@ -91,18 +116,11 @@ function defaultPropsFor(t: BlockType): Record<string, unknown> {
   }
 }
 
-function reducer(state: EditorState, action: EditorAction): EditorState {
+function applyDocAction(doc: DocumentSnapshot, action: EditorAction): DocumentSnapshot {
   switch (action.type) {
-    case 'select-page':
-      return { ...state, activePageId: action.pageId, selectedBlockId: null }
-    case 'select-block':
-      return { ...state, selectedBlockId: action.blockId }
-    case 'set-device':
-      return { ...state, device: action.device }
     case 'update-block-prop':
       return {
-        ...state,
-        pages: state.pages.map((p) =>
+        pages: doc.pages.map((p) =>
           p.id === action.pageId
             ? {
                 ...p,
@@ -114,12 +132,10 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
               }
             : p,
         ),
-        unsaved: true,
       }
     case 'toggle-block-visible':
       return {
-        ...state,
-        pages: state.pages.map((p) =>
+        pages: doc.pages.map((p) =>
           p.id === action.pageId
             ? {
                 ...p,
@@ -129,12 +145,10 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
               }
             : p,
         ),
-        unsaved: true,
       }
     case 'reorder-block':
       return {
-        ...state,
-        pages: state.pages.map((p) => {
+        pages: doc.pages.map((p) => {
           if (p.id !== action.pageId) return p
           const idx = p.blocks.findIndex((b) => b.id === action.blockId)
           if (idx < 0) return p
@@ -144,18 +158,14 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
           ;[next[idx], next[swap]] = [next[swap]!, next[idx]!]
           return { ...p, blocks: next }
         }),
-        unsaved: true,
       }
     case 'remove-block':
       return {
-        ...state,
-        pages: state.pages.map((p) =>
+        pages: doc.pages.map((p) =>
           p.id === action.pageId
             ? { ...p, blocks: p.blocks.filter((b) => b.id !== action.blockId) }
             : p,
         ),
-        selectedBlockId: state.selectedBlockId === action.blockId ? null : state.selectedBlockId,
-        unsaved: true,
       }
     case 'add-block': {
       const newBlock: ThemeBlock = {
@@ -165,8 +175,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         props: defaultPropsFor(action.blockType),
       }
       return {
-        ...state,
-        pages: state.pages.map((p) => {
+        pages: doc.pages.map((p) => {
           if (p.id !== action.pageId) return p
           if (!action.afterId) return { ...p, blocks: [...p.blocks, newBlock] }
           const idx = p.blocks.findIndex((b) => b.id === action.afterId)
@@ -174,18 +183,101 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
           next.splice(idx + 1, 0, newBlock)
           return { ...p, blocks: next }
         }),
-        selectedBlockId: newBlock.id,
-        unsaved: true,
       }
     }
+    case 'duplicate-block':
+      return {
+        pages: doc.pages.map((p) => {
+          if (p.id !== action.pageId) return p
+          const idx = p.blocks.findIndex((b) => b.id === action.blockId)
+          if (idx < 0) return p
+          const src = p.blocks[idx]!
+          const copy: ThemeBlock = {
+            ...src,
+            id: `b_${++blockSeq}`,
+            props: { ...src.props },
+          }
+          const next = p.blocks.slice()
+          next.splice(idx + 1, 0, copy)
+          return { ...p, blocks: next }
+        }),
+      }
+    default:
+      return doc
+  }
+}
+
+function reducer(state: EditorState, action: EditorAction): EditorState {
+  switch (action.type) {
+    case 'select-page':
+      return { ...state, activePageId: action.pageId, selectedBlockId: null }
+    case 'select-block':
+      return { ...state, selectedBlockId: action.blockId }
+    case 'set-device':
+      return { ...state, device: action.device }
     case 'restore-version':
       return state // mock — no-op
     case 'mark-saved':
       return { ...state, unsaved: false }
+    case 'undo': {
+      if (state.past.length === 0) return state
+      const past = state.past.slice(0, -1)
+      const present = state.past[state.past.length - 1]!
+      const future = [state.present, ...state.future]
+      return { ...state, past, present, future, unsaved: true }
+    }
+    case 'redo': {
+      if (state.future.length === 0) return state
+      const present = state.future[0]!
+      const future = state.future.slice(1)
+      const past = [...state.past, state.present]
+      return { ...state, past, present, future, unsaved: true }
+    }
+    default: {
+      if (!MUTATING.has(action.type)) return state
+      const nextPresent = applyDocAction(state.present, action)
+      const past = [...state.past, state.present].slice(-HISTORY_LIMIT)
+      // For add-block, also auto-select the new block
+      let selected = state.selectedBlockId
+      if (action.type === 'add-block' || action.type === 'duplicate-block') {
+        const page = nextPresent.pages.find((p) => p.id === action.pageId)
+        const last = page?.blocks[page.blocks.length - 1]
+        const after = page?.blocks.findIndex((b) => b.id === action.blockId)
+        selected =
+          action.type === 'duplicate-block' && page && typeof after === 'number' && after >= 0
+            ? page.blocks[after + 1]?.id ?? selected
+            : last?.id ?? selected
+      }
+      if (
+        action.type === 'remove-block' &&
+        state.selectedBlockId === action.blockId
+      ) {
+        selected = null
+      }
+      return {
+        ...state,
+        past,
+        present: nextPresent,
+        future: [],
+        selectedBlockId: selected,
+        unsaved: true,
+      }
+    }
   }
 }
 
-interface EditorContextValue extends EditorState {
+interface EditorContextValue {
+  pages: ThemePage[]
+  activePageId: string
+  selectedBlockId: string | null
+  device: DevicePreset
+  versions: ThemeVersion[]
+  unsaved: boolean
+  canUndo: boolean
+  canRedo: boolean
+  activePage: ThemePage
+  selectedBlock: ThemeBlock | null
+
   selectPage: (pageId: string) => void
   selectBlock: (blockId: string | null) => void
   setDevice: (d: DevicePreset) => void
@@ -194,10 +286,11 @@ interface EditorContextValue extends EditorState {
   reorderBlock: (blockId: string, direction: 'up' | 'down') => void
   removeBlock: (blockId: string) => void
   addBlock: (blockType: BlockType, afterId?: string) => void
+  duplicateBlock: (blockId: string) => void
   restoreVersion: (versionId: string) => void
+  undo: () => void
+  redo: () => void
   markSaved: () => void
-  activePage: ThemePage
-  selectedBlock: ThemeBlock | null
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null)
@@ -210,7 +303,9 @@ export function useEditor(): EditorContextValue {
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {
-    pages: themePages,
+    past: [],
+    present: { pages: themePages },
+    future: [],
     activePageId: themePages[0]!.id,
     selectedBlockId: null,
     device: 'desktop',
@@ -219,8 +314,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   })
 
   const activePage = useMemo(
-    () => state.pages.find((p) => p.id === state.activePageId) ?? state.pages[0]!,
-    [state.pages, state.activePageId],
+    () => state.present.pages.find((p) => p.id === state.activePageId) ?? state.present.pages[0]!,
+    [state.present.pages, state.activePageId],
   )
   const selectedBlock = useMemo(
     () => activePage.blocks.find((b) => b.id === state.selectedBlockId) ?? null,
@@ -228,7 +323,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<EditorContextValue>(() => ({
-    ...state,
+    pages: state.present.pages,
+    activePageId: state.activePageId,
+    selectedBlockId: state.selectedBlockId,
+    device: state.device,
+    versions: state.versions,
+    unsaved: state.unsaved,
+    canUndo: state.past.length > 0,
+    canRedo: state.future.length > 0,
     activePage,
     selectedBlock,
     selectPage: (pageId) => dispatch({ type: 'select-page', pageId }),
@@ -244,11 +346,80 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'remove-block', pageId: activePage.id, blockId }),
     addBlock: (blockType, afterId) =>
       dispatch({ type: 'add-block', pageId: activePage.id, blockType, afterId }),
+    duplicateBlock: (blockId) =>
+      dispatch({ type: 'duplicate-block', pageId: activePage.id, blockId }),
     restoreVersion: (versionId) => dispatch({ type: 'restore-version', versionId }),
+    undo: () => dispatch({ type: 'undo' }),
+    redo: () => dispatch({ type: 'redo' }),
     markSaved: () => dispatch({ type: 'mark-saved' }),
   }), [state, activePage, selectedBlock])
 
   return createElement(EditorContext.Provider, { value }, children)
+}
+
+/**
+ * Bind editor keyboard shortcuts. Mount inside an `<EditorProvider>`.
+ *
+ *   ⌘Z / ⌃Z         — undo
+ *   ⌘⇧Z / ⌃⇧Z       — redo (also ⌘Y on Windows)
+ *   Backspace / Del — remove selected block
+ *   D               — duplicate selected block
+ *   ↑ / ↓           — move selected block up/down
+ *   E               — toggle visibility of selected block
+ *   Esc             — deselect block
+ *
+ * Listener is no-op when focus is in an input / textarea / contenteditable.
+ */
+export function useEditorShortcuts() {
+  const editor = useEditor()
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName?.toLowerCase()
+      const isEditable =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        target?.isContentEditable
+      if (isEditable) return
+
+      const meta = e.metaKey || e.ctrlKey
+      const k = e.key.toLowerCase()
+
+      if (meta && k === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        editor.undo()
+        return
+      }
+      if (meta && (k === 'y' || (k === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        editor.redo()
+        return
+      }
+      if (!editor.selectedBlockId) return
+      if (k === 'backspace' || k === 'delete') {
+        e.preventDefault()
+        editor.removeBlock(editor.selectedBlockId)
+      } else if (k === 'd' && !meta) {
+        e.preventDefault()
+        editor.duplicateBlock(editor.selectedBlockId)
+      } else if (k === 'arrowup') {
+        e.preventDefault()
+        editor.reorderBlock(editor.selectedBlockId, 'up')
+      } else if (k === 'arrowdown') {
+        e.preventDefault()
+        editor.reorderBlock(editor.selectedBlockId, 'down')
+      } else if (k === 'e' && !meta) {
+        e.preventDefault()
+        editor.toggleBlockVisible(editor.selectedBlockId)
+      } else if (k === 'escape') {
+        e.preventDefault()
+        editor.selectBlock(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editor])
 }
 
 export const BLOCK_LIBRARY: Array<{ type: BlockType; label: string; icon: string }> = [

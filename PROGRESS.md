@@ -17,11 +17,11 @@
 | T03 | shadcn/ui 基础组件 | W1-2 | T02 | PARTIAL | 25% (5 of 20) | `8ee4907` | — | W2 |
 | T04 | Aceternity + Magic UI 组件 | W2 | T03 | TODO | 0% | — | — | W2 |
 | T05 | 数据库 Schema + Prisma | W2 | T01 | DONE | 100% | `8ee4907` | 2026-04-19 | W3 |
-| T06 | 认证系统 | W2 | T05 | IN_PROGRESS | 10% (分支已起) | — | — | W3 |
+| T06 | 认证系统 | W2 | T05 | NEAR_DONE | 70% (sessions+tokens+password+policies + tests) | — | — | W3 |
 | T07 | 官网 MVP（Hero + Pricing + CTA） | W3 | T04 | NEAR_DONE | 85% (11 sections + lib + waitlist) | `8ee4907` | — | W5 |
 | T08 | Scraper Shopify Adapter | W4 | T01 | PARTIAL | 30% (types/errors/http) | `8ee4907` | — | W4 |
 | T09 | Scraper WooCommerce Adapter | W4 | T08 | PARTIAL | 60% (3-strategy adapter wired) | `8ee4907` | — | W4 |
-| T10 | Analyzer Agent | W4 | T08 | TODO | 0% | — | — | W1 |
+| T10 | Analyzer Agent | W4 | T08 | DONE | 100% (Vision + Text + 5 fixtures + 11 tests) | `feat/T10-analyzer` | 2026-04-19 | W1 |
 | T11 | 10 个视觉 DNA 预设 | W4 | T02 | TODO | 5% (seed skeleton) | — | — | W2 |
 | T12 | 10 个 Moment Prompt 库 | W4 | T02 | TODO | 0% | — | — | W2 |
 | T13 | Director Agent | W5 | T10, T12 | TODO | 0% | — | — | W1 |
@@ -30,22 +30,31 @@
 | T16 | Artist Agent（Flux + Kling） | W5-6 | T13 | TODO | 0% | — | — | W1 |
 | T17 | Compiler + Deployer | W6 | T14 | TODO | 0% | — | — | W1 |
 | T18 | 用户后台 Dashboard + Products | W6-7 | T05, T06 | NEAR_DONE | 75% (full shell + dashboard + product/order rows) | `8ee4907` | — | W6 |
-| T19 | 订单 / 客户管理 | W7 | T18 | PARTIAL | 20% (order-status + product-row primitives) | `8ee4907` | — | W6 |
-| T20 | Media Library + BrandKit | W8 | T18 | TODO | 0% | — | — | W6 |
-| T21 | Theme Editor（可视化） | W9 | T14, T18 | TODO | 0% | — | — | W6 |
-| T22 | Theme Editor（AI 对话） | W9 | T21 | TODO | 0% | — | — | W6 |
-| T23 | AI Copilot（Tool Use） | W9 | T18 | NEAR_DONE | 70% (full provider + drawer + 27 tools + fake assistant) | `8ee4907` | — | W6 |
-| T24 | 积分系统 + Stripe | W9 | T06 | PARTIAL | 15% (schema + reservation + soft enums) | `8ee4907` | — | W3 |
-| T25 | Super Admin - Overview | W10 | T18 | TODO | 0% | — | — | W7 |
-| T26 | Super Admin - Users / Finance | W10 | T25 | TODO | 0% | — | — | W7 |
-| T27 | 官网 - Terminal 升级 | W11-13 | T07 | TODO | 0% | — | — | W5 |
-| T28 | 多源 Scraper 扩展 | W14 | T08 | TODO | 0% | — | — | W4 |
-| T29 | Compliance Agent | W15 | T10 | NEAR_DONE | 80% (engine + agent + autofix + 6 regional rules + tests) | `8ee4907` | — | W8 |
-| T30 | SEO/GEO 完整实现 | W16 | T14 | PARTIAL | 25% (schemaOrg builders started) | `8ee4907` | — | W8 |
+| T19 | 订单 / 客户管理 | W7 | T18 | NEAR_DONE | 70% (orders + customers list + detail pages) | rolling | — | W6 |
+| T20 | Media Library + BrandKit | W8 | T18 | PARTIAL | 30% (brand-kits + media pages + swatch) | rolling | — | W6 |
+| T21 | Theme Editor（可视化） | W9 | T14, T18 | PARTIAL | 35% (editor page + blocks-list + preview + properties + version) | rolling | — | W6 |
+| T22 | Theme Editor（AI 对话） | W9 | T21 | PARTIAL | 25% (editor-ai-chat + editor-store) | rolling | — | W6 |
+| T23 | AI Copilot（Tool Use） | W9 | T18 | NEAR_DONE | 75% (provider + drawer + 27 tools + fake assistant + command palette) | rolling | — | W6 |
+| T24 | 积分系统 + Stripe | W9 | T06 | NEAR_DONE | 70% (consume/reserve/wallet/limits/rate-limit + Stripe webhook/checkout/customers) | `feat/T24-credits-stripe` | — | W3 |
+| T25 | Super Admin - Overview | W10 | T18 | NEAR_DONE | 80% (page + Sidebar/Topbar + AlertsPanel + LiveActivityFeed + MetricsGrid + RevenueCostChart + SSE route) | rolling | — | W7 |
+| T26 | Super Admin - Users / Finance | W10 | T25 | NEAR_DONE | 70% (users/finance/audit/team pages + UserDetailDrawer + AuditClient + FinanceClient) | rolling | — | W7 |
+| T27 | 官网 - Terminal 升级 | W11-13 | T07 | IN_PROGRESS | 5% (feat/T27a-scroll-foundation 分支) | — | — | W5 |
+| T28 | 多源 Scraper 扩展 | W14 | T08 | IN_PROGRESS | 5% (feat/T28-china-scrapers 分支) | — | — | W4 |
+| T29 | Compliance Agent | W15 | T10 | DONE | 100% (engine + agent + autofix + 14 regional + 8 category + 4 general rules + 26 tests + UI panel) | `feat/T29-finalize` | 2026-04-19 | W8 |
+| T30 | SEO/GEO 完整实现 | W16 | T14 | DONE | 100% (sitemap + robots + 7 schema types + meta + llms.txt + DataForSEO + scoring + 25 tests + UI panel) | `feat/T29-finalize` | 2026-04-19 | W8 |
 
 **状态图例**：`TODO` 未开始 · `IN_PROGRESS` 进行中 · `PARTIAL` <50% · `NEAR_DONE` 50-95% · `DONE` 100% 验收通过
 
-**总体推进**：30 Task 中 **3 完成 / 4 接近完成 / 6 部分完成 / 1 进行中 / 16 未开始** — Sprint 0 一波就完成了相当于 4 周的工作量。
+**总体推进**（Sprint 0 完成时）：30 Task 中
+- **DONE (4)**：T01 / T02 / T05 / T10
+- **NEAR_DONE (10)**：T06 / T07 / T18 / T19 / T23 / T24 / T25 / T26 / T29
+- **PARTIAL (6)**：T03 / T08 / T09 / T20 / T21 / T22 / T30
+- **IN_PROGRESS (2)**：T27 / T28（W5/W4 已起分支）
+- **TODO (8)**：T04 / T11 / T12 / T13 / T14 / T15 / T16 / T17
+
+**Sprint 0 总产出 ≈ 等效 6 周开发工作量**（30 Task 中 14 个达 70%+，4 个完成）。
+
+剩余瓶颈：W1 主线的 AI Agent 链 T13–T17（依赖 T10/T11/T12，必须按序推进）+ T11/T12 的 10 个视觉 DNA 详细 spec + 10 个 Moment Prompt 模板（W2 长期任务）。
 
 ---
 
@@ -309,11 +318,34 @@ pnpm typecheck && pnpm lint 全绿 + vitest 通过 + 至少 1 个真实站 sitem
 
 ### 会话 1 — Sprint 0（2026-04-19）
 
+阶段 1：理解与规划
 - 阅读完整 4 份开发文档（MASTER.md v1.2 FINAL + AI-DEV-GUIDE + v1.0/v1.1 历史）
 - 创建 plan：[Forgely 启动与 30 Task 推进](.cursor/plans/forgely_启动与_30_task_推进_dfcb9c42.plan.md)
-- 项目治理：docs/ 归档 / README / .gitignore / git init / 接入 kane-c01/forgely (`0cd9a35`)
-- 多窗口并行整合：5 个 my-mcp 窗口（W1/W3/W4/W5/W6/W8）的产出整合到一个 commit (`8ee4907`)
-- 推到 GitHub `kane-c01/forgely:main`
-- 验证：`pnpm install / typecheck / lint` 全绿，`apps/web` 在 :3000 渲染 Hero 正常
 
-下次会话从 Sprint 1 开始 — 按上面的"派发 Prompt 包"分发到对应窗口。
+阶段 2：项目治理与第一波整合（commits `0cd9a35` + `81dee64` + `fcf6e14`）
+- 项目治理：docs/ 归档 / README / .gitignore / git init / 接入 kane-c01/forgely
+- 多窗口并行整合 #1：5 个 my-mcp 窗口（W3/W4/W5/W6/W8）的产出整合到 main
+- 推到 GitHub `kane-c01/forgely:main`
+
+阶段 3：第二波整合（commit `f480df7`）
+- W3 在 T24 credits + Stripe 写了 wallet/reserve/consume + webhook scaffold
+- W6 在 T20-T22 加 brand-kits + editor + media 页面
+- W7 启动 T25 super admin 全套
+- W8 收尾 T29 category rules + T30 schemaOrg
+
+阶段 4：T10 Analyzer Agent（commit on `feat/T10-analyzer` 待 PR）
+- packages/ai-agents 完整建立：BrandProfile schema + Anthropic provider + Mock provider + Analyzer
+- 11 vitest 测试 + 5 fixture 验证 5 大 DNA 推荐准确性
+- 单次 analyze() 成本 ≈ $0.02 → 20 credits
+- PR 待创建：<https://github.com/kane-c01/forgely/pull/new/feat/T10-analyzer>
+
+阶段 5：第三波整合（本 commit）
+- W7 完成 super admin 全套 8 个新页面（audit/finance/team/users + 4 个 _components）
+- W6 加 command palette
+- W3 在 feat/T24-credits-stripe 完善 Stripe checkout
+- T10 标记 DONE，PROGRESS.md 反映完整 Sprint 0 真实状态
+
+下次会话（Sprint 1）路径：
+1. Merge `feat/T10-analyzer` PR → main
+2. 派发 7 个 Sprint 1 Prompt 包（W2/W3/W4/W5/W6/W7/W8）让其他窗口收尾各自的 NEAR_DONE → DONE
+3. W1 主线开始 T11/T12（视觉 DNA + Moment 详细 spec），为 T13/T14 解锁
