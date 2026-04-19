@@ -13,16 +13,29 @@
  */
 import { ScraperError, UnsupportedPlatformError } from '../errors.js'
 import type { ScrapedData, ScraperAdapter, ScrapeOptions } from '../types.js'
-import { GenericAIAdapter } from './generic-ai.js'
+import { GenericAIAdapter, type GenericAIAdapterOptions } from './generic-ai.js'
 
 const HOSTS = ['1688.com', 'detail.1688.com', 'shop.1688.com', 'm.1688.com']
 
+/**
+ * 1688 adapter — production deployments must inject the GenericAI options
+ * (browser + vision) so we can fall back when 1688-specific selectors miss.
+ *
+ * In dev / tests the adapter just refuses gracefully so unit tests can
+ * still typecheck without a Playwright runtime.
+ */
 export class Y1688Adapter implements ScraperAdapter {
   readonly id = 'aliexpress' as const // 复用 source platform 枚举（1688 / AE 同属 alibaba 集团）
   readonly name = '1688 Wholesale (Alibaba)'
   readonly priority = 70
 
-  private readonly fallback = new GenericAIAdapter()
+  private readonly fallback?: GenericAIAdapter
+
+  constructor(options?: { fallback?: GenericAIAdapterOptions }) {
+    if (options?.fallback) {
+      this.fallback = new GenericAIAdapter(options.fallback)
+    }
+  }
 
   async canHandle(url: string): Promise<boolean> {
     try {
@@ -35,10 +48,12 @@ export class Y1688Adapter implements ScraperAdapter {
 
   async scrape(url: string, options: ScrapeOptions = {}): Promise<ScrapedData> {
     if (!(await this.canHandle(url))) throw new UnsupportedPlatformError(url)
-
-    // Strategy A/B: real Playwright + 1688 specific selectors would live here.
-    // We currently delegate to GenericAI for completeness; subclassed selectors
-    // get added in T28 (W4 already has generic-ai online).
+    if (!this.fallback) {
+      throw new ScraperError(
+        '1688 adapter requires a Playwright + Vision fallback to be configured.',
+        { code: 'NOT_CONFIGURED', retryable: false },
+      )
+    }
     try {
       return await this.fallback.scrape(url, options)
     } catch (err) {

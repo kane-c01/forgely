@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl'
+
 /**
  * Social Proof – marquee row.
  * MVP 用占位品牌名（mono 字样），T27 升级时换为客户 logo。
@@ -16,15 +18,16 @@ const placeholders = [
 ]
 
 export function SocialProof() {
+  const t = useTranslations('socialProof')
   const items = [...placeholders, ...placeholders]
   return (
     <section
-      aria-label="Trusted brands"
+      aria-label={t('ariaLabel')}
       className="border-b border-border-subtle bg-bg-deep py-10"
     >
       <div className="container-page mb-6">
         <p className="text-center font-mono text-caption uppercase tracking-[0.28em] text-text-muted">
-          Brands forging on Forgely · waitlist preview
+          {t('caption')}
         </p>
       </div>
       <div className="relative overflow-hidden">

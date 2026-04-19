@@ -1,6 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { getTranslations } from 'next-intl/server'
-import { hasLocale } from 'next-intl'
 import { siteConfig } from '@/lib/site'
 import { routing } from '@/i18n/routing'
 
@@ -8,32 +6,53 @@ export const runtime = 'edge'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
+type Locale = 'en' | 'zh'
+
+function isLocale(value: string): value is Locale {
+  return (routing.locales as readonly string[]).includes(value)
+}
+
+interface SiteMessages {
+  metadata: {
+    site: {
+      tagline: string
+      description: string
+      slogan: string
+    }
+  }
+}
+
+async function loadSite(locale: Locale): Promise<SiteMessages['metadata']['site']> {
+  const mod = (await import(`@/messages/${locale}.json`)) as {
+    default: SiteMessages
+  }
+  return mod.default.metadata.site
+}
+
 export async function generateImageMetadata({
   params,
 }: {
   params: { locale: string }
 }) {
-  const locale = hasLocale(routing.locales, params.locale)
-    ? params.locale
-    : routing.defaultLocale
-  const t = await getTranslations({ locale, namespace: 'metadata.site' })
+  const locale: Locale = isLocale(params.locale) ? params.locale : 'en'
+  const site = await loadSite(locale)
   return [
     {
       contentType,
       size,
       id: 'default',
-      alt: `${siteConfig.name} — ${t('tagline')}`,
+      alt: `${siteConfig.name} — ${site.tagline}`,
     },
   ]
 }
 
-export default async function OG({ params }: { params: { locale: string } }) {
-  const locale = hasLocale(routing.locales, params.locale)
-    ? params.locale
-    : routing.defaultLocale
-  const t = await getTranslations({ locale, namespace: 'metadata.site' })
-  const meta = await getTranslations({ locale, namespace: 'metadata.home' })
-
+export default async function OG({
+  params,
+}: {
+  params: { locale: string }
+}) {
+  const locale: Locale = isLocale(params.locale) ? params.locale : 'en'
+  const site = await loadSite(locale)
   const isZh = locale === 'zh'
   const titleLine1 = isZh ? 'AI 时代的' : 'Brand operating system'
   const titleLine2 = isZh ? '品牌操作系统。' : 'for the AI era.'
@@ -118,10 +137,8 @@ export default async function OG({ params }: { params: { locale: string } }) {
               margin: 0,
             }}
           >
-            {t('tagline')}
+            {site.tagline}
           </p>
-          {/* keep desc translation referenced so the helper isn't unused */}
-          <span style={{ display: 'none' }}>{meta('description')}</span>
         </div>
 
         <div

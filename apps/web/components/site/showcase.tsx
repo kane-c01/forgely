@@ -1,12 +1,20 @@
 import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { cn } from '@/lib/cn'
 
 interface ShowcaseCard {
   brand: string
-  category: string
+  /** translation key under showcase.categories.* */
+  categoryKey:
+    | 'toys'
+    | 'tea'
+    | 'fragrance'
+    | 'supplements'
+    | 'watches'
+    | 'tableware'
   dna: string
   moment: string
   /** Tailwind gradient classes for the placeholder visual (replaced with real video in T27). */
@@ -17,42 +25,42 @@ interface ShowcaseCard {
 const cards: ShowcaseCard[] = [
   {
     brand: 'Toybloom',
-    category: 'Wooden toys',
+    categoryKey: 'toys',
     dna: 'Nordic Minimal',
     moment: 'M04 Breathing Still',
     gradient: 'from-[#E8E2D9] via-[#A89880] to-[#3F362F]',
   },
   {
     brand: 'Kyoto Mujo',
-    category: 'Ceramic teaware',
+    categoryKey: 'tea',
     dna: 'Kyoto Ceramic',
     moment: 'M05 Droplet Ripple',
     gradient: 'from-[#FEFDFB] via-[#C7B299] to-[#2D2A26]',
   },
   {
     brand: 'Ember & Ash',
-    category: 'Fragrance',
+    categoryKey: 'fragrance',
     dna: 'Bold Rebellious',
     moment: 'M06 Mist Emergence',
     gradient: 'from-[#FF6B1A] via-[#7A0F2D] to-[#0E0E11]',
   },
   {
     brand: 'Luma Wellness',
-    category: 'Supplements',
+    categoryKey: 'supplements',
     dna: 'Clinical Wellness',
     moment: 'M08 Ingredient Ballet',
     gradient: 'from-[#0F2A28] via-[#1F5C56] to-[#FFD166]',
   },
   {
     brand: 'Still Hours',
-    category: 'Watches',
+    categoryKey: 'watches',
     dna: 'Tech Precision',
     moment: 'M03 Light Sweep',
     gradient: 'from-[#0E0E11] via-[#3D3D45] to-[#D9D9DD]',
   },
   {
     brand: 'Casa Verde',
-    category: 'Organic tableware',
+    categoryKey: 'tableware',
     dna: 'Organic Garden',
     moment: 'M10 Environmental Embed',
     gradient: 'from-[#1F2A1B] via-[#5A7A48] to-[#E6E3CF]',
@@ -60,6 +68,7 @@ const cards: ShowcaseCard[] = [
 ]
 
 export function Showcase() {
+  const t = useTranslations('showcase')
   return (
     <section
       id="showcase"
@@ -69,15 +78,15 @@ export function Showcase() {
       <div className="container-page flex flex-col gap-12">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading
-            eyebrow="Showcase"
-            title={<span id="showcase-title">10 visual DNAs · 10 product moments.</span>}
-            description="One hundred fully-coherent looks, before you even touch the editor. Real client builds will replace these previews when private beta opens."
+            eyebrow={t('eyebrow')}
+            title={<span id="showcase-title">{t('title')}</span>}
+            description={t('description')}
           />
           <Link
             href="#waitlist"
             className="inline-flex items-center gap-1.5 self-start rounded-full border border-border-strong px-4 py-2 text-small text-text-secondary transition hover:border-forge-orange/60 hover:text-forge-orange"
           >
-            Forge yours
+            {t('ctaForgeYours')}
             <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -110,7 +119,7 @@ export function Showcase() {
                   {card.brand}
                 </h3>
                 <p className="font-mono text-caption uppercase tracking-[0.2em] text-text-secondary">
-                  {card.category}
+                  {t(`categories.${card.categoryKey}`)}
                 </p>
               </div>
             </article>
@@ -118,7 +127,7 @@ export function Showcase() {
         </div>
 
         <p className="text-center font-mono text-caption uppercase tracking-[0.22em] text-text-muted">
-          Previews are stylized placeholders · real cinematic videos arrive with the Terminal upgrade (T27).
+          {t('footnote')}
         </p>
       </div>
     </section>

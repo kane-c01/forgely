@@ -1,10 +1,11 @@
 /**
  * @forgely/ai-agents — entry point.
  *
- * Sprint-0 ships the Analyzer Agent (T10).
- * CN pivot adds DeepSeek + Qwen providers.
- * Sprint-2 will add Director (T13), Planner (T14), Copywriter (T15).
+ * Sprint 0: Analyzer (T10) + DeepSeek/Qwen providers.
+ * CN pivot: T13 Director · T14 Planner · T15 Copywriter · T16 Artist.
  */
+
+// Analyzer (T10)
 export {
   analyze,
   ANALYZER_CREDIT_COST,
@@ -13,6 +14,57 @@ export {
   type AnalyzeResult,
 } from './agents/analyzer'
 
+// Director (T13)
+export {
+  direct,
+  DIRECTOR_CREDIT_PER_SCENE,
+  type DirectorOptions,
+  type DirectorScript,
+  type DirectorScene,
+  type MomentSlot,
+  type ProductInput,
+} from './agents/director'
+
+// Planner (T14)
+export {
+  planSite,
+  PLANNER_CREDIT_COST,
+  type PlannerOptions,
+  type PlannerProductInput,
+  type PlanResult,
+} from './agents/planner'
+
+// Copywriter (T15)
+export {
+  writeCopy,
+  COPYWRITER_CREDIT_COST,
+  type CopywriterOptions,
+  type CopyResult,
+} from './agents/copywriter'
+
+// Artist (T16)
+export {
+  generateAsset,
+  registerProvider,
+  defaultProviders,
+  MockArtistProvider,
+  ArtistError,
+  type ArtistRequest,
+  type ArtistResult,
+  type ArtistOptions,
+  type AssetProvider,
+  type AssetType,
+  type AssetRegion,
+} from './agents/artist'
+export {
+  KlingProvider,
+  ViduProvider,
+  FluxProvider,
+  MeshyProvider,
+  autoRegisterArtistProviders,
+} from './agents/artist-providers'
+
+// Brand profile types
 export type {
   BrandProfile,
   BrandArchetype,
@@ -25,6 +77,7 @@ export type {
 
 export { VISUAL_DNA_IDS, type VisualDnaId } from './types/dna'
 
+// LLM providers
 export {
   AnthropicProvider,
   DeepSeekProvider,
@@ -38,22 +91,3 @@ export {
   type LlmVisionRequest,
   LlmProviderError,
 } from './providers'
-
-export {
-  direct,
-  type DirectorOptions,
-  type DirectorScript,
-  type DirectorScene,
-} from './agents/director'
-
-export {
-  planSite,
-  type PlannerOptions,
-  type PlanResult,
-} from './agents/planner'
-
-export {
-  writeCopy,
-  type CopywriterOptions,
-  type CopyResult,
-} from './agents/copywriter'

@@ -1,6 +1,8 @@
+import { useTranslations } from 'next-intl'
 import { WaitlistForm } from './waitlist-form'
 
 export function FinalCta() {
+  const t = useTranslations('finalCta')
   return (
     <section
       aria-labelledby="final-cta-title"
@@ -23,13 +25,12 @@ export function FinalCta() {
           id="final-cta-title"
           className="font-display text-display font-light leading-[0.95] tracking-tight text-text-primary"
         >
-          Your brand is one
+          {t('titleLine1')}
           <br />
-          <span className="text-gradient-forge italic">link away.</span>
+          <span className="text-gradient-forge italic">{t('titleLine2')}</span>
         </h2>
         <p className="max-w-2xl text-body-lg text-text-secondary">
-          Drop a store URL or your idea. Forgely will hand you back a cinematic,
-          stockable, sellable brand site — usually in less than 5 minutes.
+          {t('description')}
         </p>
         <WaitlistForm className="mx-auto" />
       </div>

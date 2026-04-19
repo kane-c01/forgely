@@ -1,0 +1,7 @@
+export { Hero } from './Hero'
+export { ValueProps } from './ValueProps'
+export { ProductShowcase } from './ProductShowcase'
+export { BrandStory } from './BrandStory'
+export { SocialProof } from './SocialProof'
+export { Faq } from './Faq'
+export { CTAFinale } from './CTAFinale'
