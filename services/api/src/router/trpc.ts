@@ -10,13 +10,14 @@
  * @owner W3 (T06)
  */
 
-import { TRPCError, initTRPC } from '@trpc/server';
-import superjson from 'superjson';
+import { TRPCError, initTRPC } from '@trpc/server'
+import superjson from 'superjson'
 
-import { ForgelyError, isForgelyError } from '../errors.js';
-import { isSuperAdmin, requireUser } from '../auth/index.js';
+import { ForgelyError, isForgelyError } from '../errors.js'
+import { isSuperAdmin, requireUser } from '../auth/index.js'
+import { localizeAllLocales } from '../i18n/index.js'
 
-import type { AuthContext } from './context.js';
+import type { AuthContext } from './context.js'
 
 const FORGELY_TO_TRPC: Record<string, TRPCError['code']> = {
   UNAUTHORIZED: 'UNAUTHORIZED',
@@ -47,13 +48,14 @@ const FORGELY_TO_TRPC: Record<string, TRPCError['code']> = {
   RATE_LIMITED: 'TOO_MANY_REQUESTS',
   VALIDATION_ERROR: 'BAD_REQUEST',
   INTERNAL_ERROR: 'INTERNAL_SERVER_ERROR',
-};
+}
 
 const t = initTRPC.context<AuthContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
-    const cause = error.cause;
+    const cause = error.cause
     if (isForgelyError(cause)) {
+      const localized = localizeAllLocales(cause)
       return {
         ...shape,
         message: cause.userMessage,
@@ -62,12 +64,14 @@ const t = initTRPC.context<AuthContext>().create({
           forgelyCode: cause.code,
           httpStatus: cause.statusCode,
           context: cause.context ?? null,
+          /** Bilingual dictionary so the client can render zh-CN without re-fetching. */
+          localizedMessages: localized,
         },
-      };
+      }
     }
-    return shape;
+    return shape
   },
-});
+})
 
 /**
  * Catches a `ForgelyError` thrown inside a procedure and wraps it into the
@@ -75,46 +79,46 @@ const t = initTRPC.context<AuthContext>().create({
  */
 const errorMappingMiddleware = t.middleware(async ({ next }) => {
   try {
-    return await next();
+    return await next()
   } catch (err) {
     if (isForgelyError(err)) {
       throw new TRPCError({
         code: FORGELY_TO_TRPC[err.code] ?? 'INTERNAL_SERVER_ERROR',
-        message: err.userMessage,
+        message: err.getUserMessage('en'),
         cause: err,
-      });
+      })
     }
     if (err instanceof ForgelyError) {
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: err.userMessage,
+        message: err.getUserMessage('en'),
         cause: err,
-      });
+      })
     }
-    throw err;
+    throw err
   }
-});
+})
 
 const requireUserMiddleware = t.middleware(async ({ ctx, next }) => {
-  const user = requireUser(ctx);
-  return next({ ctx: { ...ctx, user, session: ctx.session! } });
-});
+  const user = requireUser(ctx)
+  return next({ ctx: { ...ctx, user, session: ctx.session! } })
+})
 
 const requireSuperAdminMiddleware = t.middleware(async ({ ctx, next }) => {
-  const user = requireUser(ctx);
+  const user = requireUser(ctx)
   if (!isSuperAdmin(user)) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Super admin only.',
-    });
+    })
   }
-  return next({ ctx: { ...ctx, user, session: ctx.session! } });
-});
+  return next({ ctx: { ...ctx, user, session: ctx.session! } })
+})
 
-export const router = t.router;
-export const publicProcedure = t.procedure.use(errorMappingMiddleware);
-export const protectedProcedure = publicProcedure.use(requireUserMiddleware);
-export const superAdminProcedure = publicProcedure.use(requireSuperAdminMiddleware);
+export const router = t.router
+export const publicProcedure = t.procedure.use(errorMappingMiddleware)
+export const protectedProcedure = publicProcedure.use(requireUserMiddleware)
+export const superAdminProcedure = publicProcedure.use(requireSuperAdminMiddleware)
 
 /** Re-export the t instance for advanced router composition (mergeRouters). */
-export const trpc = t;
+export const trpc = t
