@@ -115,5 +115,6 @@ export {
   renderPasswordReset,
   renderWelcome,
 }
+export { ConsoleTransport, ResendTransport } from './transport.js'
 
 export type { EmailMessage, EmailTransport }
