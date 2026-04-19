@@ -32,6 +32,7 @@ import { resolveProvider } from '@forgely/ai-agents'
 
 import { prisma } from '../db.js'
 import { ForgelyError, errors } from '../errors.js'
+import { dispatchGeneration } from '../jobs/index.js'
 import { router, publicProcedure } from './trpc.js'
 
 const AnswerSchema = z.union([
@@ -187,11 +188,25 @@ export const conversationRouter = router({
           creditsCost: 1200, // see docs/MASTER.md §3.6 — full first-page (video)
         },
       })
-      await prisma.site.update({
-        where: { id: input.siteId },
-        data: { status: 'generating' },
+      // Sprint 3 — push to BullMQ. Worker calls runPipeline + emits Redis Stream events.
+      const { jobId } = await dispatchGeneration({
+        generationId: generation.id,
+        siteId: input.siteId,
+        subdomain: input.subdomain,
+        brandName: input.brandName,
+        pipelineInput: {
+          ...pipelineInput,
+          siteId: input.siteId,
+          subdomain: input.subdomain,
+          brandName: input.brandName,
+        } as unknown as Parameters<typeof dispatchGeneration>[0]['pipelineInput'],
+      }).catch((err) => {
+        // Even when Redis is unavailable in dev, return gracefully so the UI
+        // can degrade ("queueing offline — try again in a minute").
+        console.warn('[conversation.commit] dispatch failed, generation row stays pending:', err)
+        return { jobId: generation.id }
       })
-      return { generationId: generation.id, pipelineInput }
+      return { generationId: generation.id, jobId, pipelineInput }
     }),
 
   /** Read the full conversation transcript (for replay / sharing). */

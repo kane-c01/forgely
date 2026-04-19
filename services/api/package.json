@@ -75,6 +75,7 @@
     "@forgely/ai-agents": "workspace:*",
     "@forgely/compliance": "workspace:*",
     "@forgely/seo": "workspace:*",
+    "@forgely/worker": "workspace:*",
     "@prisma/client": "^5.22.0",
     "@trpc/server": "^10.45.2",
     "argon2": "^0.41.1",

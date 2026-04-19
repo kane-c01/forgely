@@ -328,6 +328,7 @@ model Generation {
   completedAt DateTime?
 
   reservation CreditReservation? @relation(fields: [reservationId], references: [id])
+  stepRows    GenerationStep[]
 
   @@index([siteId, createdAt])
   @@index([userId, status])
@@ -814,4 +815,86 @@ model CouponRedemption {
 
   @@index([couponId, createdAt])
   @@index([userId, createdAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  TEAMS  (S3 — multi-seat ownership inside a single tenant. The site's
+//  primary owner is still User; team members are auxiliary collaborators
+//  with one of three roles. Invitation flow:  invitedAt -> acceptedAt.)
+// ════════════════════════════════════════════════════════════════════════════
+
+model TeamMember {
+  id          String    @id @default(cuid())
+  /// Tenant this membership belongs to (the owning user's id).
+  ownerUserId String
+  /// Resolved User row when the invite is accepted; null while pending.
+  userId      String?
+  email       String
+  /// OWNER | ADMIN | SUPPORT
+  role        String    @default("SUPPORT")
+  invitedBy   String?
+  invitedAt   DateTime  @default(now())
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([ownerUserId, email])
+  @@index([ownerUserId, role])
+  @@index([userId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  REFUNDS  (S3 — explicit refund workflow distinct from CreditTransaction.
+//  Operator submits a Refund row; once approved/processed we either issue a
+//  Stripe refund OR a credit clawback, and write the matching ledger row.)
+// ════════════════════════════════════════════════════════════════════════════
+
+model Refund {
+  id          String    @id @default(cuid())
+  orderId     String?
+  userId      String
+  /// USD cents.
+  amountCents Int
+  /// queued | approved | denied | completed | failed
+  status      String    @default("queued")
+  reason      String    @db.Text
+  /// Stripe refund id (re_xxx) / wechat refund_id / alipay refund_no.
+  externalId  String?
+  /// stripe | wechat | alipay | manual
+  provider    String    @default("stripe")
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([provider, externalId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  GENERATION STEPS  (S3 — replaces the JSON `Generation.steps` blob with a
+//  proper child table so we can index on per-step status and stream progress
+//  to the UI without rewriting the parent row.)
+// ════════════════════════════════════════════════════════════════════════════
+
+model GenerationStep {
+  id            String     @id @default(cuid())
+  generationId  String
+  generation    Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  /// scrape | analyze | direct | plan | copy | art | compliance | seo | compile | deploy | …
+  stepName      String
+  /// pending | running | completed | failed | skipped
+  status        String     @default("pending")
+  /// Sequence index for ordered progress UI.
+  ordinal       Int        @default(0)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  durationMs    Int?
+  errorMessage  String?    @db.Text
+  payload       Json?
+
+  @@index([generationId, ordinal])
+  @@index([status, startedAt])
 }

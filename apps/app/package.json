@@ -17,6 +17,7 @@
     "@forgely/design-tokens": "workspace:*",
     "@forgely/seo": "workspace:*",
     "@forgely/ui": "workspace:*",
+    "@forgely/worker": "workspace:*",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "next": "14.2.13",
