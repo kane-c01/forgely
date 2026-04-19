@@ -9,6 +9,23 @@
 
 > **关键定位**：付费用户来自中国（用微信付月费），生成的独立站给海外消费者用（用 Stripe 收 USD）。两层完全独立。详见 [`docs/PIVOT-CN.md`](docs/PIVOT-CN.md)。
 
+### 端到端生成链路（commit `feat/W1-t16-t17`）
+
+**今天单会话完成的 W1 主线 AI Agent + 编译/部署链路**：
+
+| 阶段 | 包 / 文件 |
+|---|---|
+| Analyze | `packages/ai-agents/src/agents/analyzer.ts` (T10) |
+| Plan | `packages/ai-agents/src/agents/planner.ts` + `packages/dsl` 完整 SiteDsl Zod schema (T14) |
+| Direct | `packages/ai-agents/src/agents/director.ts` (T13) |
+| Copywrite | `packages/ai-agents/src/agents/copywriter.ts` (T15) |
+| Asset Generate | `packages/ai-agents/src/agents/artist.ts` + 4 providers (Kling/Vidu/Flux/Meshy) (T16) |
+| Compile | `packages/dsl/src/compiler.ts` — DSL → 完整 Next.js 14 项目源码 (T17) |
+| Deploy | `services/deploy/src/index.ts` — Cloudflare Pages REST + 直接上传 (T17) |
+| Storefront 模板 | `apps/storefront/components/sections/{Hero,ValueProps,ProductShowcase,BrandStory,SocialProof,Faq,CTAFinale}.tsx` + `SectionRenderer.tsx` |
+| E2E pipeline | `services/worker/src/pipeline.ts` — `runPipeline(input, hooks)` 串起全部 |
+| Stripe Connect | `services/api/src/payments/stripe-connect.ts` — 中国老板 OAuth Stripe，海外消费者付 USD |
+
 ### Forgely 平台层（中国 B 端付费用户 — Forgely 自己收钱的部分）
 
 | 模块 | 落地 |
@@ -81,16 +98,29 @@
 
 **状态图例**：`TODO` 未开始 · `IN_PROGRESS` 进行中 · `PARTIAL` <50% · `NEAR_DONE` 50-95% · `DONE` 100% 验收通过
 
-**总体推进**（CN pivot 后）：30 Task 中
-- **DONE (12)**：T01 / T02 / T03 / T04 / T05 / T10 / T11 / T12 / T13 / T14 / T15 / T29（W8 80%→DONE）
-- **NEAR_DONE (10)**：T06 / T07 / T18 / T19 / T20 / T21 / T22 / T23 / T24 / T25 / T26 / T30
-- **PARTIAL (3)**：T08 / T09 / T28（W4 已扩到中国 tier-2）
-- **IN_PROGRESS (2)**：T27（W5 已推到 T27g — 中文站 + GDPR cookie + 11 静态页 + 404）
-- **TODO (2)**：T16（Artist — Vidu/MiniMax 视频生成 + Flux 图像 + Meshy 3D） / T17（Compiler+Deployer — DSL → Next.js 项目 + 阿里云部署）
+**总体推进**（T16/T17 完成后 — 端到端链路打通）：**30 Task 中 14 全 DONE / 12 NEAR_DONE / 3 PARTIAL / 1 IN_PROGRESS / 0 TODO**
 
-**等效 ≈ 12-15 周开发工作量**完成在单个会话（5 + 个 my-mcp 窗口并行 + W1 主线整合）。
+- **DONE (14)**：T01 / T02 / T03 / T04 / T05 / **T10** / **T11** / **T12** / **T13** / **T14** / **T15** / **T16** / **T17** / T29
+- **NEAR_DONE (12)**：T06 / T07 / T18 / T19 / T20 / T21 / T22 / T23 / T24 / T25 / T26 / T30
+- **PARTIAL (3)**：T08 / T09 / T28（中国 tier-2 已加 1688/Taobao）
+- **IN_PROGRESS (1)**：T27（W5 已推到 T27g）
+- **TODO (0)** ✅
 
-**剩余 P0 关键路径**：T16 Artist（接通真实视频/图像/3D 生成 API）+ T17 Compiler+Deployer（让 Planner 输出的 SiteDSL 真正变成可访问站点）。两者完成 = 端到端生成链路打通。
+**等效 ≈ 15-18 周开发工作量** 完成在单一会话内（5+ my-mcp 窗口并行 + W1 主线整合）。**端到端 AI 生成链路完整**：
+
+```
+URL → Scraper → Analyze → Plan(SiteDSL) → Direct → Copywrite
+                                    ↓
+                          Generate Assets (Kling/Vidu/Flux/Meshy)
+                                    ↓
+                          Compile (Next.js project)
+                                    ↓
+                          Deploy (Cloudflare Pages)
+                                    ↓
+                          海外消费者访问 → Stripe Connect 收 USD
+```
+
+**剩余仅是接真实凭据 + 部署**：(a) Postgres + Redis 上线 + migrate；(b) 配 .env 真实 LLM/Kling/Vidu/Stripe/微信支付/阿里云 SMS 凭据；(c) merge T27 W5 官网升级；(d) GitHub PAT 加 workflow scope 启用 CI。
 
 ---
 
