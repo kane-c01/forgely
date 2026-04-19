@@ -1,12 +1,16 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { waitlistSchema, type WaitlistInput } from '@/lib/waitlist'
+import {
+  createWaitlistSchema,
+  type WaitlistInput,
+} from '@/lib/waitlist'
 import { cn } from '@/lib/cn'
 
 interface WaitlistFormProps {
@@ -20,8 +24,23 @@ export function WaitlistForm({
   defaultPlan = 'free',
   className,
 }: WaitlistFormProps) {
+  const t = useTranslations('waitlist')
+  const tErrors = useTranslations('waitlist.errors')
+  const tToasts = useTranslations('waitlist.toasts')
+
   const formId = useId()
   const [submitted, setSubmitted] = useState(false)
+
+  const schema = useMemo(
+    () =>
+      createWaitlistSchema({
+        emailRequired: tErrors('emailRequired'),
+        emailInvalid: tErrors('emailInvalid'),
+        storeUrlInvalid: tErrors('storeUrlInvalid'),
+      }),
+    [tErrors],
+  )
+
   const {
     register,
     handleSubmit,
@@ -29,7 +48,7 @@ export function WaitlistForm({
     reset,
     setError,
   } = useForm<WaitlistInput>({
-    resolver: zodResolver(waitlistSchema),
+    resolver: zodResolver(schema),
     defaultValues: { plan: defaultPlan, email: '', storeUrl: '' },
   })
 
@@ -40,22 +59,22 @@ export function WaitlistForm({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(values),
       })
-      const data = (await res.json()) as { ok: boolean; error?: string; created?: boolean }
+      const data = (await res.json()) as {
+        ok: boolean
+        error?: string
+        created?: boolean
+      }
       if (!res.ok || !data.ok) {
-        const message = data.error ?? 'Could not add you to the waitlist. Try again?'
+        const message = tErrors('generic')
         setError('email', { message })
         toast.error(message)
         return
       }
       setSubmitted(true)
       reset({ email: '', storeUrl: '', plan: defaultPlan })
-      toast.success(
-        data.created
-          ? "You're on the list. We'll email you when forging opens."
-          : "You're already on the list. We'll be in touch soon.",
-      )
+      toast.success(data.created ? tToasts('created') : tToasts('existing'))
     } catch {
-      const message = 'Network hiccup. Please retry in a moment.'
+      const message = tErrors('network')
       setError('email', { message })
       toast.error(message)
     }
@@ -72,13 +91,10 @@ export function WaitlistForm({
         )}
       >
         <span className="font-mono text-caption uppercase tracking-[0.22em] text-forge-orange">
-          Welcome to the forge
+          {t('welcome')}
         </span>
-        <h3 className="font-display text-h2 font-light">You&apos;re on the list.</h3>
-        <p className="text-body text-text-secondary">
-          We&apos;re inviting brands in waves. Watch your inbox — your seat to forge a
-          cinematic store is on its way.
-        </p>
+        <h3 className="font-display text-h2 font-light">{t('onTheList')}</h3>
+        <p className="text-body text-text-secondary">{t('onTheListBody')}</p>
       </div>
     )
   }
@@ -109,12 +125,12 @@ export function WaitlistForm({
       {isHero ? (
         <div className="flex flex-col gap-3 sm:flex-row">
           <label htmlFor={`${formId}-store`} className="sr-only">
-            Store URL (optional)
+            {t('storeUrlLabel')}
           </label>
           <input
             id={`${formId}-store`}
             inputMode="url"
-            placeholder="Paste a store URL (optional)"
+            placeholder={t('storeUrlPlaceholder')}
             className={cn(
               'h-14 flex-1 rounded-md border border-border-strong bg-bg-deep/80 px-5 text-body text-text-primary',
               'placeholder:text-text-muted backdrop-blur-sm',
@@ -125,21 +141,28 @@ export function WaitlistForm({
         </div>
       ) : null}
 
-      <div className={cn('flex flex-col gap-3', isHero ? 'sm:flex-row' : 'sm:flex-row sm:items-center')}>
+      <div
+        className={cn(
+          'flex flex-col gap-3',
+          isHero ? 'sm:flex-row' : 'sm:flex-row sm:items-center',
+        )}
+      >
         <label htmlFor={`${formId}-email`} className="sr-only">
-          Email
+          {t('emailLabel')}
         </label>
         <input
           id={`${formId}-email`}
           type="email"
           required
-          placeholder="you@brand.com"
+          placeholder={t('emailPlaceholder')}
           autoComplete="email"
           className={cn(
             'h-14 flex-1 rounded-md border border-border-strong bg-bg-deep/80 px-5 text-body text-text-primary',
             'placeholder:text-text-muted backdrop-blur-sm',
             'focus-visible:border-forge-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forge-orange/40',
-            errors.email ? 'border-semantic-error focus-visible:ring-semantic-error/40' : '',
+            errors.email
+              ? 'border-semantic-error focus-visible:ring-semantic-error/40'
+              : '',
           )}
           aria-invalid={errors.email ? 'true' : 'false'}
           {...register('email')}
@@ -156,9 +179,13 @@ export function WaitlistForm({
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             )
           }
-          leadingIcon={isHero ? <Sparkles className="h-4 w-4" aria-hidden="true" /> : null}
+          leadingIcon={
+            isHero ? (
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            ) : null
+          }
         >
-          {isSubmitting ? 'Joining…' : 'Start Forging'}
+          {isSubmitting ? t('submitting') : t('submit')}
         </Button>
       </div>
 
@@ -174,7 +201,7 @@ export function WaitlistForm({
       ) : null}
 
       <p id={`${formId}-help`} className="text-small text-text-muted">
-        No credit card. Free during private beta. We&apos;ll never sell your email.
+        {t('help')}
       </p>
     </form>
   )

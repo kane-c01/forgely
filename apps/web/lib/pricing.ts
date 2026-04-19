@@ -1,115 +1,111 @@
 /**
  * Pricing matrix mirrors docs/MASTER.md §3.2.
  * Single source of truth for the marketing pricing page + structured data.
+ *
+ * Text content lives in `messages/{locale}.json` under the `pricing.plans.*` namespace.
+ * This file only owns the *shape*: prices, ordering, feature keys, included/value flags.
  */
 
 export interface PricingFeature {
-  label: string
-  /** When `false` the feature is shown crossed-out as "not included" */
+  /** Translation key suffix; full path = `pricing.plans.${planId}.features.${key}` */
+  key: string
+  /** Show as crossed-out / not included when false. Defaults to true. */
   included?: boolean
-  /** Optional emphasised value (e.g. "5 sites", "1,500 credits/mo") */
-  value?: string
+  /**
+   * Show a separate emphasised value alongside the label. When true, the i18n
+   * file must provide both `${key}` (label) and `${key}Value` (highlight).
+   */
+  hasValue?: boolean
 }
 
+export type PricingPlanId = 'free' | 'starter' | 'pro' | 'agency' | 'enterprise'
+
 export interface PricingPlan {
-  id: 'free' | 'starter' | 'pro' | 'agency' | 'enterprise'
-  name: string
-  tagline: string
+  id: PricingPlanId
   monthly: number | null
   annual: number | null
-  /** Marketing emphasis – exactly one plan should be `recommended` */
   recommended?: boolean
-  cta: { label: string; href: string }
+  ctaHref: string
   features: PricingFeature[]
-  footnote?: string
+  hasFootnote?: boolean
 }
 
 export const pricingPlans: PricingPlan[] = [
   {
     id: 'free',
-    name: 'Free',
-    tagline: 'Kick the tires.',
     monthly: 0,
     annual: 0,
-    cta: { label: 'Start for free', href: '/waitlist?plan=free' },
+    ctaHref: '/waitlist?plan=free',
     features: [
-      { label: '500 one-time credits', value: '500 credits' },
-      { label: '1 site on .forgely.app subdomain (with watermark)' },
-      { label: '6-section homepage generation' },
-      { label: 'Video Hero (no 3D)', included: true },
-      { label: 'AI Copilot', value: 'limited' },
-      { label: 'Custom domain', included: false },
-      { label: 'Code export', included: false },
+      { key: 'credits', hasValue: true },
+      { key: 'site' },
+      { key: 'homepage' },
+      { key: 'videoHero', included: true },
+      { key: 'copilotLimited', hasValue: true },
+      { key: 'customDomain', included: false },
+      { key: 'codeExport', included: false },
     ],
   },
   {
     id: 'starter',
-    name: 'Starter',
-    tagline: 'For solo brands going live.',
     monthly: 29,
     annual: 261,
-    cta: { label: 'Choose Starter', href: '/waitlist?plan=starter' },
+    ctaHref: '/waitlist?plan=starter',
+    hasFootnote: true,
     features: [
-      { value: '1,500 credits / month', label: 'Credits' },
-      { value: '3 sites', label: 'Sites' },
-      { value: '1 custom domain', label: 'Custom domain' },
-      { label: 'Video Hero', included: true },
-      { label: '3D Hero', included: false },
-      { label: 'AI Copilot', included: true },
-      { label: 'Code export', included: false },
+      { key: 'credits', hasValue: true },
+      { key: 'sites', hasValue: true },
+      { key: 'domain', hasValue: true },
+      { key: 'videoHero', included: true },
+      { key: 'threeDHero', included: false },
+      { key: 'copilot', included: true },
+      { key: 'codeExport', included: false },
     ],
-    footnote: 'Annual = 3 months free.',
   },
   {
     id: 'pro',
-    name: 'Pro',
-    tagline: 'For growing DTC brands.',
     monthly: 99,
     annual: 891,
     recommended: true,
-    cta: { label: 'Choose Pro', href: '/waitlist?plan=pro' },
+    ctaHref: '/waitlist?plan=pro',
+    hasFootnote: true,
     features: [
-      { value: '6,000 credits / month', label: 'Credits' },
-      { value: '10 sites', label: 'Sites' },
-      { value: '5 custom domains', label: 'Custom domains' },
-      { label: 'Video + 3D Hero', included: true },
-      { label: 'AI Copilot full power', included: true },
-      { label: '1× Code export / month', included: true },
-      { label: 'Priority generation queue', included: true },
+      { key: 'credits', hasValue: true },
+      { key: 'sites', hasValue: true },
+      { key: 'domains', hasValue: true },
+      { key: 'video3DHero', included: true },
+      { key: 'copilotFull', included: true },
+      { key: 'codeExportMonthly', included: true },
+      { key: 'priorityQueue', included: true },
     ],
-    footnote: 'Most popular. Save 25% on annual.',
   },
   {
     id: 'agency',
-    name: 'Agency',
-    tagline: 'Scale across many brands.',
     monthly: 299,
     annual: 2691,
-    cta: { label: 'Choose Agency', href: '/waitlist?plan=agency' },
+    ctaHref: '/waitlist?plan=agency',
     features: [
-      { value: '25,000 credits / month', label: 'Credits' },
-      { value: '50 sites', label: 'Sites' },
-      { value: 'Unlimited custom domains', label: 'Custom domains' },
-      { label: 'White-label Copilot', included: true },
-      { label: 'Unlimited code export', included: true },
-      { label: 'Team seats (5)', included: true },
-      { label: 'Priority support', included: true },
+      { key: 'credits', hasValue: true },
+      { key: 'sites', hasValue: true },
+      { key: 'domains', hasValue: true },
+      { key: 'whiteLabel', included: true },
+      { key: 'unlimitedExport', included: true },
+      { key: 'teamSeats', included: true },
+      { key: 'prioritySupport', included: true },
     ],
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
-    tagline: 'For platforms & retailers.',
     monthly: null,
     annual: null,
-    cta: { label: 'Talk to sales', href: 'mailto:hello@forgely.com?subject=Enterprise' },
+    ctaHref: 'mailto:hello@forgely.com?subject=Enterprise',
     features: [
-      { label: 'Custom credit pool' },
-      { label: '100+ sites' },
-      { label: 'Dedicated infrastructure' },
-      { label: 'Private deployment option' },
-      { label: 'SOC 2 / DPA / SSO' },
-      { label: 'Named success engineer' },
+      { key: 'creditPool' },
+      { key: 'sites' },
+      { key: 'infra' },
+      { key: 'deployment' },
+      { key: 'compliance' },
+      { key: 'engineer' },
     ],
   },
 ]

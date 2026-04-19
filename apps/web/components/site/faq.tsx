@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { SectionHeading } from '@/components/ui/section-heading'
-import { faqItems } from '@/lib/faq'
+import { faqKeys } from '@/lib/faq'
 import { cn } from '@/lib/cn'
 
 export function Faq() {
+  const t = useTranslations('faq')
   const [open, setOpen] = useState<number | null>(0)
   return (
     <section
@@ -16,16 +18,18 @@ export function Faq() {
     >
       <div className="container-page grid gap-12 lg:grid-cols-[1fr_2fr] lg:gap-20">
         <SectionHeading
-          eyebrow="FAQ"
-          title={<span id="faq-title">Common questions, answered straight.</span>}
-          description="Anything missing? Email hello@forgely.com — we'll send you a real reply, not a chatbot."
+          eyebrow={t('eyebrow')}
+          title={<span id="faq-title">{t('title')}</span>}
+          description={t('description')}
         />
 
         <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
-          {faqItems.map((item, idx) => {
+          {faqKeys.map((key, idx) => {
             const isOpen = open === idx
+            const question = t(`items.${key}.question`)
+            const answer = t(`items.${key}.answer`)
             return (
-              <li key={item.question}>
+              <li key={key}>
                 <button
                   type="button"
                   aria-expanded={isOpen}
@@ -34,7 +38,7 @@ export function Faq() {
                   className="flex w-full items-center justify-between gap-6 py-5 text-left transition hover:text-forge-orange"
                 >
                   <span className="font-display text-h3 font-light text-text-primary">
-                    {item.question}
+                    {question}
                   </span>
                   <Plus
                     aria-hidden="true"
@@ -49,7 +53,7 @@ export function Faq() {
                   hidden={!isOpen}
                   className="pb-6 text-body text-text-secondary"
                 >
-                  {item.answer}
+                  {answer}
                 </div>
               </li>
             )

@@ -193,6 +193,9 @@ export function parseSiteDsl(input: unknown): SiteDsl {
   return SiteDslSchema.parse(typeof input === 'string' ? JSON.parse(input) : input)
 }
 
+export type { CompiledProject, CompileOptions } from './compiler'
+export { compile } from './compiler'
+
 /** Lightweight JSON Schema generation hint for the Planner LLM prompt. */
 export function dslPromptSkeleton(): string {
   return `{

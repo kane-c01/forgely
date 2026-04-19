@@ -13,7 +13,7 @@
  */
 import { ScraperError, UnsupportedPlatformError } from '../errors.js'
 import type { ScrapedData, ScraperAdapter, ScrapeOptions } from '../types.js'
-import { GenericAIAdapter } from './generic-ai.js'
+import { GenericAIAdapter, type GenericAIAdapterOptions } from './generic-ai.js'
 
 const HOSTS = [
   'taobao.com',
@@ -30,7 +30,13 @@ export class TaobaoAdapter implements ScraperAdapter {
   readonly name = 'Taobao / Tmall'
   readonly priority = 75
 
-  private readonly fallback = new GenericAIAdapter()
+  private readonly fallback?: GenericAIAdapter
+
+  constructor(options?: { fallback?: GenericAIAdapterOptions }) {
+    if (options?.fallback) {
+      this.fallback = new GenericAIAdapter(options.fallback)
+    }
+  }
 
   async canHandle(url: string): Promise<boolean> {
     try {
@@ -43,6 +49,12 @@ export class TaobaoAdapter implements ScraperAdapter {
 
   async scrape(url: string, options: ScrapeOptions = {}): Promise<ScrapedData> {
     if (!(await this.canHandle(url))) throw new UnsupportedPlatformError(url)
+    if (!this.fallback) {
+      throw new ScraperError(
+        'Taobao adapter requires a Playwright + Vision fallback to be configured.',
+        { code: 'NOT_CONFIGURED', retryable: false },
+      )
+    }
     try {
       return await this.fallback.scrape(url, options)
     } catch (err) {

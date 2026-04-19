@@ -96,6 +96,9 @@ importers:
       '@forgely/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@forgely/dsl':
+        specifier: workspace:*
+        version: link:../../packages/dsl
       '@forgely/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -528,7 +531,14 @@ importers:
         version: 2.1.9(@types/node@20.19.39)(msw@2.13.4(@types/node@20.19.39)(typescript@5.9.3))
 
   services/deploy:
+    dependencies:
+      '@forgely/dsl':
+        specifier: workspace:*
+        version: link:../../packages/dsl
     devDependencies:
+      '@types/node':
+        specifier: ^20.16.10
+        version: 20.19.39
       typescript:
         specifier: ^5.6.2
         version: 5.9.3
@@ -540,7 +550,23 @@ importers:
         version: 5.9.3
 
   services/worker:
+    dependencies:
+      '@forgely/ai-agents':
+        specifier: workspace:*
+        version: link:../../packages/ai-agents
+      '@forgely/deploy':
+        specifier: workspace:*
+        version: link:../deploy
+      '@forgely/dsl':
+        specifier: workspace:*
+        version: link:../../packages/dsl
+      '@forgely/scraper':
+        specifier: workspace:*
+        version: link:../../packages/scraper
     devDependencies:
+      '@types/node':
+        specifier: ^20.16.10
+        version: 20.19.39
       typescript:
         specifier: ^5.6.2
         version: 5.9.3
