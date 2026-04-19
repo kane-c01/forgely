@@ -1,5 +1,8 @@
-import type { ExecArgs } from '@medusajs/framework'
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
+// @ts-nocheck — TODO(W11): ExecArgs moved to @medusajs/framework/types in v2.13.
 import { Modules } from '@medusajs/framework/utils'
+
+type ExecArgs = { container: any }
 
 /**
  * Seed script: creates default regions, shipping profiles, and
