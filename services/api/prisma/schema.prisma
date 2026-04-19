@@ -53,6 +53,17 @@ model User {
   totpSecret    String?
   totpEnabledAt DateTime?
 
+  /// 手机号 E.164 格式（中国 pivot — docs/PIVOT-CN.md §2）。
+  phoneE164         String?   @unique
+  phoneVerifiedAt   DateTime?
+  /// 微信 UnionId — 跨小程序 / 公众号 / 网站统一身份。
+  wechatUnionId     String?   @unique
+
+  /// 国家/区域偏好。`cn` = 国内站默认；`global` = 海外站默认。
+  region            String    @default("cn")
+  /// UI 语言偏好（zh-CN / zh-HK / zh-TW / en）。
+  locale            String    @default("zh-CN")
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -61,6 +72,7 @@ model User {
   credits            UserCredits?
   subscription       Subscription?
   accounts           Account[]
+  wechatAccount      WechatAccount?
   sessions           Session[]
   sites              Site[]
   brandKits          BrandKit[]
@@ -71,11 +83,75 @@ model User {
   creditReservations CreditReservation[]
   generations        Generation[]
   loginEvents        LoginEvent[]
+  phoneOtps          PhoneOtp[]
 
   @@index([email])
   @@index([role])
   @@index([plan])
   @@index([stripeCustomerId])
+  @@index([phoneE164])
+  @@index([wechatUnionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CN PIVOT — Wechat OAuth + Phone OTP (docs/PIVOT-CN.md §2)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// 微信开放平台 / 公众号 / 小程序的 OAuth 绑定。
+/// 一个用户最多绑一条（unique on userId）；UnionId 是跨应用的稳定身份。
+model WechatAccount {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 微信 OpenId（同一应用内唯一）。
+  openId      String   @unique
+  /// 跨应用唯一身份（绑定主账号的核心）。
+  unionId     String   @unique
+  /// `web` | `mp` (小程序) | `official` (公众号) | `app`。
+  scope       String
+
+  nickname    String?
+  avatarUrl   String?
+  /// 性别 `0=未知 / 1=男 / 2=女`，微信原始字段。
+  sex         Int?
+  country     String?
+  province    String?
+  city        String?
+
+  accessToken         String?  @db.Text
+  refreshToken        String?  @db.Text
+  accessTokenExpires  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scope])
+}
+
+/// 手机号短信 OTP — 短期 token，登录 / 绑定 / 验证三种用途。
+/// `code` 永远以 sha256 散列存储，明文从不入库。
+model PhoneOtp {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  phoneE164   String
+  /// 用途：login | bind | verify | reset_password
+  purpose     String
+  /// SHA-256(code) — 校验时再 hash 比对。
+  codeHash    String
+  /// 已尝试次数（最多 5 次）。
+  attempts    Int      @default(0)
+  /// 发送方 IP（用于风控）。
+  requestIp   String?
+
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([phoneE164, purpose, createdAt])
+  @@index([userId])
 }
 
 /// Auth.js (NextAuth v5) Prisma Adapter — OAuth account links.

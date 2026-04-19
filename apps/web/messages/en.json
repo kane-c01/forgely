@@ -1,0 +1,317 @@
+{
+  "common": {
+    "skipToContent": "Skip to content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "primaryNav": "Primary",
+    "mobileNav": "Mobile",
+    "language": "Language",
+    "switchLanguage": "Switch language",
+    "english": "English",
+    "chinese": "简体中文"
+  },
+  "nav": {
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "showcase": "Showcase",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "startForging": "Start Forging"
+  },
+  "hero": {
+    "ariaLabel": "Hero",
+    "badge": "Private beta · forging now",
+    "titleLine1": "Brand operating system",
+    "titleLine2": "for the AI era.",
+    "description": "Forge cinematic brand sites from a single link. Forgely turns any product URL into a fully-stocked store with motion, voice, and commerce — designed by AI, hosted on us, ready to sell in 5 minutes.",
+    "trustedBy": "Trusted by 2,000+ brands on the waitlist",
+    "seeHowItWorks": "See how it works"
+  },
+  "socialProof": {
+    "ariaLabel": "Trusted brands",
+    "caption": "Brands forging on Forgely · waitlist preview"
+  },
+  "valueProps": {
+    "eyebrow": "Why Forgely",
+    "titleLeading": "Three",
+    "titleEmphasis": "unfair",
+    "titleTrailing": "advantages",
+    "description": "A brand site is more than pretty pictures. Forgely co-designs the look, the sound, the structure and the storefront — then keeps shipping with you.",
+    "items": {
+      "cinematic": {
+        "title": "Cinematic, end-to-end",
+        "body": "Hero, value props, brand story and product moments share one visual DNA — the way Aesop, Recess and Terminal feel, generated for you in minutes.",
+        "meta": "10 visual DNAs · 10 product moments"
+      },
+      "store": {
+        "title": "A real store, not a landing page",
+        "body": "Medusa v2 commerce is wired in from day one: products, cart, checkout, orders, inventory and Stripe. Code export when you outgrow us.",
+        "meta": "Stripe · PayPal · NOWPayments"
+      },
+      "copilot": {
+        "title": "AI Copilot that ships, not chats",
+        "body": "A tool-using agent lives in your dashboard. Ask it to rewrite copy, swap a hero video, ship a discount, or redesign a section — it does the work.",
+        "meta": "20+ admin tools · long-term memory"
+      }
+    }
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "title": "From a single link to a full brand.",
+    "description": "Five quiet steps, zero rituals. You stay the creative director. Forgely takes care of the production crew.",
+    "stepLabel": "Step",
+    "steps": {
+      "01": {
+        "title": "Drop a link or describe a brand",
+        "body": "Paste any Shopify, WooCommerce, Etsy or Amazon URL — or just type the idea. Forgely scrapes products, screenshots, copy, prices and intent.",
+        "duration": "~10s"
+      },
+      "02": {
+        "title": "Forgely directs the film",
+        "body": "A multi-agent crew (Analyzer, Director, Planner, Copywriter, Artist) picks a Visual DNA and Product Moment, then writes the shot list.",
+        "duration": "~30s"
+      },
+      "03": {
+        "title": "Cinematic assets are forged",
+        "body": "Hero loop, 3 micro-videos, brand story, product showcase and logos generate in parallel via Kling, Flux and Ideogram with auto-fallback.",
+        "duration": "2–4 min"
+      },
+      "04": {
+        "title": "Compliance + SEO + storefront",
+        "body": "FTC / GDPR / FDA rules sweep, structured data, llms.txt and a Medusa storefront are wired up automatically.",
+        "duration": "~30s"
+      },
+      "05": {
+        "title": "Live in 5 minutes",
+        "body": "Your site ships to Cloudflare with SSL on .forgely.app or a custom domain. Tweak with the visual editor or just talk to the AI Copilot.",
+        "duration": "forever"
+      }
+    }
+  },
+  "showcase": {
+    "eyebrow": "Showcase",
+    "title": "10 visual DNAs · 10 product moments.",
+    "description": "One hundred fully-coherent looks, before you even touch the editor. Real client builds will replace these previews when private beta opens.",
+    "ctaForgeYours": "Forge yours",
+    "footnote": "Previews are stylized placeholders · real cinematic videos arrive with the Terminal upgrade (T27).",
+    "categories": {
+      "toys": "Wooden toys",
+      "tea": "Ceramic teaware",
+      "fragrance": "Fragrance",
+      "supplements": "Supplements",
+      "watches": "Watches",
+      "tableware": "Organic tableware"
+    }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Pay for the forge, not the seat.",
+    "description": "Start free. Subscribe for monthly credits + features. Top up anytime — purchased credits never expire.",
+    "billingCycle": "Billing cycle",
+    "monthly": "Monthly",
+    "annualSave": "Annual · Save 25%",
+    "mostPopular": "Most popular",
+    "custom": "Custom",
+    "tailored": "tailored to your scale",
+    "forever": "forever",
+    "perMonth": "/ month",
+    "perMonthBilledYearly": "/ month, billed ${amount} yearly",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "Kick the tires.",
+        "cta": "Start for free",
+        "features": {
+          "credits": "one-time credits",
+          "creditsValue": "500",
+          "site": "1 site on .forgely.app subdomain (with watermark)",
+          "homepage": "6-section homepage generation",
+          "videoHero": "Video Hero (no 3D)",
+          "copilotLimited": "AI Copilot",
+          "copilotLimitedValue": "limited",
+          "customDomain": "Custom domain",
+          "codeExport": "Code export"
+        }
+      },
+      "starter": {
+        "name": "Starter",
+        "tagline": "For solo brands going live.",
+        "cta": "Choose Starter",
+        "footnote": "Annual = 3 months free.",
+        "features": {
+          "credits": "Credits",
+          "creditsValue": "1,500 credits / month",
+          "sites": "Sites",
+          "sitesValue": "3 sites",
+          "domain": "Custom domain",
+          "domainValue": "1 custom domain",
+          "videoHero": "Video Hero",
+          "threeDHero": "3D Hero",
+          "copilot": "AI Copilot",
+          "codeExport": "Code export"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For growing DTC brands.",
+        "cta": "Choose Pro",
+        "footnote": "Most popular. Save 25% on annual.",
+        "features": {
+          "credits": "Credits",
+          "creditsValue": "6,000 credits / month",
+          "sites": "Sites",
+          "sitesValue": "10 sites",
+          "domains": "Custom domains",
+          "domainsValue": "5 custom domains",
+          "video3DHero": "Video + 3D Hero",
+          "copilotFull": "AI Copilot full power",
+          "codeExportMonthly": "1× Code export / month",
+          "priorityQueue": "Priority generation queue"
+        }
+      },
+      "agency": {
+        "name": "Agency",
+        "tagline": "Scale across many brands.",
+        "cta": "Choose Agency",
+        "features": {
+          "credits": "Credits",
+          "creditsValue": "25,000 credits / month",
+          "sites": "Sites",
+          "sitesValue": "50 sites",
+          "domains": "Custom domains",
+          "domainsValue": "Unlimited custom domains",
+          "whiteLabel": "White-label Copilot",
+          "unlimitedExport": "Unlimited code export",
+          "teamSeats": "Team seats (5)",
+          "prioritySupport": "Priority support"
+        }
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For platforms & retailers.",
+        "cta": "Talk to sales",
+        "features": {
+          "creditPool": "Custom credit pool",
+          "sites": "100+ sites",
+          "infra": "Dedicated infrastructure",
+          "deployment": "Private deployment option",
+          "compliance": "SOC 2 / DPA / SSO",
+          "engineer": "Named success engineer"
+        }
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "Common questions, answered straight.",
+    "description": "Anything missing? Email hello@forgely.com — we'll send you a real reply, not a chatbot.",
+    "items": {
+      "what": {
+        "question": "What does Forgely actually generate?",
+        "answer": "A complete, hostable brand site: a 6-section homepage with cinematic Hero loop, value props, brand story, product showcase, social proof and CTA — wired into a real Medusa v2 storefront with cart, checkout, orders and Stripe."
+      },
+      "skills": {
+        "question": "Do I need design or code skills?",
+        "answer": "No. Forgely picks a Visual DNA, drafts copy, generates assets, and ships the site. You can still tweak everything later via a visual editor or by chatting with the in-product AI Copilot."
+      },
+      "import": {
+        "question": "Can I import my existing Shopify or WooCommerce store?",
+        "answer": "Yes. Paste a URL and Forgely scrapes products, collections, copy and screenshots. We standardise everything into a single schema and let you choose what to keep, replace or improve."
+      },
+      "credits": {
+        "question": "How does the credit system work?",
+        "answer": "Every plan ships with monthly AI credits. Generations, edits, video re-rolls and Copilot actions consume credits — a full homepage costs around 900 credits. Top-ups never expire; subscription credits reset monthly."
+      },
+      "unique": {
+        "question": "Will my site be unique or templated?",
+        "answer": "10 Visual DNAs × 10 Product Moments = 100 base looks, then your brand voice, products and palette layer on top. Two brands using Forgely will not feel the same — that is the whole point."
+      },
+      "export": {
+        "question": "Can I export the code if I outgrow Forgely?",
+        "answer": "Yes. Pro plans include monthly code exports of the generated Next.js site. Agency and Enterprise get unlimited exports. Your data, your store, your call."
+      }
+    }
+  },
+  "finalCta": {
+    "titleLine1": "Your brand is one",
+    "titleLine2": "link away.",
+    "description": "Drop a store URL or your idea. Forgely will hand you back a cinematic, stockable, sellable brand site — usually in less than 5 minutes."
+  },
+  "footer": {
+    "tagline": "Made for brands that ship. Built in dark mode by default.",
+    "version": "v0.1 · MVP · {domain}",
+    "copyright": "© {year} {brand}. All rights reserved.",
+    "sections": {
+      "product": {
+        "title": "Product",
+        "links": {
+          "howItWorks": "How it works",
+          "showcase": "Showcase",
+          "pricing": "Pricing",
+          "changelog": "Changelog"
+        }
+      },
+      "company": {
+        "title": "Company",
+        "links": {
+          "about": "About",
+          "manifesto": "Manifesto",
+          "careers": "Careers",
+          "contact": "Contact"
+        }
+      },
+      "resources": {
+        "title": "Resources",
+        "links": {
+          "docs": "Docs",
+          "library": "Brand Library",
+          "status": "Status",
+          "github": "GitHub"
+        }
+      },
+      "legal": {
+        "title": "Legal",
+        "links": {
+          "terms": "Terms",
+          "privacy": "Privacy",
+          "dsa": "DSA",
+          "refunds": "Refunds"
+        }
+      }
+    }
+  },
+  "waitlist": {
+    "welcome": "Welcome to the forge",
+    "onTheList": "You're on the list.",
+    "onTheListBody": "We're inviting brands in waves. Watch your inbox — your seat to forge a cinematic store is on its way.",
+    "storeUrlLabel": "Store URL (optional)",
+    "storeUrlPlaceholder": "Paste a store URL (optional)",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@brand.com",
+    "submitting": "Joining…",
+    "submit": "Start Forging",
+    "help": "No credit card. Free during private beta. We'll never sell your email.",
+    "errors": {
+      "generic": "Could not add you to the waitlist. Try again?",
+      "network": "Network hiccup. Please retry in a moment.",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Enter a valid email",
+      "storeUrlInvalid": "Store URL must start with http(s)://"
+    },
+    "toasts": {
+      "created": "You're on the list. We'll email you when forging opens.",
+      "existing": "You're already on the list. We'll be in touch soon."
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "Brand operating system for the AI era",
+      "description": "Forgely turns any product link into a cinematic, fully-stocked brand site — designed by AI, hosted on us, ready to sell in 5 minutes."
+    },
+    "site": {
+      "tagline": "Forge cinematic brand sites from a single link.",
+      "description": "Forgely turns any product link into a cinematic, fully-stocked brand site — designed by AI, hosted on us, ready to sell in 5 minutes.",
+      "slogan": "Brand operating system for the AI era."
+    }
+  }
+}

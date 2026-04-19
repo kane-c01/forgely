@@ -12,6 +12,11 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./tailwind": {
+      "types": "./tailwind.preset.ts",
+      "import": "./tailwind.preset.ts",
+      "default": "./tailwind.preset.ts"
+    },
     "./tailwind.preset": {
       "types": "./tailwind.preset.ts",
       "import": "./tailwind.preset.ts",

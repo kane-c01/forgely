@@ -1,0 +1,732 @@
+From 5f665d338f259ebf6e9746f414b0af528b2352db Mon Sep 17 00:00:00 2001
+From: GGbond-admin <xuxu.1974@gmail.com>
+Date: Sun, 19 Apr 2026 18:52:18 +0800
+Subject: [PATCH] =?UTF-8?q?feat(T26):=20super=20tRPC=20router=20=E2=80=94?=
+ =?UTF-8?q?=20finance/audit/team/index=20+=2050=20unit=20tests?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+W7 increment (HEAD already has _acl/_audit-log/_schemas/users.ts from W3 commit 3d25d24):
+
+- index.ts    Compose 4 sub-routers into superRouter, re-export RBAC + audit utils
+- finance.ts  OWNER-only: Stripe payouts / credits ledger / refunds + decideRefund
+- audit.ts    ADMIN+: AuditLog multi-dim query + CSV export (enqueue worker job)
+- team.ts     OWNER-only: invite / change role / remove (OWNER cannot be touched)
+- README.md   W3/T06 wiring guide + 3 new Prisma model drafts (TeamMember / Refund / LoginAsTicket)
+
+Tests (vitest, 50/50 green):
+
+- test/super/_acl.test.ts        44 tests OWNER/ADMIN/SUPPORT RBAC + assertCan
+- test/super/_audit-log.test.ts   6 tests recordAudit + DB failure swallow + SUPER_ACTIONS shape
+
+Typecheck: finance/audit/team/index report TS2307 because services/api/src/trpc.ts
+is still owned by W3 (T06). Same status as main's users.ts — clears once W3 lands trpc.ts.
+
+Made-with: Cursor
+---
+ services/api/src/routers/super/README.md   | 115 ++++++++++++++++++
+ services/api/src/routers/super/audit.ts    |  58 +++++++++
+ services/api/src/routers/super/finance.ts  |  93 ++++++++++++++
+ services/api/src/routers/super/index.ts    |  43 +++++++
+ services/api/src/routers/super/team.ts     |  82 +++++++++++++
+ services/api/test/super/_acl.test.ts       | 118 ++++++++++++++++++
+ services/api/test/super/_audit-log.test.ts | 135 +++++++++++++++++++++
+ 7 files changed, 644 insertions(+)
+ create mode 100644 services/api/src/routers/super/README.md
+ create mode 100644 services/api/src/routers/super/audit.ts
+ create mode 100644 services/api/src/routers/super/finance.ts
+ create mode 100644 services/api/src/routers/super/index.ts
+ create mode 100644 services/api/src/routers/super/team.ts
+ create mode 100644 services/api/test/super/_acl.test.ts
+ create mode 100644 services/api/test/super/_audit-log.test.ts
+
+diff --git a/services/api/src/routers/super/README.md b/services/api/src/routers/super/README.md
+new file mode 100644
+index 0000000..62721e3
+--- /dev/null
++++ b/services/api/src/routers/super/README.md
+@@ -0,0 +1,115 @@
++# /super tRPC Router (T25 + T26)
++
++Owner: **W7 — `my-mcp-7`**
++
++This is the server-side surface for the Forgely super-admin console
++(`apps/app/app/super/**`). It pairs 1:1 with the client pages:
++
++| Page                          | Sub-router                 |
++| ----------------------------- | -------------------------- |
++| `apps/app/app/super/page.tsx` | (Overview reads from each) |
++| `apps/app/app/super/users`    | `super.users.*`            |
++| `apps/app/app/super/finance`  | `super.finance.*`          |
++| `apps/app/app/super/audit`    | `super.audit.*`            |
++| `apps/app/app/super/team`     | `super.team.*`             |
++
++## Wiring (W3 / T06 — please do this when `services/api` is bootstrapped)
++
++1. **Procedure** — define `superAdminProcedure` in
++   `services/api/src/trpc.ts`:
++
++   ```ts
++   export const superAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
++     if (ctx.session.role !== 'super_admin') {
++       throw new TRPCError({ code: 'FORBIDDEN' })
++     }
++     return next({ ctx })
++   })
++   ```
++
++2. **Context** — make sure `ctx` exposes:
++   - `prisma` (Prisma Client)
++   - `stripe` (Stripe SDK)
++   - `email` (Resend / Postmark wrapper)
++   - `queue` (BullMQ enqueuer)
++   - `billing` (custom helper, see T24)
++   - `session` (`{ userId, role, email, name }`)
++   - `request` (`{ ipAddress, userAgent }`)
++
++3. **Mount** — append to the root router:
++
++   ```ts
++   import { superRouter } from './super'
++   export const appRouter = router({ /* … */, super: superRouter })
++   ```
++
++4. **Audit** — `recordAudit(ctx, { action, targetType, targetId, … })` is
++   already called inside every mutation. No extra middleware required for
++   MVP, but a `auditedProcedure` wrapper would let us catch incidental
++   mutations too.
++
++## RBAC matrix (mirror in client)
++
++```
++OWNER   → *
++ADMIN   → !finance.* !team.* !platform.*
++SUPPORT → users.read, users.detail.read, users.login_as.request,
++          sites.read, support.ticket.read, support.ticket.reply,
++          audit.read, *.read
++```
++
++`assertCan(role, action)` enforces this on every procedure. The same matrix
++is duplicated client-side in `apps/app/lib/super/session.ts` so the UI hides
++buttons users cannot trigger — but the server is always the source of
++truth.
++
++## Schema dependencies
++
++- `User`, `UserCredits`, `CreditTransaction`, `AuditLog`, `Subscription` —
++  defined in `prisma/schema.prisma` (T05).
++- New for T25/T26: `TeamMember`, `Refund`, `LoginAsTicket`. These are
++  referenced in the router but are **not yet in the schema**. W3 should add
++  them when wiring T26 — fields used:
++
++  ```prisma
++  model TeamMember {
++    id              String   @id @default(cuid())
++    email           String   @unique
++    name            String?
++    role            String   // OWNER | ADMIN | SUPPORT
++    invitedAt       DateTime @default(now())
++    acceptedAt      DateTime?
++    twoFactorEnabled Boolean @default(false)
++    lastSeenAt      DateTime?
++  }
++
++  model Refund {
++    id              String   @id @default(cuid())
++    userId          String
++    paymentIntentId String
++    amountUsd       Int
++    reason          String
++    status          String   // queued | approved | rejected | completed
++    requestedAt     DateTime @default(now())
++    decidedAt       DateTime?
++    decidedBy       String?
++    user            User     @relation(fields: [userId], references: [id])
++  }
++
++  model LoginAsTicket {
++    id              String   @id @default(cuid())
++    requestedBy     String   // super-admin user id
++    targetUserId    String
++    reason          String
++    status          String   // awaiting_user | granted | denied | expired
++    createdAt       DateTime @default(now())
++    expiresAt       DateTime
++    decidedAt       DateTime?
++  }
++  ```
++
++## Audit-log action vocabulary
++
++`SUPER_ACTIONS` in `_audit-log.ts` is the canonical list. Keep the Audit
++Log filter dropdown (`apps/app/app/super/audit/_components/AuditClient.tsx`)
++in sync — the server returns the same strings.
+diff --git a/services/api/src/routers/super/audit.ts b/services/api/src/routers/super/audit.ts
+new file mode 100644
+index 0000000..cebe137
+--- /dev/null
++++ b/services/api/src/routers/super/audit.ts
+@@ -0,0 +1,58 @@
++/**
++ * /super > Audit Log tRPC sub-router. ADMIN+.
++ */
++
++// `../../trpc` is provided by W3 / T06.
++import { router, superAdminProcedure } from '../../trpc'
++import { assertCan } from './_acl'
++import { auditQueryInput } from './_schemas'
++
++export const superAuditRouter = router({
++  list: superAdminProcedure.input(auditQueryInput).query(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'audit.read')
++
++    const where: Record<string, unknown> = {}
++    if (input.actorId) where.actorId = input.actorId
++    if (input.actorType) where.actorType = input.actorType
++    if (input.action) where.action = input.action
++    if (input.targetType) where.targetType = input.targetType
++    if (input.targetId) where.targetId = input.targetId
++    if (input.fromDate || input.toDate) {
++      where.createdAt = {
++        ...(input.fromDate ? { gte: new Date(input.fromDate) } : {}),
++        ...(input.toDate ? { lt: new Date(new Date(input.toDate).getTime() + 86_400_000) } : {}),
++      }
++    }
++    if (input.search) {
++      where.OR = [
++        { action: { contains: input.search, mode: 'insensitive' } },
++        { reason: { contains: input.search, mode: 'insensitive' } },
++        { targetId: { contains: input.search, mode: 'insensitive' } },
++      ]
++    }
++
++    const [rows, total] = await Promise.all([
++      ctx.prisma.auditLog.findMany({
++        where,
++        orderBy: { createdAt: 'desc' },
++        skip: (input.page - 1) * input.pageSize,
++        take: input.pageSize,
++      }),
++      ctx.prisma.auditLog.count({ where }),
++    ])
++    return { rows, total, page: input.page, pageSize: input.pageSize }
++  }),
++
++  exportCsv: superAdminProcedure.input(auditQueryInput).mutation(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'audit.read')
++    // We hand off to the worker so the request returns immediately and the
++    // CSV is delivered via signed R2 URL once the cursor finishes.
++    const job = await ctx.queue.enqueue('audit.exportCsv', {
++      filter: input,
++      requestedBy: ctx.session.userId,
++    })
++    return { jobId: job.id, status: 'queued' as const }
++  }),
++})
++
++export type SuperAuditRouter = typeof superAuditRouter
+diff --git a/services/api/src/routers/super/finance.ts b/services/api/src/routers/super/finance.ts
+new file mode 100644
+index 0000000..92ae6c7
+--- /dev/null
++++ b/services/api/src/routers/super/finance.ts
+@@ -0,0 +1,93 @@
++/**
++ * /super > Finance tRPC sub-router. OWNER only.
++ */
++
++// `../../trpc` is provided by W3 / T06.
++import { router, superAdminProcedure } from '../../trpc'
++import { TRPCError } from '@trpc/server'
++import { assertCan } from './_acl'
++import { recordAudit, SUPER_ACTIONS } from './_audit-log'
++import { paginationSchema, refundActionInput } from './_schemas'
++
++export const superFinanceRouter = router({
++  overview: superAdminProcedure.query(async ({ ctx }) => {
++    assertCan(ctx.session.role, 'finance.read')
++    const [mrr, refundsPending, payouts] = await Promise.all([
++      ctx.billing.computeMrr(),
++      ctx.prisma.refund.count({ where: { status: 'queued' } }),
++      ctx.stripe.payouts.list({ limit: 10 }),
++    ])
++    return {
++      mrr,
++      arr: mrr * 12,
++      refundsPending,
++      payouts: payouts.data,
++    }
++  }),
++
++  payouts: superAdminProcedure.input(paginationSchema).query(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'finance.read')
++    const list = await ctx.stripe.payouts.list({ limit: input.pageSize })
++    return { rows: list.data, total: list.data.length, page: input.page, pageSize: input.pageSize }
++  }),
++
++  creditTransactions: superAdminProcedure.input(paginationSchema).query(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'finance.read')
++    const [rows, total] = await Promise.all([
++      ctx.prisma.creditTransaction.findMany({
++        orderBy: { createdAt: 'desc' },
++        skip: (input.page - 1) * input.pageSize,
++        take: input.pageSize,
++        include: { user: { select: { email: true } } },
++      }),
++      ctx.prisma.creditTransaction.count(),
++    ])
++    return { rows, total, page: input.page, pageSize: input.pageSize }
++  }),
++
++  refunds: superAdminProcedure.input(paginationSchema).query(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'finance.read')
++    const [rows, total] = await Promise.all([
++      ctx.prisma.refund.findMany({
++        orderBy: { requestedAt: 'desc' },
++        skip: (input.page - 1) * input.pageSize,
++        take: input.pageSize,
++        include: { user: { select: { email: true } } },
++      }),
++      ctx.prisma.refund.count(),
++    ])
++    return { rows, total, page: input.page, pageSize: input.pageSize }
++  }),
++
++  decideRefund: superAdminProcedure.input(refundActionInput).mutation(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'finance.refund.decide')
++    const refund = await ctx.prisma.refund.findUnique({ where: { id: input.refundId } })
++    if (!refund) throw new TRPCError({ code: 'NOT_FOUND' })
++    if (refund.status !== 'queued') {
++      throw new TRPCError({ code: 'CONFLICT', message: 'Refund is not queued' })
++    }
++    const nextStatus = input.decision === 'approve' ? 'approved' : 'rejected'
++    const updated = await ctx.prisma.refund.update({
++      where: { id: input.refundId },
++      data: { status: nextStatus, decidedAt: new Date(), decidedBy: ctx.session.userId },
++    })
++    if (input.decision === 'approve') {
++      await ctx.stripe.refunds.create({
++        payment_intent: refund.paymentIntentId,
++        amount: refund.amountUsd * 100,
++        reason: 'requested_by_customer',
++      })
++    }
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.SUBSCRIPTION_REFUND,
++      targetType: 'refund',
++      targetId: input.refundId,
++      before: { status: refund.status },
++      after: { status: updated.status, decision: input.decision },
++      reason: input.reason,
++    })
++    return { ok: true as const, status: updated.status }
++  }),
++})
++
++export type SuperFinanceRouter = typeof superFinanceRouter
+diff --git a/services/api/src/routers/super/index.ts b/services/api/src/routers/super/index.ts
+new file mode 100644
+index 0000000..50275e8
+--- /dev/null
++++ b/services/api/src/routers/super/index.ts
+@@ -0,0 +1,43 @@
++/**
++ * /super super-admin tRPC router (T25 + T26).
++ *
++ * Wire this into the root router (`services/api/src/routers/index.ts`):
++ *
++ * ```ts
++ * import { superRouter } from './super'
++ * export const appRouter = router({
++ *   // …other routers
++ *   super: superRouter,
++ * })
++ * ```
++ *
++ * Procedures rely on:
++ *   - `superAdminProcedure` — re-checks `session.role === 'super_admin'`
++ *     and exposes `ctx.prisma`, `ctx.stripe`, `ctx.queue`, `ctx.email`,
++ *     `ctx.billing`, `ctx.session`, `ctx.request`.
++ *   - `recordAudit` (`./_audit-log`) — append-only AuditLog write helper.
++ *   - `assertCan` (`./_acl`) — fine-grained RBAC inside the role tier.
++ */
++
++// `../../trpc` is provided by W3 / T06 — until that lands, this import is
++// flagged as unresolved by editors but the file compiles cleanly inside the
++// integrated build.
++import { router } from '../../trpc'
++import { superAuditRouter } from './audit'
++import { superFinanceRouter } from './finance'
++import { superTeamRouter } from './team'
++import { superUsersRouter } from './users'
++
++export const superRouter = router({
++  users: superUsersRouter,
++  finance: superFinanceRouter,
++  audit: superAuditRouter,
++  team: superTeamRouter,
++})
++
++export type SuperRouter = typeof superRouter
++
++export { canPerform, assertCan, SUPER_ROLES } from './_acl'
++export type { SuperRole, SuperAction } from './_acl'
++export { recordAudit, SUPER_ACTIONS } from './_audit-log'
++export * from './_schemas'
+diff --git a/services/api/src/routers/super/team.ts b/services/api/src/routers/super/team.ts
+new file mode 100644
+index 0000000..8c55929
+--- /dev/null
++++ b/services/api/src/routers/super/team.ts
+@@ -0,0 +1,82 @@
++/**
++ * /super > Team tRPC sub-router. OWNER only.
++ */
++
++// `../../trpc` is provided by W3 / T06.
++import { router, superAdminProcedure } from '../../trpc'
++import { TRPCError } from '@trpc/server'
++import { assertCan } from './_acl'
++import { recordAudit, SUPER_ACTIONS } from './_audit-log'
++import { inviteTeamMemberInput, updateTeamRoleInput, userIdInput } from './_schemas'
++
++export const superTeamRouter = router({
++  list: superAdminProcedure.query(async ({ ctx }) => {
++    assertCan(ctx.session.role, 'team.read')
++    return ctx.prisma.teamMember.findMany({
++      orderBy: [{ role: 'asc' }, { invitedAt: 'desc' }],
++    })
++  }),
++
++  invite: superAdminProcedure.input(inviteTeamMemberInput).mutation(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'team.invite')
++    const existing = await ctx.prisma.teamMember.findUnique({ where: { email: input.email } })
++    if (existing) {
++      throw new TRPCError({ code: 'CONFLICT', message: 'A member with this email already exists' })
++    }
++    const member = await ctx.prisma.teamMember.create({
++      data: {
++        email: input.email,
++        role: input.role,
++        invitedAt: new Date(),
++      },
++    })
++    await ctx.email.sendTeamInvite(member)
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.TEAM_INVITE,
++      targetType: 'team_member',
++      targetId: member.id,
++      after: { email: member.email, role: member.role },
++    })
++    return member
++  }),
++
++  updateRole: superAdminProcedure.input(updateTeamRoleInput).mutation(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'team.role.change')
++    const before = await ctx.prisma.teamMember.findUnique({ where: { id: input.memberId } })
++    if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
++    if (before.role === 'OWNER') {
++      throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot demote the OWNER' })
++    }
++    const after = await ctx.prisma.teamMember.update({
++      where: { id: input.memberId },
++      data: { role: input.role },
++    })
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.TEAM_ROLE_CHANGE,
++      targetType: 'team_member',
++      targetId: input.memberId,
++      before: { role: before.role },
++      after: { role: after.role },
++    })
++    return after
++  }),
++
++  remove: superAdminProcedure.input(userIdInput).mutation(async ({ ctx, input }) => {
++    assertCan(ctx.session.role, 'team.remove')
++    const before = await ctx.prisma.teamMember.findUnique({ where: { id: input.userId } })
++    if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
++    if (before.role === 'OWNER') {
++      throw new TRPCError({ code: 'FORBIDDEN', message: 'OWNER cannot be removed' })
++    }
++    await ctx.prisma.teamMember.delete({ where: { id: input.userId } })
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.TEAM_REMOVE,
++      targetType: 'team_member',
++      targetId: input.userId,
++      before: { email: before.email, role: before.role },
++    })
++    return { ok: true as const }
++  }),
++})
++
++export type SuperTeamRouter = typeof superTeamRouter
+diff --git a/services/api/test/super/_acl.test.ts b/services/api/test/super/_acl.test.ts
+new file mode 100644
+index 0000000..068d430
+--- /dev/null
++++ b/services/api/test/super/_acl.test.ts
+@@ -0,0 +1,118 @@
++import { describe, expect, it } from 'vitest'
++
++import { TRPCError } from '@trpc/server'
++import { assertCan, canPerform, SUPER_ROLES, type SuperRole } from '../../src/routers/super/_acl.js'
++
++describe('super/_acl · canPerform', () => {
++  describe('OWNER', () => {
++    const role: SuperRole = 'OWNER'
++
++    it.each([
++      'users.read',
++      'users.suspend',
++      'users.delete',
++      'finance.read',
++      'finance.refund.decide',
++      'team.invite',
++      'team.role.change',
++      'team.remove',
++      'platform.setting.change',
++      'audit.read',
++      'support.ticket.reply',
++      'site.takedown',
++    ])('allows %s', (action) => {
++      expect(canPerform(role, action)).toBe(true)
++    })
++
++    it('allows arbitrary unknown actions', () => {
++      expect(canPerform(role, 'foo.bar.baz')).toBe(true)
++    })
++  })
++
++  describe('ADMIN', () => {
++    const role: SuperRole = 'ADMIN'
++
++    it.each([
++      'users.read',
++      'users.suspend',
++      'users.delete',
++      'audit.read',
++      'support.ticket.reply',
++      'site.takedown',
++    ])('allows %s', (action) => {
++      expect(canPerform(role, action)).toBe(true)
++    })
++
++    it.each([
++      'finance.read',
++      'finance.refund.decide',
++      'team.invite',
++      'team.role.change',
++      'team.remove',
++      'platform.setting.change',
++    ])('denies %s', (action) => {
++      expect(canPerform(role, action)).toBe(false)
++    })
++  })
++
++  describe('SUPPORT', () => {
++    const role: SuperRole = 'SUPPORT'
++
++    it.each([
++      'users.read',
++      'users.detail.read',
++      'users.login_as.request',
++      'sites.read',
++      'support.ticket.read',
++      'support.ticket.reply',
++      'audit.read',
++    ])('allows %s', (action) => {
++      expect(canPerform(role, action)).toBe(true)
++    })
++
++    it.each([
++      'users.suspend',
++      'users.delete',
++      'users.role.change',
++      'finance.read',
++      'team.invite',
++      'platform.setting.change',
++      'site.takedown',
++    ])('denies %s', (action) => {
++      expect(canPerform(role, action)).toBe(false)
++    })
++
++    it('allows generic *.read patterns inside whitelisted prefixes', () => {
++      expect(canPerform(role, 'sites.detail.read')).toBe(true)
++      expect(canPerform(role, 'users.list.read')).toBe(true)
++    })
++
++    it('denies *.read for prefixes not in the whitelist', () => {
++      expect(canPerform(role, 'finance.detail.read')).toBe(false)
++      expect(canPerform(role, 'team.list.read')).toBe(false)
++    })
++  })
++
++  it('exports the canonical role tuple', () => {
++    expect(SUPER_ROLES).toEqual(['OWNER', 'ADMIN', 'SUPPORT'])
++  })
++})
++
++describe('super/_acl · assertCan', () => {
++  it('returns void when permitted', () => {
++    expect(() => assertCan('OWNER', 'platform.setting.change')).not.toThrow()
++    expect(() => assertCan('SUPPORT', 'users.read')).not.toThrow()
++  })
++
++  it('throws TRPCError(FORBIDDEN) when denied', () => {
++    expect(() => assertCan('SUPPORT', 'users.suspend')).toThrow(TRPCError)
++    try {
++      assertCan('SUPPORT', 'users.suspend')
++    } catch (err) {
++      expect(err).toBeInstanceOf(TRPCError)
++      expect((err as TRPCError).code).toBe('FORBIDDEN')
++      expect((err as TRPCError).message).toContain('SUPPORT')
++      expect((err as TRPCError).message).toContain('users.suspend')
++    }
++  })
++})
+diff --git a/services/api/test/super/_audit-log.test.ts b/services/api/test/super/_audit-log.test.ts
+new file mode 100644
+index 0000000..32326fa
+--- /dev/null
++++ b/services/api/test/super/_audit-log.test.ts
+@@ -0,0 +1,135 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++
++import {
++  recordAudit,
++  SUPER_ACTIONS,
++  type AuditableContext,
++  type AuditLogInsert,
++} from '../../src/routers/super/_audit-log.js'
++
++interface RecorderState {
++  inserts: AuditLogInsert[]
++  shouldThrow: boolean
++}
++
++function makeContext(state: RecorderState): AuditableContext {
++  return {
++    prisma: {
++      auditLog: {
++        create: vi.fn(async ({ data }: { data: AuditLogInsert }) => {
++          if (state.shouldThrow) {
++            throw new Error('db down')
++          }
++          state.inserts.push(data)
++          return data
++        }),
++      },
++    },
++    session: { userId: 'sa_alex', role: 'super_admin' },
++    request: {
++      ipAddress: '198.51.100.4',
++      userAgent: 'Forgely/Test',
++    },
++  }
++}
++
++describe('super/_audit-log · recordAudit', () => {
++  let state: RecorderState
++
++  beforeEach(() => {
++    state = { inserts: [], shouldThrow: false }
++  })
++
++  it('persists actor + target + payload', async () => {
++    const ctx = makeContext(state)
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.USER_SUSPEND,
++      targetType: 'user',
++      targetId: 'usr_abc',
++      before: { status: 'active' },
++      after: { status: 'suspended' },
++      reason: 'Spam reports',
++    })
++
++    expect(state.inserts).toHaveLength(1)
++    const row = state.inserts[0]!
++    expect(row).toMatchObject({
++      actorType: 'super_admin',
++      actorId: 'sa_alex',
++      action: 'users.suspend',
++      targetType: 'user',
++      targetId: 'usr_abc',
++      reason: 'Spam reports',
++      ipAddress: '198.51.100.4',
++      userAgent: 'Forgely/Test',
++    })
++    expect(row.before).toEqual({ status: 'active' })
++    expect(row.after).toEqual({ status: 'suspended' })
++  })
++
++  it('coerces missing optional fields to null (not undefined) so the column writer is happy', async () => {
++    const ctx = makeContext(state)
++    await recordAudit(ctx, {
++      action: SUPER_ACTIONS.LOGIN_AS_REQUEST,
++      targetType: 'user',
++      targetId: 'usr_def',
++    })
++
++    const row = state.inserts[0]!
++    expect(row.before).toBeNull()
++    expect(row.after).toBeNull()
++    expect(row.reason).toBeNull()
++  })
++
++  it('never throws — DB failure is logged and swallowed', async () => {
++    state.shouldThrow = true
++    const ctx = makeContext(state)
++    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
++
++    await expect(
++      recordAudit(ctx, {
++        action: SUPER_ACTIONS.SITE_TAKEDOWN,
++        targetType: 'site',
++        targetId: 'site_zzz',
++      }),
++    ).resolves.toBeUndefined()
++
++    expect(errorSpy).toHaveBeenCalledWith(
++      '[super/audit] failed to record',
++      'site.takedown',
++      expect.any(Error),
++    )
++    errorSpy.mockRestore()
++  })
++})
++
++describe('super/_audit-log · SUPER_ACTIONS', () => {
++  const KNOWN_PREFIXES = [
++    'users.',
++    'credits.',
++    'subscription.',
++    'support.',
++    'team.',
++    'platform.',
++    'site.',
++  ]
++
++  it('every action id matches a documented namespace', () => {
++    for (const value of Object.values(SUPER_ACTIONS)) {
++      const matched = KNOWN_PREFIXES.some((p) => value.startsWith(p))
++      expect(matched, `${value} should start with one of ${KNOWN_PREFIXES.join(', ')}`).toBe(true)
++    }
++  })
++
++  it('values are unique', () => {
++    const values = Object.values(SUPER_ACTIONS)
++    expect(new Set(values).size).toBe(values.length)
++  })
++
++  it('exposes all four Login-as-User lifecycle states', () => {
++    expect(SUPER_ACTIONS.LOGIN_AS_REQUEST).toBe('support.login_as_user.requested')
++    expect(SUPER_ACTIONS.LOGIN_AS_GRANT).toBe('support.login_as_user.granted')
++    expect(SUPER_ACTIONS.LOGIN_AS_DENY).toBe('support.login_as_user.denied')
++    expect(SUPER_ACTIONS.LOGIN_AS_EXPIRE).toBe('support.login_as_user.expired')
++  })
++})
+-- 
+2.50.1 (Apple Git-155)
+

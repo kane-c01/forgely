@@ -1,0 +1,317 @@
+{
+  "common": {
+    "skipToContent": "跳到主要内容",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "primaryNav": "主导航",
+    "mobileNav": "移动端导航",
+    "language": "语言",
+    "switchLanguage": "切换语言",
+    "english": "English",
+    "chinese": "简体中文"
+  },
+  "nav": {
+    "howItWorks": "工作原理",
+    "pricing": "定价方案",
+    "showcase": "案例展示",
+    "faq": "常见问题",
+    "signIn": "登录",
+    "startForging": "开始锻造"
+  },
+  "hero": {
+    "ariaLabel": "首屏",
+    "badge": "私测中 · 锻造进行中",
+    "titleLine1": "AI 时代的",
+    "titleLine2": "品牌操作系统。",
+    "description": "用一条链接锻造电影级品牌站。Forgely 把任何产品链接，变成一个有动态、有声音、可下单的完整商店——AI 设计、我们托管，5 分钟即可开售。",
+    "trustedBy": "已有 2,000+ 品牌加入候补名单",
+    "seeHowItWorks": "看它怎么运作"
+  },
+  "socialProof": {
+    "ariaLabel": "信任品牌",
+    "caption": "正在 Forgely 上锻造的品牌 · 候补名单预览"
+  },
+  "valueProps": {
+    "eyebrow": "为什么选 Forgely",
+    "titleLeading": "三个",
+    "titleEmphasis": "不公平",
+    "titleTrailing": "的优势",
+    "description": "品牌站不止是漂亮图片。Forgely 与你共同设计外观、声音、结构与商店——并持续陪你迭代。",
+    "items": {
+      "cinematic": {
+        "title": "端到端电影级体验",
+        "body": "首屏、价值主张、品牌故事和产品镜头共享同一套视觉 DNA——就像 Aesop、Recess 与 Terminal 的质感，几分钟内为你生成。",
+        "meta": "10 套视觉 DNA · 10 种产品镜头"
+      },
+      "store": {
+        "title": "真商店，不是落地页",
+        "body": "首日即接入 Medusa v2 商务系统：商品、购物车、结算、订单、库存与 Stripe。当你超出我们时，可一键导出代码。",
+        "meta": "Stripe · PayPal · NOWPayments"
+      },
+      "copilot": {
+        "title": "会动手的 AI 副驾，不只会聊",
+        "body": "一个会用工具的智能体常驻你的后台。让它改文案、换首屏视频、上线折扣或重设计版块——它真的会去做。",
+        "meta": "20+ 管理工具 · 长期记忆"
+      }
+    }
+  },
+  "howItWorks": {
+    "eyebrow": "工作原理",
+    "title": "从一条链接，到完整品牌。",
+    "description": "五个安静的步骤，零繁文缛节。你仍是创意总监，Forgely 替你接管整个制作团队。",
+    "stepLabel": "步骤",
+    "steps": {
+      "01": {
+        "title": "贴一个链接，或描述一个品牌",
+        "body": "粘贴任意 Shopify、WooCommerce、Etsy 或 Amazon 链接——或直接打字描述创意。Forgely 会抓取商品、截图、文案、价格和意图。",
+        "duration": "约 10 秒"
+      },
+      "02": {
+        "title": "Forgely 担任电影导演",
+        "body": "多智能体团队（分析师、导演、规划师、文案、艺术家）选定视觉 DNA 与产品镜头，并写出分镜表。",
+        "duration": "约 30 秒"
+      },
+      "03": {
+        "title": "锻造电影级素材",
+        "body": "首屏循环、3 段微视频、品牌故事、产品展示与 Logo 通过 Kling、Flux 与 Ideogram 并行生成,失败自动回退。",
+        "duration": "2–4 分钟"
+      },
+      "04": {
+        "title": "合规 + SEO + 商店",
+        "body": "FTC / GDPR / FDA 合规扫描、结构化数据、llms.txt 与 Medusa 商店全部自动配置好。",
+        "duration": "约 30 秒"
+      },
+      "05": {
+        "title": "5 分钟内上线",
+        "body": "网站自动部署到 Cloudflare,带 SSL 证书,可使用 .forgely.app 子域名或自定义域名。可视化编辑器可微调,也可直接和 AI 副驾对话修改。",
+        "duration": "永久在线"
+      }
+    }
+  },
+  "showcase": {
+    "eyebrow": "案例展示",
+    "title": "10 套视觉 DNA · 10 种产品镜头。",
+    "description": "在你动手编辑之前,已有一百种完全自洽的视觉风格。私测开放后,这些预览将由真实客户案例替换。",
+    "ctaForgeYours": "锻造你的",
+    "footnote": "预览图为风格化占位 · 真正的电影级视频将随 Terminal 升级 (T27) 上线。",
+    "categories": {
+      "toys": "木质玩具",
+      "tea": "陶瓷茶器",
+      "fragrance": "香氛",
+      "supplements": "营养补剂",
+      "watches": "腕表",
+      "tableware": "有机餐具"
+    }
+  },
+  "pricing": {
+    "eyebrow": "定价方案",
+    "title": "为锻造付费,而非席位。",
+    "description": "免费起步。订阅获得每月积分 + 功能。随时充值——购买的积分永不过期。",
+    "billingCycle": "计费周期",
+    "monthly": "按月",
+    "annualSave": "按年 · 立省 25%",
+    "mostPopular": "最受欢迎",
+    "custom": "面议",
+    "tailored": "按你的规模量身定制",
+    "forever": "永久免费",
+    "perMonth": "/ 月",
+    "perMonthBilledYearly": "/ 月,按年 ${amount} 收取",
+    "plans": {
+      "free": {
+        "name": "免费版",
+        "tagline": "先来试试水。",
+        "cta": "免费开始",
+        "features": {
+          "credits": "一次性积分",
+          "creditsValue": "500",
+          "site": "1 个 .forgely.app 子域站点(带水印)",
+          "homepage": "6 板块首页生成",
+          "videoHero": "视频首屏(无 3D)",
+          "copilotLimited": "AI 副驾",
+          "copilotLimitedValue": "受限",
+          "customDomain": "自定义域名",
+          "codeExport": "代码导出"
+        }
+      },
+      "starter": {
+        "name": "入门版",
+        "tagline": "适合独立品牌正式上线。",
+        "cta": "选择入门版",
+        "footnote": "按年订阅 = 免费送 3 个月。",
+        "features": {
+          "credits": "积分",
+          "creditsValue": "1,500 积分 / 月",
+          "sites": "站点数",
+          "sitesValue": "3 个站点",
+          "domain": "自定义域名",
+          "domainValue": "1 个自定义域名",
+          "videoHero": "视频首屏",
+          "threeDHero": "3D 首屏",
+          "copilot": "AI 副驾",
+          "codeExport": "代码导出"
+        }
+      },
+      "pro": {
+        "name": "专业版",
+        "tagline": "适合成长中的 DTC 品牌。",
+        "cta": "选择专业版",
+        "footnote": "最热门。按年立省 25%。",
+        "features": {
+          "credits": "积分",
+          "creditsValue": "6,000 积分 / 月",
+          "sites": "站点数",
+          "sitesValue": "10 个站点",
+          "domains": "自定义域名",
+          "domainsValue": "5 个自定义域名",
+          "video3DHero": "视频 + 3D 首屏",
+          "copilotFull": "AI 副驾完整功能",
+          "codeExportMonthly": "1 次/月 代码导出",
+          "priorityQueue": "优先生成队列"
+        }
+      },
+      "agency": {
+        "name": "代理版",
+        "tagline": "为多品牌规模化运营。",
+        "cta": "选择代理版",
+        "features": {
+          "credits": "积分",
+          "creditsValue": "25,000 积分 / 月",
+          "sites": "站点数",
+          "sitesValue": "50 个站点",
+          "domains": "自定义域名",
+          "domainsValue": "无限自定义域名",
+          "whiteLabel": "白标 AI 副驾",
+          "unlimitedExport": "无限代码导出",
+          "teamSeats": "团队席位 (5 人)",
+          "prioritySupport": "优先客服"
+        }
+      },
+      "enterprise": {
+        "name": "企业版",
+        "tagline": "面向平台与零售商。",
+        "cta": "联系销售",
+        "features": {
+          "creditPool": "定制积分池",
+          "sites": "100+ 站点",
+          "infra": "专属基础设施",
+          "deployment": "私有部署选项",
+          "compliance": "SOC 2 / DPA / SSO",
+          "engineer": "专属客户成功工程师"
+        }
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "常见问题",
+    "title": "常见问题,直说不绕弯。",
+    "description": "找不到答案?发邮件到 hello@forgely.com——我们会回真人,不是聊天机器人。",
+    "items": {
+      "what": {
+        "question": "Forgely 究竟会生成什么?",
+        "answer": "一个完整、可托管的品牌站点:6 板块首页(含电影级首屏循环、价值主张、品牌故事、产品展示、社会证明与 CTA)——并接入真实的 Medusa v2 商店,带购物车、结算、订单与 Stripe。"
+      },
+      "skills": {
+        "question": "我需要懂设计或写代码吗?",
+        "answer": "不需要。Forgely 自动选定视觉 DNA、起草文案、生成素材并上线站点。你之后仍可通过可视化编辑器或与产品内的 AI 副驾对话来微调一切。"
+      },
+      "import": {
+        "question": "我能导入现有的 Shopify 或 WooCommerce 商店吗?",
+        "answer": "可以。粘贴一个链接,Forgely 会抓取商品、合集、文案与截图,统一标准化为单一数据结构,然后由你决定保留、替换还是优化。"
+      },
+      "credits": {
+        "question": "积分系统怎么运作?",
+        "answer": "每个套餐都自带每月 AI 积分。生成、编辑、视频重抽与副驾操作都消耗积分——一个完整首页大约 900 积分。充值积分永不过期;订阅积分按月重置。"
+      },
+      "unique": {
+        "question": "我的网站会独一无二还是模板化?",
+        "answer": "10 套视觉 DNA × 10 种产品镜头 = 100 种基础风格,再叠加你的品牌声音、商品与配色。两个 Forgely 用户的网站不会有相同感觉——这正是我们要的。"
+      },
+      "export": {
+        "question": "如果我用大了 Forgely,能导出代码吗?",
+        "answer": "可以。专业版每月含 1 次 Next.js 代码导出,代理版与企业版无限次。你的数据、你的商店、你说了算。"
+      }
+    }
+  },
+  "finalCta": {
+    "titleLine1": "你的品牌,只差",
+    "titleLine2": "一条链接。",
+    "description": "贴一个商店链接或一个想法。Forgely 会还给你一个电影级、可备货、可销售的品牌站——通常不到 5 分钟。"
+  },
+  "footer": {
+    "tagline": "为出货的品牌而生。默认深色模式。",
+    "version": "v0.1 · MVP · {domain}",
+    "copyright": "© {year} {brand}. 保留所有权利。",
+    "sections": {
+      "product": {
+        "title": "产品",
+        "links": {
+          "howItWorks": "工作原理",
+          "showcase": "案例展示",
+          "pricing": "定价方案",
+          "changelog": "更新日志"
+        }
+      },
+      "company": {
+        "title": "公司",
+        "links": {
+          "about": "关于我们",
+          "manifesto": "宣言",
+          "careers": "招聘",
+          "contact": "联系我们"
+        }
+      },
+      "resources": {
+        "title": "资源",
+        "links": {
+          "docs": "文档",
+          "library": "品牌库",
+          "status": "服务状态",
+          "github": "GitHub"
+        }
+      },
+      "legal": {
+        "title": "法律",
+        "links": {
+          "terms": "服务条款",
+          "privacy": "隐私政策",
+          "dsa": "DSA 合规",
+          "refunds": "退款政策"
+        }
+      }
+    }
+  },
+  "waitlist": {
+    "welcome": "欢迎来到锻造场",
+    "onTheList": "你已加入候补名单。",
+    "onTheListBody": "我们正分批邀请品牌入场。请留意邮箱——锻造电影级商店的席位正在路上。",
+    "storeUrlLabel": "商店链接(选填)",
+    "storeUrlPlaceholder": "粘贴商店链接(选填)",
+    "emailLabel": "邮箱",
+    "emailPlaceholder": "you@brand.com",
+    "submitting": "加入中…",
+    "submit": "开始锻造",
+    "help": "无需信用卡。私测期间完全免费。我们绝不会出售你的邮箱。",
+    "errors": {
+      "generic": "无法将你加入候补名单,请再试一次。",
+      "network": "网络小故障,请稍候重试。",
+      "emailRequired": "请填写邮箱",
+      "emailInvalid": "请输入有效的邮箱",
+      "storeUrlInvalid": "商店链接需以 http(s):// 开头"
+    },
+    "toasts": {
+      "created": "你已加入名单,锻造开放时我们将邮件通知。",
+      "existing": "你已经在名单上,我们很快会联系你。"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "AI 时代的品牌操作系统",
+      "description": "Forgely 将任何产品链接变成电影级、备货完整的品牌站——AI 设计、我们托管,5 分钟即可开售。"
+    },
+    "site": {
+      "tagline": "用一条链接锻造电影级品牌站。",
+      "description": "Forgely 将任何产品链接变成电影级、备货完整的品牌站——AI 设计、我们托管,5 分钟即可开售。",
+      "slogan": "AI 时代的品牌操作系统。"
+    }
+  }
+}
