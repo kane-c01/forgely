@@ -86,3 +86,34 @@ export const runMonthlyCreditReset = async (
 
   return { scanned: subs.length, granted, creditsGranted }
 }
+
+/**
+ * Cron contract for the worker layer.  We schedule daily at UTC 00:05 and
+ * the function bails out on non-1st days, so the job is safe to put on a
+ * `0 5 * * *` (UTC) schedule and still produce the "first of the month"
+ * semantics.
+ */
+export const MONTHLY_CREDIT_RESET_CRON = '5 0 * * *'
+
+/**
+ * Calendar-aware wrapper. Only invokes `runMonthlyCreditReset` when `now`
+ * is on the 1st of the month (UTC). On any other day it returns
+ * `{ skipped: true }` so cron-driven invocations are no-ops.
+ *
+ * The function-side idempotency key (per `currentPeriodStart`) means even
+ * if the wrapper is bypassed and the job runs twice on the 1st, no user
+ * gets double credits.
+ */
+export const runMonthlyCreditResetIfDue = async (
+  options: { dryRun?: boolean; now?: Date } = {},
+): Promise<
+  | { skipped: true; reason: string }
+  | { skipped: false; scanned: number; granted: number; creditsGranted: number }
+> => {
+  const now = options.now ?? new Date()
+  if (now.getUTCDate() !== 1) {
+    return { skipped: true, reason: `not the 1st of the month (utc day = ${now.getUTCDate()})` }
+  }
+  const result = await runMonthlyCreditReset(options)
+  return { skipped: false, ...result }
+}

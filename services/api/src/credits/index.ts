@@ -40,4 +40,8 @@ export type { ReserveCreditsInput, ReservedCredits } from './reserve.js'
 export { consumeRateLimit, purgeOldRateLimitWindows } from './rate-limit.js'
 export type { RateLimitArgs, RateLimitResult } from './rate-limit.js'
 
-export { runMonthlyCreditReset } from './monthly-reset.js'
+export {
+  runMonthlyCreditReset,
+  runMonthlyCreditResetIfDue,
+  MONTHLY_CREDIT_RESET_CRON,
+} from './monthly-reset.js'
