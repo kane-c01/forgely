@@ -50,8 +50,8 @@ export const cnAuthRouter = router({
       requestOtp({
         phone: input.phone,
         purpose: input.purpose,
-        userId: ctx.session?.user?.id,
-        requestIp: ctx.ipAddress,
+        userId: ctx.user?.id,
+        requestIp: ctx.ipAddress ?? undefined,
       }),
     ),
 
@@ -77,11 +77,11 @@ export const cnAuthRouter = router({
   bindPhone: publicProcedure
     .input(z.object({ phone: z.string(), code: z.string().length(6) }))
     .mutation(({ input, ctx }) => {
-      if (!ctx.session?.user?.id) {
+      if (!ctx.user?.id) {
         throw new Error('UNAUTHORIZED')
       }
       return bindPhoneToUser({
-        userId: ctx.session.user.id,
+        userId: ctx.user.id,
         phone: input.phone,
         code: input.code,
       })

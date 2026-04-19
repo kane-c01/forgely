@@ -483,6 +483,9 @@ importers:
       '@auth/core':
         specifier: ^0.37.4
         version: 0.37.4
+      '@forgely/ai-agents':
+        specifier: workspace:*
+        version: link:../../packages/ai-agents
       '@forgely/compliance':
         specifier: workspace:*
         version: link:../../packages/compliance

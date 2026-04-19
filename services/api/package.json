@@ -62,6 +62,7 @@
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
+    "@forgely/ai-agents": "workspace:*",
     "@forgely/compliance": "workspace:*",
     "@forgely/seo": "workspace:*",
     "@prisma/client": "^5.22.0",

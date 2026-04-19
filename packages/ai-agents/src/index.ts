@@ -64,6 +64,26 @@ export {
   autoRegisterArtistProviders,
 } from './agents/artist-providers'
 
+// Conversation orchestrator (multi-turn user dialog — drives the 3 input paths)
+export {
+  startConversation,
+  nextAssistantTurn,
+  ingestUser,
+  isReadyToGenerate,
+  toPipelineInput,
+  CONVERSATION_OPENING_CREDITS,
+  CONVERSATION_PER_TURN_CREDITS,
+  CollectedInfoSchema,
+  type ConversationContext,
+  type ConversationStage,
+  type ConversationMessage,
+  type AssistantTurn,
+  type CollectedInfo,
+  type InputPath,
+  type NextTurnOptions,
+  type UserAnswer,
+} from './agents/conversation'
+
 // Brand profile types
 export type {
   BrandProfile,

@@ -68,7 +68,7 @@ export function buildAuthorizeUrl(opts: {
   return `${QR_AUTH_URL}?${params.toString()}#wechat_redirect`
 }
 
-interface AccessTokenResponse {
+export interface AccessTokenResponse {
   access_token: string
   expires_in: number
   refresh_token: string
@@ -79,7 +79,7 @@ interface AccessTokenResponse {
   errmsg?: string
 }
 
-interface UserInfoResponse {
+export interface UserInfoResponse {
   openid: string
   nickname: string
   sex: number

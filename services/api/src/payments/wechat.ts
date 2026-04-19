@@ -138,7 +138,7 @@ export class WechatPayProvider implements PaymentProvider {
 
   async refund(input: { externalId: string; amountCents: number; reason?: string }): Promise<RefundResult> {
     void input
-    throw new ForgelyError('WECHAT_PAY_REFUND_TODO', '微信支付退款待生产对接', 500)
+    throw new ForgelyError('INTERNAL_ERROR', '微信支付退款待生产对接 (input ignored).', 500, { input })
   }
 }
 
