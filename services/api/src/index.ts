@@ -25,3 +25,5 @@ export type {
 
 export { ForgelyError, errors, isForgelyError } from './errors.js'
 export type { ForgelyErrorCode } from './errors.js'
+
+export type { AppRouter } from './router/index.js'

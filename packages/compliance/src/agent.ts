@@ -116,8 +116,10 @@ export class ComplianceAgent {
             focus:
               'List any visible chemical hazard symbols, age indicators, medical claims, brand logos that might be counterfeit, or text overlays.',
           })
+          // 视觉转文本后，重新归类为 product-description 让常规文本规则可以命中
           return {
             ...item,
+            type: 'product-description' as const,
             text: `${v.description}\nFLAGS: ${v.flags.join(', ')}`,
           }
         } catch {

@@ -8,147 +8,312 @@
 
 ## 总览（30 Tasks · 20 周 MVP）
 
-| ID  | 标题                             | 周次   | 依赖     | 分支                       | 状态        | PR  | 完成日期   | 负责窗口 |
-| --- | -------------------------------- | ------ | -------- | -------------------------- | ----------- | --- | ---------- | -------- |
-| T01 | Monorepo 脚手架                  | W1     | —        | `feat/T01-monorepo`        | IN_PROGRESS | —   | —          | W1       |
-| T02 | Design Tokens 包                 | W1     | T01      | `feat/T02-design-tokens`   | IN_PROGRESS | —   | —          | W1       |
-| T03 | shadcn/ui 基础组件               | W1-2   | T02      | `feat/T03-shadcn-ui`       | PARTIAL     | —   | —          | W2       |
-| T04 | Aceternity + Magic UI 组件       | W2     | T03      | `feat/T04-animated-ui`     | TODO        | —   | —          | W2       |
-| T05 | 数据库 Schema + Prisma           | W2     | T01      | `feat/T05-prisma-schema`   | REVIEW      | —   | 2026-04-19 | W3       |
-| T06 | 认证系统                         | W2     | T05      | `feat/T06-auth`            | TODO        | —   | —          | W3       |
-| T07 | 官网 MVP（Hero + Pricing + CTA） | W3     | T04      | `feat/T07-web-mvp`         | TODO        | —   | —          | W5       |
-| T08 | Scraper Shopify Adapter          | W4     | T01      | `feat/T08-scraper-shopify` | TODO        | —   | —          | W4       |
-| T09 | Scraper WooCommerce Adapter      | W4     | T08      | `feat/T09-scraper-woo`     | TODO        | —   | —          | W4       |
-| T10 | Analyzer Agent                   | W4     | T08      | `feat/T10-analyzer`        | TODO        | —   | —          | W1       |
-| T11 | 10 个视觉 DNA 预设               | W4     | T02      | `feat/T11-visual-dna`      | TODO        | —   | —          | W2       |
-| T12 | 10 个 Moment Prompt 库           | W4     | T02      | `feat/T12-moments`         | TODO        | —   | —          | W2       |
-| T13 | Director Agent                   | W5     | T10, T12 | `feat/T13-director`        | TODO        | —   | —          | W1       |
-| T14 | Planner Agent + SiteDSL          | W5     | T10, T11 | `feat/T14-planner-dsl`     | TODO        | —   | —          | W1       |
-| T15 | Copywriter Agent                 | W5     | T14      | `feat/T15-copywriter`      | TODO        | —   | —          | W1       |
-| T16 | Artist Agent（Flux + Kling）     | W5-6   | T13      | `feat/T16-artist`          | TODO        | —   | —          | W1       |
-| T17 | Compiler + Deployer              | W6     | T14      | `feat/T17-compile-deploy`  | TODO        | —   | —          | W1       |
-| T18 | 用户后台 Dashboard + Products    | W6-7   | T05, T06 | `feat/T18-app-dashboard`   | TODO        | —   | —          | W6       |
-| T19 | 订单 / 客户管理                  | W7     | T18      | `feat/T19-orders`          | TODO        | —   | —          | W6       |
-| T20 | Media Library + BrandKit         | W8     | T18      | `feat/T20-brand-kit`       | TODO        | —   | —          | W6       |
-| T21 | Theme Editor（可视化）           | W9     | T14, T18 | `feat/T21-editor-visual`   | TODO        | —   | —          | W6       |
-| T22 | Theme Editor（AI 对话）          | W9     | T21      | `feat/T22-editor-ai`       | TODO        | —   | —          | W6       |
-| T23 | AI Copilot（Tool Use）           | W9     | T18      | `feat/T23-copilot`         | TODO        | —   | —          | W6       |
-| T24 | 积分系统 + Stripe                | W9     | T06      | `feat/T24-credits-stripe`  | TODO        | —   | —          | W3       |
-| T25 | Super Admin - Overview           | W10    | T18      | `feat/T25-super-overview`  | TODO        | —   | —          | W7       |
-| T26 | Super Admin - Users / Finance    | W10    | T25      | `feat/T26-super-finance`   | TODO        | —   | —          | W7       |
-| T27 | 官网 - Terminal 升级             | W11-13 | T07      | `feat/T27-web-terminal`    | TODO        | —   | —          | W5       |
-| T28 | 多源 Scraper 扩展                | W14    | T08      | `feat/T28-scraper-multi`   | TODO        | —   | —          | W4       |
-| T29 | Compliance Agent                 | W15    | T10      | `feat/T29-compliance`      | TODO        | —   | —          | W8       |
-| T30 | SEO/GEO 完整实现                 | W16    | T14      | `feat/T30-seo-geo`         | TODO        | —   | —          | W8       |
+> 本表反映 Sprint 0 单次会话整合后的真实状态（2026-04-19）。Sprint 0 commit `8ee4907` 一次性整合了 5 个并行 my-mcp 窗口的产出。从 Sprint 1 起每个 Task 走标准独立 PR 流程。
 
-**状态图例**：`TODO` 未开始 · `IN_PROGRESS` 进行中 · `PARTIAL` 部分完成 · `REVIEW` 待 review · `DONE` 已合并
+| ID | 标题 | 周次 | 依赖 | 状态 | 完成度 | PR | 完成日期 | 负责窗口 |
+|---|---|---|---|---|---|---|---|---|
+| T01 | Monorepo 脚手架 | W1 | — | DONE | 100% | `8ee4907` | 2026-04-19 | W1 |
+| T02 | Design Tokens 包 | W1 | T01 | DONE | 100% | `8ee4907` | 2026-04-19 | W1 |
+| T03 | shadcn/ui 基础组件 | W1-2 | T02 | PARTIAL | 25% (5 of 20) | `8ee4907` | — | W2 |
+| T04 | Aceternity + Magic UI 组件 | W2 | T03 | TODO | 0% | — | — | W2 |
+| T05 | 数据库 Schema + Prisma | W2 | T01 | DONE | 100% | `8ee4907` | 2026-04-19 | W3 |
+| T06 | 认证系统 | W2 | T05 | IN_PROGRESS | 10% (分支已起) | — | — | W3 |
+| T07 | 官网 MVP（Hero + Pricing + CTA） | W3 | T04 | NEAR_DONE | 85% (11 sections + lib + waitlist) | `8ee4907` | — | W5 |
+| T08 | Scraper Shopify Adapter | W4 | T01 | PARTIAL | 30% (types/errors/http) | `8ee4907` | — | W4 |
+| T09 | Scraper WooCommerce Adapter | W4 | T08 | PARTIAL | 60% (3-strategy adapter wired) | `8ee4907` | — | W4 |
+| T10 | Analyzer Agent | W4 | T08 | TODO | 0% | — | — | W1 |
+| T11 | 10 个视觉 DNA 预设 | W4 | T02 | TODO | 5% (seed skeleton) | — | — | W2 |
+| T12 | 10 个 Moment Prompt 库 | W4 | T02 | TODO | 0% | — | — | W2 |
+| T13 | Director Agent | W5 | T10, T12 | TODO | 0% | — | — | W1 |
+| T14 | Planner Agent + SiteDSL | W5 | T10, T11 | TODO | 0% | — | — | W1 |
+| T15 | Copywriter Agent | W5 | T14 | TODO | 0% | — | — | W1 |
+| T16 | Artist Agent（Flux + Kling） | W5-6 | T13 | TODO | 0% | — | — | W1 |
+| T17 | Compiler + Deployer | W6 | T14 | TODO | 0% | — | — | W1 |
+| T18 | 用户后台 Dashboard + Products | W6-7 | T05, T06 | NEAR_DONE | 75% (full shell + dashboard + product/order rows) | `8ee4907` | — | W6 |
+| T19 | 订单 / 客户管理 | W7 | T18 | PARTIAL | 20% (order-status + product-row primitives) | `8ee4907` | — | W6 |
+| T20 | Media Library + BrandKit | W8 | T18 | TODO | 0% | — | — | W6 |
+| T21 | Theme Editor（可视化） | W9 | T14, T18 | TODO | 0% | — | — | W6 |
+| T22 | Theme Editor（AI 对话） | W9 | T21 | TODO | 0% | — | — | W6 |
+| T23 | AI Copilot（Tool Use） | W9 | T18 | NEAR_DONE | 70% (full provider + drawer + 27 tools + fake assistant) | `8ee4907` | — | W6 |
+| T24 | 积分系统 + Stripe | W9 | T06 | PARTIAL | 15% (schema + reservation + soft enums) | `8ee4907` | — | W3 |
+| T25 | Super Admin - Overview | W10 | T18 | TODO | 0% | — | — | W7 |
+| T26 | Super Admin - Users / Finance | W10 | T25 | TODO | 0% | — | — | W7 |
+| T27 | 官网 - Terminal 升级 | W11-13 | T07 | TODO | 0% | — | — | W5 |
+| T28 | 多源 Scraper 扩展 | W14 | T08 | TODO | 0% | — | — | W4 |
+| T29 | Compliance Agent | W15 | T10 | NEAR_DONE | 80% (engine + agent + autofix + 6 regional rules + tests) | `8ee4907` | — | W8 |
+| T30 | SEO/GEO 完整实现 | W16 | T14 | PARTIAL | 25% (schemaOrg builders started) | `8ee4907` | — | W8 |
+
+**状态图例**：`TODO` 未开始 · `IN_PROGRESS` 进行中 · `PARTIAL` <50% · `NEAR_DONE` 50-95% · `DONE` 100% 验收通过
+
+**总体推进**：30 Task 中 **3 完成 / 4 接近完成 / 6 部分完成 / 1 进行中 / 16 未开始** — Sprint 0 一波就完成了相当于 4 周的工作量。
 
 ---
 
-## 多窗口分工模型
+## Sprint 0 整合 Commit（2026-04-19）
 
-> **技术约束**：每个 my-mcp-N 是绑定单个 Cursor 窗口的会话通道，窗口间 AI 不能互相直接派活。**实操方式**：W1 主线拆 Task → 输出"派给 my-mcp-N 的 Prompt 包"（见下方"待派发 Prompt"区）→ 你手动复制到对应窗口的 Cursor。
+`8ee4907 feat: sprint 0 monorepo foundation (T01/T02/T03·/T05/T07·/T08·/T18·/T29·)` — 269 文件，24,751 行新增。
 
-### 窗口角色分配
+### 验证
 
-| 窗口            | MCP 通道  | 长期职责                                  | Task 簇            |
-| --------------- | --------- | ----------------------------------------- | ------------------ |
-| **W1 主线**     | my-mcp-1  | 架构 / AI Agents / 生成 Pipeline / 协调   | T01, T10, T13-T17  |
-| **W2 UI**       | my-mcp-2  | 共享组件 / Storybook / 视觉 DNA / Moment  | T03, T04, T11, T12 |
-| **W3 后端**     | my-mcp-3  | DB / Auth / 积分 / Stripe                 | T05, T06, T24      |
-| **W4 Scraper**  | my-mcp-4  | 爬虫 Adapter（Shopify/WC/Amazon/AI 兜底） | T08, T09, T28      |
-| **W5 官网**     | my-mcp-5  | apps/web（MVP + Terminal 升级）           | T07, T27           |
-| **W6 用户后台** | my-mcp-6  | apps/app（Dashboard / Editor / Copilot）  | T18-T23            |
-| **W7 超级后台** | my-mcp-7  | /super 模块 + 审计                        | T25, T26           |
-| **W8 合规/SEO** | my-mcp-8  | Compliance Agent + SEO/GEO                | T29, T30           |
-| **W9 备用**     | my-mcp-9  | 替补 / 紧急 hotfix                        | 临时               |
-| **W10 监控**    | my-mcp-10 | PR review / 跨窗口监控                    | 临时               |
+| 检查 | 结果 |
+|---|---|
+| `pnpm install` | ✓ 770+ packages |
+| `pnpm typecheck` | ✓ 21/21 packages |
+| `pnpm lint` | ✓ 21/21 packages |
+| `apps/web` HTTP 200 on :3000 | ✓ Hero "Brand operating system for the AI era" 渲染正常 |
 
-### git 协作（避免冲突的关键）
+### 关于 GitHub workflow 文件
 
-每个窗口在本地用独立 worktree 工作，零冲突：
+Push 时 GitHub 拒绝了 `.github/workflows/ci.yml`（PAT 缺 `workflow` scope）。当前处理：
+- 文件被移到 [`infra/ci/ci.yml.template`](infra/ci/ci.yml.template)
+- **请你给 GitHub PAT 加 `workflow` scope，然后我把它移回 `.github/workflows/ci.yml` 即可启用 CI**
+- 或者直接在 GitHub 网页编辑器把 ci.yml 内容粘贴到 `.github/workflows/ci.yml` 也行
+
+---
+
+## 多窗口分工实测（2026-04-19）
+
+> Sprint 0 验证：5 个 my-mcp 窗口同时在同一物理工作树并行干活，主线（W1）做最终整合和质量保证。
+
+### 实际窗口角色
+
+| 窗口 | MCP 通道 | Sprint 0 实际产出 | Sprint 1+ 计划 |
+|---|---|---|---|
+| **W1 主线** | my-mcp-1 | T01/T02 + 全程整合 + typecheck/lint 修复 + commit/push | T10/T13-T17（AI Agents 编排） |
+| **W2 UI** | my-mcp-2 | (尚未启动) | T03 完整 / T04 / T11 / T12 |
+| **W3 后端** | my-mcp-3 | T05 完整（689 行 schema · Auth.js · 积分预扣 · 速率限制） | T06 / T24 |
+| **W4 Scraper** | my-mcp-4 | T08 部分 + T09 60% | T08 完整 / T28 |
+| **W5 官网** | my-mcp-5 | T07 接近完成（11 sections + lib + waitlist） | T07 收尾 / T27 |
+| **W6 用户后台** | my-mcp-6 | T18 接近完成 + T23 Copilot 70%（27 tools + fake assistant） | T19-T22 |
+| **W7 超级后台** | my-mcp-7 | (尚未启动) | T25 / T26 |
+| **W8 合规/SEO** | my-mcp-8 | T29 接近完成（engine + agent + autofix + 6 regional rules） + T30 部分 | T29 收尾 / T30 |
+| **W9 备用** | my-mcp-9 | (备用) | hotfix / 替补 |
+| **W10 监控** | my-mcp-10 | (备用) | PR review / 跨窗口监控 |
+
+### 关键经验教训（Sprint 0 实战）
+
+1. **多窗口共享同一物理工作树会导致分支频繁切换**：Sprint 0 中我（W1）多次切回主线发现分支被切到 W3/W4/W6 的 Task 分支。**Sprint 1 起强烈推荐 git worktree 隔离**（每个窗口独立物理目录）。
+2. **未跟踪文件不冲突，但 schema.prisma 这种有竞争的文件会被覆盖**：Sprint 0 中我（W1）写完 schema.prisma 后被 W3 优秀版本覆盖（这次是好事，但下次可能丢工作）。**约定：core schema/config 文件归 W3 独占**。
+3. **多窗口一边写一边整合时，typecheck/lint 会持续在新增文件上失败**。**约定：每个窗口在自己 worktree 跑 `pnpm typecheck && pnpm lint` 全绿后才推给 W1 整合**。
+
+### Sprint 1 推荐协作流程（git worktree 模式）
 
 ```bash
-# 在主仓库根目录运行（W1 一次性创建所有 worktree）
-git worktree add ../forgely-W2 -b feat/T03-shadcn-ui
-git worktree add ../forgely-W3 -b feat/T05-prisma-schema
-git worktree add ../forgely-W4 -b feat/T08-scraper-shopify
-git worktree add ../forgely-W5 -b feat/T07-web-mvp
-git worktree add ../forgely-W6 -b feat/T18-app-dashboard
+# 在主仓库根目录运行，W1 一次性创建所有 worktree
+git worktree add ../forgely-W2 -b feat/T03-shadcn-full
+git worktree add ../forgely-W3 -b feat/T06-auth
+git worktree add ../forgely-W4 -b feat/T08-shopify-adapter
+git worktree add ../forgely-W5 -b feat/T07-finalize
+git worktree add ../forgely-W6 -b feat/T19-orders
 git worktree add ../forgely-W7 -b feat/T25-super-overview
-git worktree add ../forgely-W8 -b feat/T29-compliance
+git worktree add ../forgely-W8 -b feat/T29-finalize
 
 # 每个窗口的 Cursor 打开对应物理目录：
 #   W2 → ~/Desktop/forgely-W2
 #   W3 → ~/Desktop/forgely-W3
 #   ...
-# 完成后该窗口推到 GitHub → 创建 PR → W10 review → 合并到 main
+
+# 每个窗口完成后：
+#   pnpm install && pnpm typecheck && pnpm lint  → 全绿
+#   git add . && git commit -m "feat(TXX): ..."
+#   git push -u origin feat/TXX-...
+#   gh pr create --base main --title "[TXX] ..." --body "..."
+#
+# W10 review → W1 merge to main
 ```
-
-### T01 完成后可立即并行的 4 个 Task
-
-依赖图：
-
-```mermaid
-graph LR
-  T01[T01 Monorepo] --> T02[T02 Tokens]
-  T01 --> T05[T05 Prisma]
-  T01 --> T08[T08 Shopify]
-  T02 --> T03[T03 shadcn]
-  T02 --> T11[T11 Visual DNA]
-  T02 --> T12[T12 Moment]
-  T03 --> T04[T04 Anim UI]
-  T04 --> T07[T07 Web MVP]
-  T05 --> T06[T06 Auth]
-  T08 --> T09[T09 WooCommerce]
-  T08 --> T10[T10 Analyzer]
-```
-
-**T01 完成后立即可派的窗口**：W2 (T03) · W3 (T05+) · W4 (T08) · W5 (T07-准备占位)
 
 ---
 
-## 待派发 Prompt 包（W1 完成 T01 后填充）
+## 待派发 Prompt 包（Sprint 1）
 
-> 每个 Task 一个完整指令模板。你只需复制到对应窗口的 Cursor 输入框即可。
+> 复制对应区段到对应窗口的 Cursor 输入框即可。每段都已包含 worktree 命令、分支名、详细要求和验收标准。
 
-### 派给 my-mcp-2（W2 UI）— T03
+### 派给 my-mcp-2（W2 UI）— T03 完整版 + T04
 
 ```text
-（待 T01 完成后填充，预计内容：分支 feat/T03-shadcn-ui，按 docs/MASTER.md 32.2 P0 清单完成 20+ shadcn 组件 + Storybook ...）
+你是 W2 UI 窗口，负责 packages/ui 完整建设和动效组件。
+
+## 准备工作
+1. 在 ~/Desktop/forgely-W2 用 git worktree（如未创建）：
+   cd ~/Desktop/Forgely
+   git fetch origin && git worktree add ../forgely-W2 -b feat/T03-shadcn-full origin/main
+   cd ../forgely-W2 && pnpm install
+
+## Task T03 完整版（PARTIAL → DONE）
+按 docs/MASTER.md §32.2 的 P0 清单，把 packages/ui 从 5 个组件扩到 20+：
+- Textarea, Select, Sheet, Dropdown Menu, Tooltip, Toast(Sonner), Table(TanStack),
+  Tabs, Form(RHF+Zod), Spinner/Skeleton, Command Menu(⌘K), Stepper/Progress,
+  Avatar, Pagination, Empty State, Code Block
+
+每个组件:
+- 使用 packages/design-tokens 的 Tailwind preset（不写死颜色）
+- React.forwardRef
+- TSDoc 注释（含使用示例）
+- 深色模式优先
+- 配套 Storybook story（packages/ui/.storybook + *.stories.tsx）
+
+## Task T04（TODO → DONE）
+从 Aceternity UI 抄：3D Card, Sticky Scroll, Bento Grid, Spotlight, Text Generate Effect,
+Hero Parallax, Canvas Reveal, Infinite Moving Cards
+从 Magic UI 抄：Marquee, Border Beam, Shine Border, Number Ticker, Animated Beam
+
+## 验收
+- pnpm typecheck && pnpm lint 全绿
+- Storybook 全部组件可见
+- 三端 apps 都能 import 新组件
+
+完成后 git push 并 gh pr create。
 ```
 
-### 派给 my-mcp-3（W3 后端）— T05 完善
+### 派给 my-mcp-3（W3 后端）— T06 认证 + T24 积分
 
 ```text
-（待 T01 完成后填充）
+你是 W3 后端窗口，schema.prisma 已经做完（excellent work），现在做 T06 认证 + T24 积分。
+
+## 准备工作
+你的 worktree 已经在 ../forgely-W3 (feat/T06-auth)。
+cd ../forgely-W3 && git pull origin main --rebase && pnpm install
+
+## Task T06（IN_PROGRESS → DONE）
+按 docs/MASTER.md §6 + AI-DEV-GUIDE.md Task 6：
+- NextAuth.js v5 配置（已有 Account/Session/VerificationToken schema）
+- /login + /signup 页面（apps/app/app/login, signup）
+- 中间件保护 /app/* 和 /super/*
+- Session 注入 tRPC context
+- /super 强制 super_admin role
+- 所有登录事件 → AuditLog
+- argon2 密码哈希（已 install）
+
+## Task T24（PARTIAL → DONE）
+按 docs/MASTER.md §25 + §3.6 + §3.8：
+- consumeCredits / reserveCredits / commitReservation / releaseReservation 事务安全
+- Stripe Checkout（订阅 4 plans + 4 credits packages）
+- Webhooks: checkout.session.completed / invoice.payment_succeeded / customer.subscription.deleted
+- 防滥用：单次 1000 上限 + 每日 500 上限（Starter）+ 速率限制 10/min
+- /app/billing UI
+
+## 验收
+pnpm typecheck && pnpm lint 全绿；本地能跑通注册→登录→购买积分→消耗→退款全流程。
 ```
 
-### 派给 my-mcp-4（W4 Scraper）— T08
+### 派给 my-mcp-4（W4 Scraper）— T08 完整 Shopify
 
 ```text
-（待 T01 完成后填充）
+你是 W4 Scraper 窗口。types/errors/http/woocommerce adapter 已有，现在完成 Shopify。
+
+cd ../forgely-W4 && git pull origin main --rebase && pnpm install
+
+## Task T08（PARTIAL → DONE）
+packages/scraper/src/adapters/shopify.ts：
+- canHandle(url): GET /products.json 检测
+- scrape(url): 分页抓全部商品 + collections + Playwright 截图首页/产品页/分类页
+- 数据标准化为 ScrapedData (符合 schemas.ts)
+- 图片下载到 R2（先用 stub）
+- 错误：UnauthorizedError / NotFoundError / TimeoutError
+- MSW 单元测试 > 80% 覆盖
+
+测试用 3 个真实 Shopify 店（在 docs/AI-DEV-GUIDE.md Task 8 找）。
+
+## 验收
+pnpm --filter @forgely/scraper test 通过 + 真实抓 3 个站成功。
 ```
 
-### 派给 my-mcp-5（W5 官网）— T07
+### 派给 my-mcp-5（W5 官网）— T07 收尾
 
 ```text
-（待 T01 完成后填充）
+你是 W5 官网窗口，apps/web 接近完成（85%），现在收尾到 100%。
+
+cd ../forgely-W5 && git pull origin main --rebase && pnpm install
+
+## Task T07 收尾
+现在缺：
+- Sticky Navigation 固定行为完善
+- waitlist API route 改成真存数据库（Prisma + Waitlist 表已有）
+- Lighthouse 桌面 ≥95 / 移动 ≥85（运行 pnpm --filter @forgely/web build && pnpm --filter @forgely/web start，跑 lighthouse-ci）
+- 完整 SEO（Schema.org SoftwareApplication / Organization / FAQPage 已有，验证一遍）
+- llms.txt + llms-full.txt
+- robots.txt + sitemap.xml
+
+不要做：T27 的 6 幕剧本和真 3D Hero —— 那是 Sprint 5+ 的内容。
+
+## 验收
+pnpm --filter @forgely/web build 成功 + Lighthouse 桌面 ≥95 + waitlist 能写入 DB。
+```
+
+### 派给 my-mcp-6（W6 用户后台）— T19 订单页
+
+```text
+你是 W6 用户后台窗口。T18 dashboard + T23 copilot 已做了大半，现在做 T19。
+
+cd ../forgely-W6 && git pull origin main --rebase && pnpm install
+
+## Task T19（PARTIAL → DONE）
+按 docs/MASTER.md §19 + AI-DEV-GUIDE.md Task 19：
+- /app/sites/[siteId]/orders 列表（TanStack Table，使用 Medusa Order API mock）
+- /app/sites/[siteId]/orders/[id] 详情
+- /app/sites/[siteId]/customers 列表 + /app/sites/[siteId]/customers/[id]
+- 集成现有 Copilot：在订单详情页注入 CopilotPageContext { kind: 'order', ... }
+
+## 验收
+pnpm typecheck && pnpm lint 全绿 + 三个新页面可访问 + Copilot 正确感知上下文。
+```
+
+### 派给 my-mcp-7（W7 超级后台）— T25 Overview
+
+```text
+你是 W7 超级后台窗口（首次启动）。
+
+cd ~/Desktop/Forgely
+git fetch origin && git worktree add ../forgely-W7 -b feat/T25-super-overview origin/main
+cd ../forgely-W7 && pnpm install
+
+## Task T25（TODO → DONE）
+按 docs/MASTER.md §20.5 + AI-DEV-GUIDE.md Task 25：
+- apps/app/app/super/layout.tsx — 强制 super_admin role
+- apps/app/app/super/page.tsx — Overview 仪表盘
+- 视觉：NASA Mission Control 风（青色强调 #00D9FF + Mono 字体）
+- MRR / ARR / DAU / Active Users 大数字 + 双线图（Revenue + AI Cost）
+- 告警面板（mock 3 个 alert）
+- LIVE 活动流（SSE / WebSocket，先用 mock setInterval）
+
+## 验收
+pnpm typecheck && pnpm lint 全绿 + 用 admin@forgely.dev 登录 → 看到 /super → Overview 渲染正常。
+```
+
+### 派给 my-mcp-8（W8 合规/SEO）— T29 收尾 + T30
+
+```text
+你是 W8 合规/SEO 窗口。T29 已做 80%，现在收尾 + 启动 T30。
+
+cd ../forgely-W8 && git pull origin main --rebase && pnpm install
+
+## Task T29 收尾
+- 补 ASA / CASL 两个 regional rules
+- 补 8 个 category rules（保健品/化妆品/儿童/食品/酒类/CBD/医疗器械/电子）
+- ComplianceReport UI（apps/app/app/sites/[siteId]/compliance）
+
+## Task T30
+按 docs/MASTER.md §16 + AI-DEV-GUIDE.md Task 30：
+- packages/seo/src/sitemap.ts (auto-generate)
+- packages/seo/src/llmsTxt.ts (llms.txt + llms-full.txt)
+- DataForSEO 关键词研究 client（带本地 stub）
+- /app/sites/[siteId]/seo 面板（页面分数 + 改进建议）
+
+## 验收
+pnpm typecheck && pnpm lint 全绿 + vitest 通过 + 至少 1 个真实站 sitemap 生成正常。
 ```
 
 ---
 
 ## 历史会话纪要
 
-### 会话 1（2026-04-19）
+### 会话 1 — Sprint 0（2026-04-19）
 
 - 阅读完整 4 份开发文档（MASTER.md v1.2 FINAL + AI-DEV-GUIDE + v1.0/v1.1 历史）
 - 创建 plan：[Forgely 启动与 30 Task 推进](.cursor/plans/forgely_启动与_30_task_推进_dfcb9c42.plan.md)
-- 完成项目治理：docs/ 归档 / README / .gitignore / git init / 接入 kane-c01/forgely
-- 完成 T01 Monorepo 脚手架（pnpm + Turborepo + 3 apps + 14 packages + 4 services + CI）
-- 完成 T02 Design Tokens 包
-- 部分完成 T03（5 个核心 shadcn 组件）
-- 完成 T05 Prisma schema 全部核心模型
-- apps/web 最小可启动首页验证全链路
+- 项目治理：docs/ 归档 / README / .gitignore / git init / 接入 kane-c01/forgely (`0cd9a35`)
+- 多窗口并行整合：5 个 my-mcp 窗口（W1/W3/W4/W5/W6/W8）的产出整合到一个 commit (`8ee4907`)
+- 推到 GitHub `kane-c01/forgely:main`
+- 验证：`pnpm install / typecheck / lint` 全绿，`apps/web` 在 :3000 渲染 Hero 正常
 
-下次会话从 T03 完整版 + T04 接力。
+下次会话从 Sprint 1 开始 — 按上面的"派发 Prompt 包"分发到对应窗口。

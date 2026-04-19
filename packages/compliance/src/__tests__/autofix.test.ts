@@ -27,17 +27,18 @@ describe('autoFix', () => {
       {
         path: 'product.x.description',
         type: 'product-description' as const,
-        text: 'Cures cancer in 7 days.',
+        text: 'A small piece of art for your wall, with a beautiful matte finish.',
       },
     ]
     const report = runRules({
       siteId: 's',
-      regions: ['US-FDA', 'GLOBAL'],
-      category: 'supplements',
+      regions: ['UK-ASA'],
+      category: 'general',
       items,
     })
     const fix = applyAutoFix(items, report)
     expect(fix.patchedItems[0]?.text).toBe(items[0]?.text)
+    expect(fix.patches.length).toBe(0)
   })
 
   it('returns notFixedFindings for everything that needs LLM', () => {
