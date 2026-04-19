@@ -1,0 +1,689 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Forgely — Core Database Schema
+// Source of truth: docs/MASTER.md §30 (核心表) + §3 (商业模型) + §25 (积分系统)
+// Owner: W3 (DB / Auth / Credits / Stripe)
+//
+// Conventions:
+//   - cuid() ids unless externally meaningful (VisualDNA / Plan use slugs)
+//   - All money in USD cents (Int)
+//   - All credits are integers (no fractional credits)
+//   - Soft enums kept as String for forward-compat; constants are codified
+//     in src/db.ts (USER_ROLES, PLANS, etc.) and validated at the API layer.
+//   - Tenant isolation: every tenant-scoped row has `userId` indexed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  IDENTITY
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Application user — covers customers, super admins, internal support agents.
+/// Roles: user | super_admin | admin | support
+/// Plans: free | starter | pro | agency | enterprise
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  name            String?
+  avatarUrl       String?
+
+  /// Argon2id password hash. Null for OAuth-only users.
+  passwordHash String?
+
+  role String @default("user")
+  plan String @default("free")
+
+  /// Stripe Customer (cus_xxx) — created lazily on first checkout.
+  stripeCustomerId String? @unique
+
+  /// Soft-lock for repeated failed logins.
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+
+  /// 2FA — TOTP secret base32, null until enrolled. super_admin enforced via app layer.
+  totpSecret    String?
+  totpEnabledAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  credits            UserCredits?
+  subscription       Subscription?
+  accounts           Account[]
+  sessions           Session[]
+  sites              Site[]
+  brandKits          BrandKit[]
+  conversations      AiConversation[]
+  mediaAssets        MediaAsset[]
+  scrapeHistory      ScrapeHistory[]
+  creditTxns         CreditTransaction[]
+  creditReservations CreditReservation[]
+  generations        Generation[]
+  loginEvents        LoginEvent[]
+
+  @@index([email])
+  @@index([role])
+  @@index([plan])
+  @@index([stripeCustomerId])
+}
+
+/// Auth.js (NextAuth v5) Prisma Adapter — OAuth account links.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Auth.js Prisma Adapter — server-side sessions (DB strategy).
+/// Forgely also supports JWT sessions; this table backs the "remember device"
+/// flow and admin session revocation.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  /// Optional device fingerprinting for security ops UX.
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expires])
+}
+
+/// Auth.js Prisma Adapter — magic-link / email verification tokens.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token])
+}
+
+/// One-shot password reset tokens (separate from VerificationToken for audit).
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expires    DateTime
+  consumedAt DateTime?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Per-login event log — fuels rate-limit + audit + anomaly detection.
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  /// success | bad_password | unknown_user | locked | mfa_required | mfa_failed
+  outcome   String
+  ipAddress String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SITES / GENERATION
+// ════════════════════════════════════════════════════════════════════════════
+
+model Site {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  name         String
+  subdomain    String  @unique
+  customDomain String? @unique
+
+  status         String  @default("draft")
+  sourceUrl      String?
+  sourcePlatform String?
+
+  dnaId String?
+  dna   VisualDNA? @relation(fields: [dnaId], references: [id])
+
+  heroMomentType String?
+  heroProductId  String?
+
+  dsl          Json?
+  publishedDsl Json?
+  publishedAt  DateTime?
+
+  medusaSalesChannelId String? @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  versions          ThemeVersion[]
+  generations       Generation[]
+  assets            MediaAsset[]
+  brandKit          BrandKit?
+  pages             Page[]
+  installedPlugins  InstalledPlugin[]
+  complianceRecords ComplianceRecord[]
+
+  @@index([userId, status])
+  @@index([status, updatedAt])
+}
+
+model ThemeVersion {
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  version     Int
+  dsl         Json
+  description String
+  /// ai_chat | visual | import | generated
+  editorType  String
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@unique([siteId, version])
+  @@index([siteId, createdAt])
+}
+
+model Generation {
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  /// pending | running | completed | failed | cancelled
+  status String
+
+  /// 12-step JSON status. See docs/MASTER.md §13.
+  steps Json
+
+  inputData Json
+  outputDsl Json?
+
+  creditsCost   Int
+  /// FK to a credit reservation; populated once reserved.
+  reservationId String? @unique
+
+  durationMs   Int?
+  errorMessage String?
+  retryCount   Int     @default(0)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  reservation CreditReservation? @relation(fields: [reservationId], references: [id])
+
+  @@index([siteId, createdAt])
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model VisualDNA {
+  id          String   @id
+  name        String
+  description String   @db.Text
+  spec        Json
+  isBuiltin   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sites Site[]
+}
+
+model BrandKit {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
+  siteId String? @unique
+  site   Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
+  name         String
+  logoPrimary  String?
+  logoVariants Json
+  colors       Json
+  fonts        Json
+  voice        Json
+  imageStyle   Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MediaAsset {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
+  siteId String?
+  site   Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
+  /// image | video | 3d_model | icon | audio
+  type         String
+  url          String
+  thumbnailUrl String?
+  filename     String
+  size         Int
+  dimensions   Json?
+  mimeType     String
+
+  /// uploaded | ai_generated | library
+  source    String
+  generator String?
+  prompt    String?  @db.Text
+  tags      String[]
+  usedIn    Json?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId, type])
+  @@index([siteId, type])
+}
+
+model AiConversation {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
+  siteId String?
+
+  context  Json
+  messages Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CREDITS  (docs/MASTER.md §25)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Per-user credit wallet. There is exactly one row per user.
+/// `balance` = currently spendable. `reserved` = pre-debited but not committed
+/// (in-flight generations). `lifetimeEarned` / `lifetimeSpent` are
+/// monotonic counters for billing analytics.
+model UserCredits {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  balance        Int @default(0)
+  reserved       Int @default(0)
+  lifetimeEarned Int @default(0)
+  lifetimeSpent  Int @default(0)
+
+  /// Concurrency guard for hand-rolled optimistic locking when needed.
+  version Int @default(0)
+
+  /// Date (UTC midnight) of the current daily-spend window.
+  dailySpendDate  DateTime?
+  dailySpentToday Int       @default(0)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+/// Append-only ledger. Every balance mutation MUST insert a row.
+/// `amount` is signed: positive = credit added, negative = debit.
+/// `balance` is the post-transaction wallet balance (spendable, not reserved).
+model CreditTransaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// purchase | subscription | consumption | refund | gift | promotion | reservation_release | adjustment
+  type    String
+  amount  Int
+  balance Int
+
+  description String
+  metadata    Json?
+
+  /// Optional links for traceability.
+  reservationId String?
+  reservation   CreditReservation? @relation(fields: [reservationId], references: [id])
+
+  /// Optional Stripe linkage for purchases / refunds.
+  stripeEventId  String?
+  stripeChargeId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@index([stripeChargeId])
+}
+
+/// Pre-debit for in-flight long-running operations (generations, batch jobs).
+/// `state` lifecycle:  reserved → committed | released | expired
+/// On reserve: UserCredits.balance -= amount, UserCredits.reserved += amount.
+/// On commit:  UserCredits.reserved -= amount, lifetimeSpent += amount, ledger row.
+/// On release: UserCredits.balance += amount, UserCredits.reserved -= amount, ledger row.
+model CreditReservation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount      Int
+  /// reserved | committed | released | expired
+  state       String @default("reserved")
+  description String
+  metadata    Json?
+
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  transactions CreditTransaction[]
+  generation   Generation?
+
+  @@index([userId, state])
+  @@index([state, expiresAt])
+}
+
+/// Catalog of one-shot top-up packages.
+model CreditsPackage {
+  id            String   @id @default(cuid())
+  /// Stable slug for code references (e.g. "mini" / "standard" / "bulk" / "scale").
+  slug          String   @unique
+  name          String
+  credits       Int
+  bonusCredits  Int      @default(0)
+  /// Price in USD cents.
+  priceUsd      Int
+  popular       Boolean  @default(false)
+  active        Boolean  @default(true)
+  stripePriceId String   @unique
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SUBSCRIPTIONS  (docs/MASTER.md §3 + §28)
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Plan catalog (drives both UI Pricing tables and Stripe sync).
+/// MVP plans: starter / pro / agency. Free is implied (no row needed).
+model Plan {
+  id                   String   @id @default(cuid())
+  /// Slug used in code & on User.plan. (free | starter | pro | agency | enterprise)
+  slug                 String   @unique
+  name                 String
+  /// Monthly USD cents.
+  priceMonthlyUsd      Int
+  /// Yearly USD cents (already discounted).
+  priceYearlyUsd       Int
+  /// Monthly granted credits (resets each invoice cycle).
+  monthlyCredits       Int
+  /// Quotas
+  maxSites             Int
+  maxCustomDomains     Int
+  enable3D             Boolean  @default(false)
+  enableAiCopilot      Boolean  @default(false)
+  enableCodeExport     Boolean  @default(false)
+  /// Whitelabel / custom features
+  features             Json?
+  active               Boolean  @default(true)
+  /// Stripe linkage
+  stripeProductId      String?  @unique
+  stripePriceMonthlyId String?  @unique
+  stripePriceYearlyId  String?  @unique
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  /// starter | pro | agency | enterprise
+  plan   String
+  /// active | past_due | canceled | trialing | incomplete | unpaid
+  status String
+
+  stripeSubscriptionId String @unique
+  stripePriceId        String
+  /// monthly | yearly
+  cadence              String
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  trialEndsAt        DateTime?
+  canceledAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, currentPeriodEnd])
+}
+
+/// Stripe webhook idempotency log. Insert-on-receive; if the unique
+/// constraint fires we know we've already processed this event.
+model StripeEventLog {
+  id            String    @id @default(cuid())
+  /// Stripe `evt_xxx`.
+  stripeEventId String    @unique
+  type          String
+  apiVersion    String?
+  livemode      Boolean
+  payload       Json
+  processedAt   DateTime?
+  status        String    @default("received") /// received | processed | failed
+  error         String?   @db.Text
+  attempts      Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([type, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Idempotency keys for our outbound Stripe API calls (checkout etc.).
+model StripeIdempotencyKey {
+  key       String   @id
+  scope     String
+  userId    String?
+  result    Json?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([scope, createdAt])
+  @@index([expiresAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RATE LIMITS / ABUSE
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Sliding-window counters for sensitive endpoints (ai.* / credits.consume / signup).
+/// Persistent fallback when Redis is unavailable.
+model RateLimitWindow {
+  id          String   @id @default(cuid())
+  /// Composite key, e.g. "ai:userId:60s" — see src/credits/rate-limit.ts.
+  bucketKey   String
+  windowStart DateTime
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([bucketKey, windowStart])
+  @@index([windowStart])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CMS / PLUGINS
+// ════════════════════════════════════════════════════════════════════════════
+
+model InstalledPlugin {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  pluginId    String
+  version     String
+  /// Encrypted at the application layer (KMS).
+  config      Json
+  enabled     Boolean  @default(true)
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([siteId, pluginId])
+}
+
+model Page {
+  id             String    @id @default(cuid())
+  siteId         String
+  site           Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /// page | blog | legal
+  type           String
+  slug           String
+  title          String
+  content        Json
+  featuredImage  String?
+  seoTitle       String?
+  seoDescription String?   @db.Text
+  seoKeywords    String[]
+  /// draft | published | scheduled
+  status         String
+  publishedAt    DateTime?
+  scheduledFor   DateTime?
+  author         String?
+  tags           String[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([siteId, slug])
+  @@index([siteId, status])
+  @@index([type, status])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SCRAPER
+// ════════════════════════════════════════════════════════════════════════════
+
+model ScraperRule {
+  id          String   @id @default(cuid())
+  hostname    String   @unique
+  selectors   Json
+  successRate Float
+  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ScrapeHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  sourceUrl    String
+  platform     String?
+  /// pending | success | failed
+  status       String
+  productCount Int      @default(0)
+  errorMessage String?  @db.Text
+  rawData      Json?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sourceUrl])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  AUDIT / COMPLIANCE / WAITLIST
+// ════════════════════════════════════════════════════════════════════════════
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  /// super_admin | user | system
+  actorType  String
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  before     Json?
+  after      Json?
+  reason     String?  @db.Text
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model ComplianceRecord {
+  id         String    @id @default(cuid())
+  siteId     String
+  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  pageId     String?
+  /// info | warning | critical
+  severity   String
+  rule       String
+  content    String    @db.Text
+  suggestion String    @db.Text
+  /// open | resolved | ignored
+  status     String
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([siteId, status])
+  @@index([severity, status])
+}
+
+/// Marketing waitlist (T07 home page captures emails before launch).
+model Waitlist {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  source    String?
+  referral  String?
+  utm       Json?
+  invitedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([source, createdAt])
+}

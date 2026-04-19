@@ -1,0 +1,79 @@
+{
+  "name": "@forgely/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Forgely core API: tRPC + Prisma + Auth + Credits + Stripe (W3)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./db": {
+      "types": "./src/db.ts",
+      "import": "./src/db.ts",
+      "default": "./src/db.ts"
+    },
+    "./auth": {
+      "types": "./src/auth/index.ts",
+      "import": "./src/auth/index.ts",
+      "default": "./src/auth/index.ts"
+    },
+    "./credits": {
+      "types": "./src/credits/index.ts",
+      "import": "./src/credits/index.ts",
+      "default": "./src/credits/index.ts"
+    },
+    "./stripe": {
+      "types": "./src/stripe/index.ts",
+      "import": "./src/stripe/index.ts",
+      "default": "./src/stripe/index.ts"
+    },
+    "./router": {
+      "types": "./src/router/index.ts",
+      "import": "./src/router/index.ts",
+      "default": "./src/router/index.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts",
+    "schema": "prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@trpc/server": "^10.45.2",
+    "argon2": "^0.41.1",
+    "jose": "^5.9.6",
+    "stripe": "^17.4.0",
+    "superjson": "^2.2.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.10",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

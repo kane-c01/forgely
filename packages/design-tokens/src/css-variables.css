@@ -1,0 +1,39 @@
+/* Forgely design tokens — global CSS custom properties */
+/* Generated to match packages/design-tokens/src/* */
+:root {
+  /* bg */
+  --forgely-bg-void: #08080a;
+  --forgely-bg-deep: #0e0e11;
+  --forgely-bg-surface: #14141a;
+  --forgely-bg-elevated: #1c1c24;
+
+  /* border */
+  --forgely-border-subtle: #1f1f28;
+  --forgely-border-strong: #2d2d3a;
+
+  /* text */
+  --forgely-text-primary: #f4f4f7;
+  --forgely-text-secondary: #a8a8b4;
+  --forgely-text-muted: #6b6b78;
+  --forgely-text-subtle: #45454f;
+
+  /* forge */
+  --forgely-forge-orange: #ff6b1a;
+  --forgely-forge-amber: #ffa040;
+  --forgely-forge-gold: #ffd166;
+  --forgely-forge-ember: #c74a0a;
+
+  /* semantic */
+  --forgely-success: #22c55e;
+  --forgely-warning: #f59e0b;
+  --forgely-error: #ef4444;
+  --forgely-info: #00d9ff;
+
+  /* shadows */
+  --forgely-shadow-subtle: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  --forgely-shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 24px rgba(0, 0, 0, 0.6);
+  --forgely-glow-forge: 0 0 40px rgba(255, 107, 26, 0.3);
+  --forgely-glow-data: 0 0 20px rgba(0, 217, 255, 0.4);
+}

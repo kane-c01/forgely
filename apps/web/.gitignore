@@ -1,0 +1,10 @@
+.next
+.turbo
+node_modules
+out
+dist
+build
+*.log
+.env*.local
+data/waitlist.json
+.vercel

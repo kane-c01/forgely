@@ -1,0 +1,5 @@
+{
+  "root": false,
+  "extends": ["../../.eslintrc.json"],
+  "ignorePatterns": ["dist", "node_modules", "prisma/migrations"]
+}

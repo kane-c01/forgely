@@ -98,6 +98,42 @@
       "env": {
         "WUKONG_SESSION": "11"
       }
+    },
+    "my-mcp-12": {
+      "command": "node",
+      "args": [
+        "/Users/karl/.cursor/my-mcp-server/index.mjs"
+      ],
+      "env": {
+        "WUKONG_SESSION": "12"
+      }
+    },
+    "my-mcp-13": {
+      "command": "node",
+      "args": [
+        "/Users/karl/.cursor/my-mcp-server/index.mjs"
+      ],
+      "env": {
+        "WUKONG_SESSION": "13"
+      }
+    },
+    "my-mcp-14": {
+      "command": "node",
+      "args": [
+        "/Users/karl/.cursor/my-mcp-server/index.mjs"
+      ],
+      "env": {
+        "WUKONG_SESSION": "14"
+      }
+    },
+    "my-mcp-15": {
+      "command": "node",
+      "args": [
+        "/Users/karl/.cursor/my-mcp-server/index.mjs"
+      ],
+      "env": {
+        "WUKONG_SESSION": "15"
+      }
     }
   }
 }
