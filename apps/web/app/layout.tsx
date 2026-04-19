@@ -51,7 +51,9 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const orgLd = await organizationSchema('en')
+  const appLd = await softwareApplicationSchema('en')
   return (
     <html
       lang="en"
@@ -82,11 +84,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(orgLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLd(softwareApplicationSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(appLd) }}
         />
       </body>
     </html>

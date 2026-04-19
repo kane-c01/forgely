@@ -8,8 +8,9 @@ import { Pricing } from '@/components/site/pricing'
 import { Faq } from '@/components/site/faq'
 import { FinalCta } from '@/components/site/final-cta'
 import { SiteFooter } from '@/components/site/footer'
-import { faqItems } from '@/lib/faq'
-import { faqSchema, jsonLd } from '@/lib/schema'
+// FAQ schema currently emitted from the locale-aware Faq component.
+// `@/lib/faq` exports `getFaqItems(locale)` (async) post-T27f — we render
+// it inside <Faq /> rather than computing it here.
 import { buildMetadata } from '@/lib/seo'
 import { siteConfig } from '@/lib/site'
 
@@ -40,10 +41,6 @@ export default function HomePage() {
         <FinalCta />
       </main>
       <SiteFooter />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd(faqSchema(faqItems)) }}
-      />
     </>
   )
 }

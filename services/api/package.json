@@ -36,6 +36,16 @@
       "types": "./src/router/index.ts",
       "import": "./src/router/index.ts",
       "default": "./src/router/index.ts"
+    },
+    "./errors": {
+      "types": "./src/errors.ts",
+      "import": "./src/errors.ts",
+      "default": "./src/errors.ts"
+    },
+    "./payments": {
+      "types": "./src/payments/index.ts",
+      "import": "./src/payments/index.ts",
+      "default": "./src/payments/index.ts"
     }
   },
   "scripts": {

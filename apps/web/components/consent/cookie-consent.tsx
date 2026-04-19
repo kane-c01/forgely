@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Cookie, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@forgely/ui'
 import { useConsent } from './consent-provider'
 
 /**

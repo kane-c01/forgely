@@ -10,18 +10,24 @@
 
 import { authRouter } from './auth.js'
 import { billingRouter } from './billing.js'
+import { cnAuthRouter } from './cn-auth.js'
 import { complianceRouter } from './compliance.js'
+import { conversationRouter } from './conversation.js'
 import { creditsRouter } from './credits.js'
 import { seoRouter } from './seo.js'
 import { router } from './trpc.js'
 
 export const appRouter = router({
   auth: authRouter,
+  cnAuth: cnAuthRouter,
+  conversation: conversationRouter,
   credits: creditsRouter,
   billing: billingRouter,
   compliance: complianceRouter,
   seo: seoRouter,
 })
+
+export { appRouter as default }
 
 export type AppRouter = typeof appRouter
 

@@ -22,7 +22,8 @@
       "import": "./tailwind.preset.ts",
       "default": "./tailwind.preset.ts"
     },
-    "./css-variables.css": "./src/css-variables.css"
+    "./css-variables.css": "./src/css-variables.css",
+    "./css": "./src/css-variables.css"
   },
   "files": [
     "src",

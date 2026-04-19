@@ -2,7 +2,9 @@ import { defineRouting } from 'next-intl/routing'
 
 export const routing = defineRouting({
   locales: ['en', 'zh'],
-  defaultLocale: 'en',
+  // CN pivot: B 端用户来自中国 → / 默认显示中文站。
+  // 海外访客通过 nav locale-switcher 切到 /en，或浏览器 Accept-Language 探测。
+  defaultLocale: 'zh',
   localePrefix: 'as-needed',
   localeDetection: true,
 })

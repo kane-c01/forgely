@@ -104,7 +104,7 @@ export function Pricing() {
                   size="md"
                   className="w-full"
                 >
-                  <Link href={plan.cta.href}>{plan.cta.label}</Link>
+                  <Link href={plan.ctaHref ?? plan.cta?.href ?? '#'}>{plan.cta?.label ?? plan.name ?? 'Start'}</Link>
                 </Button>
 
                 <ul className="text-small mt-2 flex flex-col gap-3">

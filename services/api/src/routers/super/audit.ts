@@ -2,16 +2,17 @@
  * /super > Audit Log tRPC sub-router. ADMIN+.
  */
 
-// `../../trpc` is provided by W3 / T06.
-import { router, superAdminProcedure } from '../../trpc'
+import { Prisma } from '@prisma/client'
+
+import { router, superAdminProcedure } from '../../router/trpc.js'
 import { assertCan } from './_acl'
 import { auditQueryInput } from './_schemas'
 
 export const superAuditRouter = router({
   list: superAdminProcedure.input(auditQueryInput).query(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'audit.read')
+    assertCan(ctx.user?.role ?? 'support', 'audit.read')
 
-    const where: Record<string, unknown> = {}
+    const where: Prisma.AuditLogWhereInput = {}
     if (input.actorId) where.actorId = input.actorId
     if (input.actorType) where.actorType = input.actorType
     if (input.action) where.action = input.action
@@ -43,15 +44,36 @@ export const superAuditRouter = router({
     return { rows, total, page: input.page, pageSize: input.pageSize }
   }),
 
+  /**
+   * Inline CSV export — fits Cloudflare's 100 MB request budget for
+   * any plausible audit window. A queued / signed-URL variant lands
+   * with the BullMQ worker.
+   */
   exportCsv: superAdminProcedure.input(auditQueryInput).mutation(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'audit.read')
-    // We hand off to the worker so the request returns immediately and the
-    // CSV is delivered via signed R2 URL once the cursor finishes.
-    const job = await ctx.queue.enqueue('audit.exportCsv', {
-      filter: input,
-      requestedBy: ctx.session.userId,
+    assertCan(ctx.user?.role ?? 'support', 'audit.read')
+    const where: Prisma.AuditLogWhereInput = {}
+    if (input.actorId) where.actorId = input.actorId
+    if (input.actorType) where.actorType = input.actorType
+    if (input.action) where.action = input.action
+    const rows = await ctx.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
     })
-    return { jobId: job.id, status: 'queued' as const }
+    const header = ['id', 'actorType', 'actorId', 'action', 'targetType', 'targetId', 'reason', 'ipAddress', 'createdAt']
+    const csv = [
+      header.join(','),
+      ...rows.map((r) =>
+        header
+          .map((k) => {
+            const v = (r as unknown as Record<string, unknown>)[k]
+            return JSON.stringify(v ?? '').replace(/^"|"$/g, '')
+          })
+          .map((v) => (v.includes(',') || v.includes('\n') ? `"${v.replace(/"/g, '""')}"` : v))
+          .join(','),
+      ),
+    ].join('\n')
+    return { filename: `audit-${Date.now()}.csv`, csv }
   }),
 })
 
