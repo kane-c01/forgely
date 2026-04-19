@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss'
-import { forgelyPreset } from '@forgely/design-tokens/tailwind'
+import { forgelyPreset } from '@forgely/design-tokens/tailwind.preset'
 
 export default {
   presets: [forgelyPreset],

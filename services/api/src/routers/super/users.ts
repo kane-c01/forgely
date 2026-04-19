@@ -11,7 +11,6 @@
  * IDE but will compile cleanly the moment T06 wires them up.
  */
 
-// eslint-disable-next-line import/no-unresolved -- provided by T06
 import { router, superAdminProcedure } from '../../trpc'
 import { TRPCError } from '@trpc/server'
 import { assertCan } from './_acl'
@@ -27,7 +26,7 @@ import {
 
 export const superUsersRouter = router({
   list: superAdminProcedure.input(listUsersInput).query(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'users.read')
+    assertCan(ctx.user?.role, 'users.read')
     const where = {
       AND: [
         input.status ? { status: input.status } : {},
@@ -46,7 +45,9 @@ export const superUsersRouter = router({
     const [rows, total] = await Promise.all([
       ctx.prisma.user.findMany({
         where,
-        orderBy: { lastSeenAt: 'desc' },
+        // `lastSeenAt` will be added by W3 in a follow-up; sort by
+        // `createdAt` desc as a sensible fallback.
+        orderBy: { createdAt: 'desc' },
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
       }),
@@ -56,57 +57,62 @@ export const superUsersRouter = router({
   }),
 
   detail: superAdminProcedure.input(userIdInput).query(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'users.detail.read')
+    assertCan(ctx.user?.role, 'users.detail.read')
+    // NOTE: `creditTransactions` relation will be added by W3 in a follow-up
+    // schema migration. Until then we cast to satisfy the typecheck and skip
+    // the relation include — the route still returns the core User row.
     const user = await ctx.prisma.user.findUnique({
       where: { id: input.userId },
       include: {
         sites: { take: 8, orderBy: { updatedAt: 'desc' } },
-        creditTransactions: { take: 8, orderBy: { createdAt: 'desc' } },
-      },
+      } as Parameters<typeof ctx.prisma.user.findUnique>[0]['include'],
     })
     if (!user) throw new TRPCError({ code: 'NOT_FOUND' })
     return user
   }),
 
   suspend: superAdminProcedure.input(suspendUserInput).mutation(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'users.suspend')
+    assertCan(ctx.user?.role, 'users.suspend')
     const before = await ctx.prisma.user.findUnique({ where: { id: input.userId } })
     if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
+    // `User.status` doesn't exist on the current Prisma schema yet — W3
+    // owns adding it. We approximate via `deletedAt` (soft-delete) so the
+    // suspend / unsuspend round-trip still works at runtime.
     const after = await ctx.prisma.user.update({
       where: { id: input.userId },
-      data: { status: 'suspended' },
+      data: { deletedAt: new Date() },
     })
     await recordAudit(ctx, {
       action: SUPER_ACTIONS.USER_SUSPEND,
       targetType: 'user',
       targetId: input.userId,
-      before: { status: before.status },
-      after: { status: after.status },
+      before: { deletedAt: before.deletedAt },
+      after: { deletedAt: after.deletedAt },
       reason: input.reason,
     })
     return { ok: true as const }
   }),
 
   unsuspend: superAdminProcedure.input(userIdInput).mutation(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'users.unsuspend')
+    assertCan(ctx.user?.role, 'users.unsuspend')
     const before = await ctx.prisma.user.findUnique({ where: { id: input.userId } })
     if (!before) throw new TRPCError({ code: 'NOT_FOUND' })
     const after = await ctx.prisma.user.update({
       where: { id: input.userId },
-      data: { status: 'active' },
+      data: { deletedAt: null },
     })
     await recordAudit(ctx, {
       action: SUPER_ACTIONS.USER_UNSUSPEND,
       targetType: 'user',
       targetId: input.userId,
-      before: { status: before.status },
-      after: { status: after.status },
+      before: { deletedAt: before.deletedAt },
+      after: { deletedAt: after.deletedAt },
     })
     return { ok: true as const }
   }),
 
   grantCredits: superAdminProcedure.input(grantCreditsInput).mutation(async ({ ctx, input }) => {
-    assertCan(ctx.session.role, 'credits.grant')
+    assertCan(ctx.user?.role, 'credits.grant')
     const credits = await ctx.prisma.userCredits.update({
       where: { userId: input.userId },
       data: { balance: { increment: input.amount } },
@@ -133,7 +139,7 @@ export const superUsersRouter = router({
   requestLoginAs: superAdminProcedure
     .input(requestLoginAsInput)
     .mutation(async ({ ctx, input }) => {
-      assertCan(ctx.session.role, 'users.login_as.request')
+      assertCan(ctx.user?.role, 'users.login_as.request')
       // Real impl: insert into LoginAsTicket table + push websocket message
       // to the target user. For MVP the client polls and the user clicks
       // Allow / Deny in apps/app.
@@ -160,9 +166,7 @@ export const superUsersRouter = router({
       // will replace it.
       await recordAudit(ctx, {
         action:
-          input.decision === 'allow'
-            ? SUPER_ACTIONS.LOGIN_AS_GRANT
-            : SUPER_ACTIONS.LOGIN_AS_DENY,
+          input.decision === 'allow' ? SUPER_ACTIONS.LOGIN_AS_GRANT : SUPER_ACTIONS.LOGIN_AS_DENY,
         targetType: 'login_as_ticket',
         targetId: input.ticketId,
         after: { decision: input.decision },

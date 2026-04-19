@@ -50,7 +50,20 @@ export function canPerform(role: SuperRole, action: SuperAction): boolean {
   return SUPPORT_READ_PREFIXES.some((p) => action.startsWith(p) && action.endsWith('.read'))
 }
 
-export function assertCan(role: SuperRole, action: SuperAction): void {
+/**
+ * Narrow an arbitrary string to `SuperRole`, throwing if the caller
+ * doesn't have any super-admin role. This lets routers that read role
+ * from the W3 auth context (`ctx.user?.role: string | undefined`) call
+ * `assertCan(ctx.user?.role, …)` without a type cast — anything unknown
+ * is treated as forbidden.
+ */
+export function assertCan(role: string | null | undefined, action: SuperAction): void {
+  if (role !== 'OWNER' && role !== 'ADMIN' && role !== 'SUPPORT') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Role ${role ?? '(none)'} is not allowed to perform "${action}"`,
+    })
+  }
   if (!canPerform(role, action)) {
     throw new TRPCError({
       code: 'FORBIDDEN',

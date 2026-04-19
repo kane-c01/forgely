@@ -19,20 +19,35 @@
  *   ```
  */
 
+/**
+ * Audit context — accepts both shapes that exist in `services/api`:
+ *
+ * 1. W7's original shape: `{ session: { userId, role }, request: { ipAddress, userAgent } }`
+ * 2. W3's `AuthContext`:  `{ session: { id, userId } | null, user: { role, ... }, ipAddress, userAgent }`
+ *
+ * The fields are unioned so each caller may use whichever it owns. The
+ * `recordAudit` helper picks the correct path at runtime.
+ */
+/**
+ * Audit log table writer — we only need `create`, and we accept whatever
+ * shape Prisma generates for it. The structural minimum:
+ *   `{ auditLog: { create: (args: { data: any }) => unknown } }`
+ *
+ * Using `unknown` for `data` keeps callers free to pass either our
+ * legacy `AuditLogInsert` shape or the full Prisma input.
+ */
+export interface AuditLogWriter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma's create input is enormous and varies per-schema; we only need structural access here.
+  auditLog: { create: (args: { data: any }) => unknown }
+}
+
 export interface AuditableContext {
-  prisma: {
-    auditLog: {
-      create: (args: { data: AuditLogInsert }) => Promise<unknown>
-    }
-  }
-  session: {
-    userId: string
-    role: 'super_admin' | 'user' | 'system'
-  }
-  request: {
-    ipAddress: string
-    userAgent: string
-  }
+  prisma: AuditLogWriter
+  session: ({ userId: string; role?: 'super_admin' | 'user' | 'system' } | null) | undefined
+  user?: { id: string; role?: string } | null
+  request?: { ipAddress: string | null; userAgent: string | null }
+  ipAddress?: string | null
+  userAgent?: string | null
 }
 
 export interface AuditLogInsert {
@@ -57,25 +72,32 @@ export interface RecordAuditInput {
   reason?: string | null
 }
 
+function normaliseActorRole(role: string | undefined): 'super_admin' | 'user' | 'system' {
+  if (role === 'super_admin' || role === 'system') return role
+  return 'user'
+}
+
 /**
  * Append a single audit-log entry. Best-effort: failures here must never
  * block the underlying mutation, but we surface them via Sentry.
  */
-export async function recordAudit(
-  ctx: AuditableContext,
-  input: RecordAuditInput,
-): Promise<void> {
+export async function recordAudit(ctx: AuditableContext, input: RecordAuditInput): Promise<void> {
+  const role = ctx.session?.role ?? ctx.user?.role
+  const actorId = ctx.session?.userId ?? ctx.user?.id ?? 'unknown'
+  const ipAddress = ctx.request?.ipAddress ?? ctx.ipAddress ?? ''
+  const userAgent = ctx.request?.userAgent ?? ctx.userAgent ?? ''
+
   const insert: AuditLogInsert = {
-    actorType: ctx.session.role,
-    actorId: ctx.session.userId,
+    actorType: normaliseActorRole(role),
+    actorId,
     action: input.action,
     targetType: input.targetType,
     targetId: input.targetId,
     before: input.before ?? null,
     after: input.after ?? null,
     reason: input.reason ?? null,
-    ipAddress: ctx.request.ipAddress,
-    userAgent: ctx.request.userAgent,
+    ipAddress,
+    userAgent,
   }
   try {
     await ctx.prisma.auditLog.create({ data: insert })
