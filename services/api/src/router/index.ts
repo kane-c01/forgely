@@ -8,26 +8,24 @@
  * @owner W3 (T06)
  */
 
-import { authRouter } from './auth.js';
-import { billingRouter } from './billing.js';
-import { creditsRouter } from './credits.js';
-import { router } from './trpc.js';
+import { authRouter } from './auth.js'
+import { billingRouter } from './billing.js'
+import { complianceRouter } from './compliance.js'
+import { creditsRouter } from './credits.js'
+import { seoRouter } from './seo.js'
+import { router } from './trpc.js'
 
 export const appRouter = router({
   auth: authRouter,
   credits: creditsRouter,
   billing: billingRouter,
-});
+  compliance: complianceRouter,
+  seo: seoRouter,
+})
 
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof appRouter
 
-export {
-  publicProcedure,
-  protectedProcedure,
-  superAdminProcedure,
-  router,
-  trpc,
-} from './trpc.js';
+export { publicProcedure, protectedProcedure, superAdminProcedure, router, trpc } from './trpc.js'
 
-export { createContext, SESSION_COOKIE_NAME } from './context.js';
-export type { AuthContext, CreateContextOptions } from './context.js';
+export { createContext, SESSION_COOKIE_NAME } from './context.js'
+export type { AuthContext, CreateContextOptions } from './context.js'

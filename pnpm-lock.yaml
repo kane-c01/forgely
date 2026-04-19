@@ -349,6 +349,12 @@ importers:
 
   services/api:
     dependencies:
+      '@forgely/compliance':
+        specifier: workspace:*
+        version: link:../../packages/compliance
+      '@forgely/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
