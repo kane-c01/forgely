@@ -21,6 +21,8 @@ export default defineConfig({
         // Re-export barrels:
         'src/browser/index.ts',
         'src/storage/index.ts',
+        // Process-level entrypoints (covered by manual smoke + bin shim):
+        'src/cli.ts',
       ],
       thresholds: {
         lines: 80,
