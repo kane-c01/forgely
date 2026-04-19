@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { HeroBackdrop, type HeroBackdropProps } from './hero-backdrop'
 import { cn } from '@/lib/cn'
 
 if (typeof window !== 'undefined') {
@@ -17,10 +18,20 @@ export interface ScrollAct {
   title: ReactNode
   body: ReactNode
   /**
-   * Tailwind background classes applied to the act backdrop. The component
-   * cross-fades between consecutive acts as the user scrolls.
+   * Tailwind background classes applied to the act backdrop. Always
+   * required: it is the lightweight fallback we render when the
+   * cinematic `backdrop` (video / 3D) is unavailable or while it
+   * is loading. The component cross-fades between consecutive acts
+   * as the user scrolls.
    */
   backdropClass: string
+  /**
+   * Optional cinematic backdrop. Layers on top of `backdropClass`:
+   *   - `video`: AV1/MP4 loop with parallax + visibility autoplay.
+   *   - `3d`   : lazy-loaded R3F scene.
+   * Omit the field to keep the static gradient (T27a behaviour).
+   */
+  backdrop?: HeroBackdropProps
   /** Optional accent label rendered top-right (e.g. "Scrape", "Direct"). */
   accent?: string
 }
@@ -129,12 +140,12 @@ export function ScrollActs({ acts, className, renderCounter }: ScrollActsProps) 
             key={`bg-${act.id}`}
             data-act-backdrop
             aria-hidden="true"
-            className={cn(
-              'duration-cinematic ease-standard absolute inset-0 transition-opacity',
-              act.backdropClass,
-            )}
+            className="duration-cinematic ease-standard absolute inset-0 transition-opacity"
             style={{ zIndex: i }}
-          />
+          >
+            <div className={cn('absolute inset-0', act.backdropClass)} />
+            {act.backdrop ? <HeroBackdrop {...act.backdrop} /> : null}
+          </div>
         ))}
 
         <div className="from-bg-void/30 to-bg-void/80 absolute inset-0 bg-gradient-to-b via-transparent" />
