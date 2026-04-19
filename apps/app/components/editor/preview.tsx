@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect, useMemo, useRef, useState } from 'react'
+
+import { Badge } from '@/components/ui/badge'
 import { Icon } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
 import type { DevicePreset } from '@/lib/types'
@@ -13,9 +16,12 @@ const DEVICE_WIDTH: Record<DevicePreset, number> = {
   mobile: 375,
 }
 
+type RenderMode = 'inline' | 'iframe'
+
 export function EditorPreview() {
   const editor = useEditor()
   const width = DEVICE_WIDTH[editor.device]
+  const [mode, setMode] = useState<RenderMode>('inline')
 
   return (
     <div className="bg-bg-void flex h-full flex-1 flex-col">
@@ -43,6 +49,8 @@ export function EditorPreview() {
             icon="Mobile"
             label="Mobile"
           />
+          <span className="bg-border-subtle mx-1 h-4 w-px" aria-hidden />
+          <ModeToggle mode={mode} onChange={setMode} />
         </div>
         <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
           {editor.activePage.name} · {width}px
@@ -86,21 +94,124 @@ export function EditorPreview() {
                 <span className="text-caption font-mono">PREVIEW</span>
               </div>
             </div>
-            {editor.activePage.blocks.map((b) => {
-              const hideOn = (b.props.hideOn as string[] | undefined) ?? []
-              if (hideOn.includes(editor.device)) return null
-              return (
-                <BlockPreview
-                  key={b.id}
-                  block={b}
-                  selected={editor.selectedBlockId === b.id}
-                  onClick={() => editor.selectBlock(b.id)}
-                />
-              )
-            })}
+
+            {mode === 'iframe' ? (
+              <IframePreview width={width} />
+            ) : (
+              editor.activePage.blocks.map((b) => {
+                const hideOn = (b.props.hideOn as string[] | undefined) ?? []
+                if (hideOn.includes(editor.device)) return null
+                return (
+                  <BlockPreview
+                    key={b.id}
+                    block={b}
+                    selected={editor.selectedBlockId === b.id}
+                    onClick={() => editor.selectBlock(b.id)}
+                  />
+                )
+              })
+            )}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ───────────────────── Iframe live-preview ──────────────────────── */
+
+function IframePreview({ width }: { width: number }) {
+  const editor = useEditor()
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [ready, setReady] = useState(false)
+
+  // Build the DSL the iframe will render. Filter out blocks hidden on
+  // the current device so toggling tablet / mobile actually reflects.
+  const dsl = useMemo(() => {
+    const visible = editor.activePage.blocks.filter((b) => {
+      const hideOn = (b.props.hideOn as string[] | undefined) ?? []
+      return b.visible !== false && !hideOn.includes(editor.device)
+    })
+    return {
+      device: editor.device,
+      blocks: visible.map((b) => ({
+        id: b.id,
+        type: b.type,
+        visible: true,
+        props: b.props,
+      })),
+    }
+  }, [editor.activePage.blocks, editor.device])
+
+  // Listen for the iframe's `ready` ping so we know we can postMessage.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'forgely:ready') setReady(true)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
+  // Push a fresh DSL whenever it changes (and the iframe is up).
+  useEffect(() => {
+    if (!ready) return
+    iframeRef.current?.contentWindow?.postMessage({ type: 'forgely:dsl', dsl }, '*')
+  }, [dsl, ready])
+
+  // Initial src — passes the first DSL via base64 so the SSR HTML
+  // already paints the right content (avoids a flash of defaults).
+  const initialSrc = useMemo(() => {
+    if (typeof window === 'undefined') return '/api/preview'
+    const json = JSON.stringify(dsl)
+    const base64 =
+      typeof btoa === 'function'
+        ? btoa(unescape(encodeURIComponent(json)))
+        : Buffer.from(json, 'utf-8').toString('base64')
+    return `/api/preview?siteId=qiao-coffee&dsl=${encodeURIComponent(base64)}`
+    // Only compute the initial URL once — after that we update via postMessage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="relative" style={{ height: 'min(78vh, 1100px)' }}>
+      <iframe
+        ref={iframeRef}
+        src={initialSrc}
+        title="Storefront live preview"
+        className="block h-full w-full border-0 bg-white"
+        style={{ width: width + 'px', maxWidth: '100%' }}
+        sandbox="allow-scripts allow-same-origin"
+      />
+      {!ready ? (
+        <div className="bg-bg-void/60 pointer-events-none absolute inset-0 grid place-items-center backdrop-blur-sm">
+          <Badge tone="forge" dot>
+            connecting preview…
+          </Badge>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/* ───────────────────── Toolbar pieces ──────────────────────────── */
+
+function ModeToggle({ mode, onChange }: { mode: RenderMode; onChange: (m: RenderMode) => void }) {
+  return (
+    <div className="border-border-subtle bg-bg-elevated inline-flex items-center rounded-md border p-0.5">
+      {(['inline', 'iframe'] as RenderMode[]).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => onChange(m)}
+          aria-pressed={mode === m}
+          className={cn(
+            'text-caption rounded px-2 py-1 font-mono uppercase tracking-[0.12em] transition-colors',
+            mode === m ? 'bg-bg-deep text-forge-amber' : 'text-text-muted hover:text-text-primary',
+          )}
+        >
+          {m}
+        </button>
+      ))}
     </div>
   )
 }
