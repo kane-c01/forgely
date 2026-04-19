@@ -36,7 +36,7 @@ function storefrontFetch() {
         respond: () => json(wcStorefrontCategories),
       },
       {
-        match: (u) => u === `${ORIGIN}/`,
+        match: (u) => u === ORIGIN || u === `${ORIGIN}/`,
         respond: () => text(wcHomepageHtml),
       },
       {
@@ -67,7 +67,7 @@ describe('WooCommerceAdapter.canHandle', () => {
             respond: () => notFound(),
           },
           {
-            match: (u) => u === `${ORIGIN}/`,
+            match: (u) => u === ORIGIN || u === `${ORIGIN}/`,
             respond: () => text(wcShopHtml),
           },
         ],
@@ -86,7 +86,7 @@ describe('WooCommerceAdapter.canHandle', () => {
             respond: () => notFound(),
           },
           {
-            match: (u) => u === `${ORIGIN}/`,
+            match: (u) => u === ORIGIN || u === `${ORIGIN}/`,
             respond: () => text('<html>plain site</html>'),
           },
         ],
@@ -132,6 +132,59 @@ describe('WooCommerceAdapter.scrape (Storefront REST)', () => {
   })
 })
 
+describe('WooCommerceAdapter.scrape (authenticated wc/v3 REST)', () => {
+  it('falls through to wc/v3 with credentials when storefront fails', async () => {
+    const wcV3Body = [
+      {
+        id: 99,
+        slug: 'sweater',
+        name: 'Sweater',
+        permalink: 'https://woo.example.com/product/sweater/',
+        description: '<p>warm</p>',
+        price: '79.00',
+        in_stock: true,
+        images: [{ src: 'https://woo.example.com/images/sweater.jpg', alt: 'Sweater' }],
+        tags: [{ name: 'cozy' }],
+      },
+    ]
+    let consumerKeySeen: string | null = null
+    const fetchImpl = createMockFetch(
+      [
+        {
+          match: (u) => u.startsWith(`${ORIGIN}/wp-json/wc/store/v1/products`),
+          respond: () => new Response('boom', { status: 503 }),
+        },
+        {
+          match: (u, init) => {
+            if (!u.startsWith(`${ORIGIN}/wp-json/wc/v3/products`)) return false
+            const auth = (init?.headers as Record<string, string> | undefined)?.['Authorization']
+            if (auth?.startsWith('Basic ')) {
+              consumerKeySeen = atob(auth.slice(6)).split(':')[0] ?? null
+            }
+            return true
+          },
+          respond: (u) => {
+            const url = new URL(u)
+            const page = Number(url.searchParams.get('page') ?? '1')
+            return json(page === 1 ? wcV3Body : [])
+          },
+        },
+      ],
+      { unhandled: 'empty404' },
+    )
+    const adapter = new WooCommerceAdapter({ fetchImpl })
+    const data = await adapter.scrape(ORIGIN, {
+      skipScreenshots: true,
+      mirrorImages: false,
+      credentials: { consumerKey: 'CK_TEST', consumerSecret: 'CS_TEST' },
+    })
+    expect(data.meta?.['strategy']).toBe('wc-v3-rest')
+    expect(data.products).toHaveLength(1)
+    expect(data.products[0]?.title).toBe('Sweater')
+    expect(consumerKeySeen).toBe('CK_TEST')
+  })
+})
+
 describe('WooCommerceAdapter.scrape (HTML fallback)', () => {
   it('falls back to /shop scraping when storefront fails', async () => {
     const fetchImpl = createMockFetch(
@@ -145,7 +198,7 @@ describe('WooCommerceAdapter.scrape (HTML fallback)', () => {
           respond: () => text(wcShopHtml),
         },
         {
-          match: (u) => u === `${ORIGIN}/`,
+          match: (u) => u === ORIGIN || u === `${ORIGIN}/`,
           respond: () => text(wcHomepageHtml),
         },
       ],

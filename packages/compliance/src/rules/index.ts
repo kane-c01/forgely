@@ -17,8 +17,11 @@ import { gdprRules } from './regional/gdpr.js'
 import { prop65Rules } from './regional/prop65.js'
 import { alcoholRules } from './category/alcohol.js'
 import { cbdRules } from './category/cbd.js'
+import { childrenRules } from './category/children.js'
 import { cosmeticsRules } from './category/cosmetics.js'
+import { electronicsRules } from './category/electronics.js'
 import { foodRules } from './category/food.js'
+import { medicalRules } from './category/medical.js'
 import { supplementsRules } from './category/supplements.js'
 import { generalRules } from './general.js'
 
@@ -39,6 +42,9 @@ export const ALL_RULES: Rule[] = [
   ...foodRules,
   ...alcoholRules,
   ...cbdRules,
+  ...childrenRules,
+  ...medicalRules,
+  ...electronicsRules,
   ...generalRules,
 ]
 

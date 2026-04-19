@@ -9,10 +9,14 @@
  */
 
 import { authRouter } from './auth.js';
+import { billingRouter } from './billing.js';
+import { creditsRouter } from './credits.js';
 import { router } from './trpc.js';
 
 export const appRouter = router({
   auth: authRouter,
+  credits: creditsRouter,
+  billing: billingRouter,
 });
 
 export type AppRouter = typeof appRouter;
