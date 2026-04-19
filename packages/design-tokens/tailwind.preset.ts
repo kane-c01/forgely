@@ -42,10 +42,22 @@ export const forgelyPreset = {
         'data-5': colors.data.series5,
       },
       fontFamily: {
-        display: [`var(${fonts.display.cssVariable})`, ...fonts.display.family.split(',').map((s) => s.trim())],
-        heading: [`var(${fonts.heading.cssVariable})`, ...fonts.heading.family.split(',').map((s) => s.trim())],
-        body: [`var(${fonts.body.cssVariable})`, ...fonts.body.family.split(',').map((s) => s.trim())],
-        mono: [`var(${fonts.mono.cssVariable})`, ...fonts.mono.family.split(',').map((s) => s.trim())],
+        display: [
+          `var(${fonts.display.cssVariable})`,
+          ...fonts.display.family.split(',').map((s) => s.trim()),
+        ],
+        heading: [
+          `var(${fonts.heading.cssVariable})`,
+          ...fonts.heading.family.split(',').map((s) => s.trim()),
+        ],
+        body: [
+          `var(${fonts.body.cssVariable})`,
+          ...fonts.body.family.split(',').map((s) => s.trim()),
+        ],
+        mono: [
+          `var(${fonts.mono.cssVariable})`,
+          ...fonts.mono.family.split(',').map((s) => s.trim()),
+        ],
       },
       fontSize: {
         'hero-mega': fontSize['hero-mega'],
@@ -63,6 +75,46 @@ export const forgelyPreset = {
       boxShadow: shadows,
       transitionTimingFunction: motion.easing,
       transitionDuration: motion.duration,
+      keyframes: {
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(calc(-100% - var(--gap, 0px)))' },
+        },
+        'marquee-vertical': {
+          from: { transform: 'translateY(0)' },
+          to: { transform: 'translateY(calc(-100% - var(--gap, 0px)))' },
+        },
+        'border-beam': {
+          '100%': { 'offset-distance': '100%' },
+        },
+        'shine-pulse': {
+          '0%, 100%': { 'background-position': '0% 0%' },
+          '50%': { 'background-position': '100% 100%' },
+        },
+        'spotlight-drift': {
+          '0%, 100%': { '--spot-x': '20%', '--spot-y': '30%' },
+          '50%': { '--spot-x': '70%', '--spot-y': '60%' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'fade-in-0': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-out-0': { from: { opacity: '1' }, to: { opacity: '0' } },
+        'zoom-in-95': {
+          from: { transform: 'scale(0.95)' },
+          to: { transform: 'scale(1)' },
+        },
+        'zoom-out-95': {
+          from: { transform: 'scale(1)' },
+          to: { transform: 'scale(0.95)' },
+        },
+      },
+      animation: {
+        marquee: 'marquee var(--marquee-duration, 30s) linear infinite',
+        'marquee-vertical': 'marquee-vertical var(--marquee-duration, 30s) linear infinite',
+        'border-beam': 'border-beam calc(var(--duration, 14s)) infinite linear',
+        shimmer: 'shimmer 1.6s infinite',
+      },
     },
   },
   plugins: [],

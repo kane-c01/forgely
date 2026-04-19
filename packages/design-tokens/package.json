@@ -2,7 +2,7 @@
   "name": "@forgely/design-tokens",
   "version": "0.0.0",
   "private": true,
-  "description": "Forgely Cinematic Industrial design tokens (colors / fonts / spacing / motion) + Tailwind preset shared across all three apps.",
+  "description": "Forgely Cinematic Industrial design tokens — colors, fonts, spacing, radius, shadows, motion + Tailwind preset + CSS variables.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,12 +12,12 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./tailwind": {
+    "./tailwind.preset": {
       "types": "./tailwind.preset.ts",
       "import": "./tailwind.preset.ts",
       "default": "./tailwind.preset.ts"
     },
-    "./css": "./src/css-variables.css"
+    "./css-variables.css": "./src/css-variables.css"
   },
   "files": [
     "src",
@@ -27,6 +27,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "echo \"no tests yet\" && exit 0"
+  },
+  "peerDependencies": {
+    "tailwindcss": "^3.4.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.13",
