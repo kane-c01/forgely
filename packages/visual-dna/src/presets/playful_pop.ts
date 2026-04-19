@@ -7,6 +7,7 @@ export const playfulPop: VisualDNA = {
     'High-saturation, high-energy candy palette with kinetic camera motion — Liquid Death meets Olipop.',
   bestFor: ['beverages', 'snacks', 'kids', 'streetwear', 'pop_culture', 'lifestyle'],
   referenceBrands: ['Recess', 'Poppi', 'Olipop', 'Liquid Death', 'Glossier Play'],
+  referenceImage: '/dna-references/playful_pop.jpg',
   colors: {
     primary: '#FF3D7F',
     secondary: '#33D6A6',

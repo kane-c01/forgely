@@ -14,6 +14,7 @@ export const boldRebellious: VisualDNA = {
     'manifesto_brands',
   ],
   referenceBrands: ['Off-White', 'Liquid Death', 'Diesel', 'Public Enemy merch'],
+  referenceImage: '/dna-references/bold_rebellious.jpg',
   colors: {
     primary: '#0B0B0B',
     secondary: '#F4F4F4',

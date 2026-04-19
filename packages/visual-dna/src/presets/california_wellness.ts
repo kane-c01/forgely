@@ -14,6 +14,7 @@ export const californiaWellness: VisualDNA = {
     'apparel_athleisure',
   ],
   referenceBrands: ['Ritual', 'AG1', 'Rhode', 'Vuori', 'Arrae'],
+  referenceImage: '/dna-references/california_wellness.jpg',
   colors: {
     primary: '#3B2A1E',
     secondary: '#E0A95F',

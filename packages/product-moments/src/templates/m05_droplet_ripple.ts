@@ -28,4 +28,5 @@ export const m05_droplet_ripple: MomentPromptTemplate = {
   ],
   failureFallback: 'M01',
   referenceUrl: 'https://placehold.co/forgely/moments/droplet_ripple.mp4',
+  referenceVideo: '/moment-references/droplet_ripple.mp4',
 }

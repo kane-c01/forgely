@@ -28,4 +28,5 @@ export const m10_environmental_embed: MomentPromptTemplate = {
   ],
   failureFallback: 'M04',
   referenceUrl: 'https://placehold.co/forgely/moments/environmental_embed.mp4',
+  referenceVideo: '/moment-references/environmental_embed.mp4',
 }

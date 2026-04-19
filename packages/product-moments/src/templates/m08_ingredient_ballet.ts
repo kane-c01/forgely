@@ -28,4 +28,5 @@ export const m08_ingredient_ballet: MomentPromptTemplate = {
   ],
   failureFallback: 'M05',
   referenceUrl: 'https://placehold.co/forgely/moments/ingredient_ballet.mp4',
+  referenceVideo: '/moment-references/ingredient_ballet.mp4',
 }

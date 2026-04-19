@@ -28,4 +28,5 @@ export const m06_mist_emergence: MomentPromptTemplate = {
   ],
   failureFallback: 'M04',
   referenceUrl: 'https://placehold.co/forgely/moments/mist_emergence.mp4',
+  referenceVideo: '/moment-references/mist_emergence.mp4',
 }

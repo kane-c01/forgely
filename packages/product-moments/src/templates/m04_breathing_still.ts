@@ -34,4 +34,5 @@ export const m04_breathing_still: MomentPromptTemplate = {
   ],
   failureFallback: 'M10',
   referenceUrl: 'https://placehold.co/forgely/moments/breathing_still.mp4',
+  referenceVideo: '/moment-references/breathing_still.mp4',
 }

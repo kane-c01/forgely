@@ -87,6 +87,8 @@ export interface MomentPromptTemplate {
   failureFallback: MomentType
   /** Optional hosted reference URL (poster image / video). */
   referenceUrl?: string
+  /** Path to a 4-6s reference video for this Moment (relative to public/). */
+  referenceVideo?: string
 }
 
 /**

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#14141A"/>
+  <text x="256" y="240" text-anchor="middle" fill="#FF6B2B" font-size="24" font-family="system-ui">nordic minimal</text>
+  <text x="256" y="280" text-anchor="middle" fill="#888" font-size="14" font-family="system-ui">reference image placeholder</text>
+</svg>

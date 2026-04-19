@@ -28,4 +28,5 @@ export const m01_liquid_bath: MomentPromptTemplate = {
   ],
   failureFallback: 'M04',
   referenceUrl: 'https://placehold.co/forgely/moments/liquid_bath.mp4',
+  referenceVideo: '/moment-references/liquid_bath.mp4',
 }
