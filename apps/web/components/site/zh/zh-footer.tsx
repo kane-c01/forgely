@@ -1,55 +1,54 @@
 import Link from 'next/link'
 import { LocaleSwitcher } from '@/components/site/locale-switcher'
 import { siteConfig } from '@/lib/site'
+import { getMessages } from '@/lib/messages'
 
-const sections: Array<{
-  title: string
-  links: Array<{ label: string; href: string; external?: boolean }>
-}> = [
+const sections = [
   {
-    title: 'Product',
+    key: 'product' as const,
     links: [
-      { label: 'How it works', href: '#how-it-works' },
-      { label: 'Showcase', href: '#showcase' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Changelog', href: '/changelog' },
+      { label: '工作流程', href: '#how-it-works' },
+      { label: '案例', href: '#showcase' },
+      { label: '价格', href: '#pricing' },
+      { label: '更新日志', href: '/changelog' },
     ],
   },
   {
-    title: 'Company',
+    key: 'company' as const,
     links: [
-      { label: 'About', href: '/about' },
-      { label: 'Manifesto', href: '/manifesto' },
-      { label: 'Careers', href: '/careers' },
-      { label: 'Contact', href: `mailto:${siteConfig.contact}` },
+      { label: '关于', href: '/about' },
+      { label: '理念', href: '/manifesto' },
+      { label: '招聘', href: '/careers' },
+      { label: '联系', href: `mailto:${siteConfig.contact}` },
     ],
   },
   {
-    title: 'Resources',
+    key: 'resources' as const,
     links: [
-      { label: 'Docs', href: '/docs' },
-      { label: 'Brand Library', href: '/library' },
-      { label: 'Status', href: 'https://status.forgely.com', external: true },
+      { label: '文档', href: '/docs' },
+      { label: '品牌库', href: '/library' },
+      { label: '运行状态', href: 'https://status.forgely.com', external: true },
       { label: 'GitHub', href: siteConfig.github, external: true },
     ],
   },
   {
-    title: 'Legal',
+    key: 'legal' as const,
     links: [
-      { label: 'Terms', href: '/legal/terms' },
-      { label: 'Privacy', href: '/legal/privacy' },
+      { label: '服务条款', href: '/legal/terms' },
+      { label: '隐私政策', href: '/legal/privacy' },
       { label: 'DSA', href: '/legal/dsa' },
-      { label: 'Refunds', href: '/legal/refunds' },
+      { label: '退款政策', href: '/legal/refunds' },
     ],
   },
 ]
 
-export function SiteFooter() {
+export function ZhFooter() {
+  const t = getMessages('zh-CN').footer
   return (
     <footer className="bg-bg-void">
       <div className="container-page grid grid-cols-2 gap-10 py-16 md:grid-cols-5">
         <div className="col-span-2 flex flex-col gap-4 md:col-span-2">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/zh" className="flex items-center gap-2.5">
             <span
               aria-hidden="true"
               className="from-forge-amber via-forge-orange to-forge-ember shadow-glow-forge grid h-8 w-8 place-items-center rounded-md bg-gradient-to-br"
@@ -62,25 +61,29 @@ export function SiteFooter() {
               {siteConfig.name}
             </span>
           </Link>
-          <p className="text-small text-text-muted max-w-sm">{siteConfig.slogan}</p>
-          <LocaleSwitcher current="en" />
+          <p className="text-small text-text-muted max-w-sm">{t.slogan}</p>
+          <LocaleSwitcher current="zh-CN" />
           <p className="text-caption text-text-subtle font-mono uppercase tracking-[0.2em]">
-            © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+            © {new Date().getFullYear()} {siteConfig.name}. {t.rights}
           </p>
         </div>
 
         {sections.map((section) => (
-          <nav key={section.title} aria-label={section.title} className="flex flex-col gap-3">
+          <nav
+            key={section.key}
+            aria-label={t.sections[section.key]}
+            className="flex flex-col gap-3"
+          >
             <h4 className="text-caption text-text-muted font-mono uppercase tracking-[0.2em]">
-              {section.title}
+              {t.sections[section.key]}
             </h4>
             <ul className="flex flex-col gap-2">
               {section.links.map((link) => (
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    target={link.external ? '_blank' : undefined}
-                    rel={link.external ? 'noopener noreferrer' : undefined}
+                    target={'external' in link && link.external ? '_blank' : undefined}
+                    rel={'external' in link && link.external ? 'noopener noreferrer' : undefined}
                     className="text-small text-text-secondary hover:text-forge-orange transition"
                   >
                     {link.label}
@@ -95,10 +98,10 @@ export function SiteFooter() {
       <div className="border-border-subtle border-t">
         <div className="container-page flex flex-col items-start justify-between gap-3 py-6 sm:flex-row sm:items-center">
           <p className="text-caption text-text-subtle font-mono uppercase tracking-[0.2em]">
-            Made for brands that ship. Built in dark mode by default.
+            {t.bottomA}
           </p>
           <p className="text-caption text-text-subtle font-mono uppercase tracking-[0.2em]">
-            v0.1 · MVP · {siteConfig.domain}
+            {t.bottomB}
           </p>
         </div>
       </div>

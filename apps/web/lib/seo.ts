@@ -9,6 +9,12 @@ interface BuildMetadataOptions {
    *  `app/opengraph-image.tsx` so we leave the field undefined. */
   image?: string
   noIndex?: boolean
+  /** Optional locale alternates emitted as <link rel="alternate" hreflang>. */
+  hreflang?: Record<string, string>
+  /** Override the og:locale (default `en_US`). */
+  ogLocale?: string
+  /** Optional og:alternateLocale list (default omitted). */
+  ogAlternateLocales?: string[]
 }
 
 /**
@@ -16,7 +22,16 @@ interface BuildMetadataOptions {
  * Use on every page; pass page-specific overrides as needed.
  */
 export function buildMetadata(options: BuildMetadataOptions = {}): Metadata {
-  const { title, description, path = '/', image, noIndex = false } = options
+  const {
+    title,
+    description,
+    path = '/',
+    image,
+    noIndex = false,
+    hreflang,
+    ogLocale = 'en_US',
+    ogAlternateLocales,
+  } = options
 
   const fullTitle = title
     ? `${title} — ${siteConfig.name}`
@@ -38,14 +53,16 @@ export function buildMetadata(options: BuildMetadataOptions = {}): Metadata {
     publisher: siteConfig.name,
     alternates: {
       canonical: url,
+      ...(hreflang ? { languages: hreflang } : {}),
     },
     openGraph: {
       type: 'website',
-      locale: 'en_US',
+      locale: ogLocale,
       url,
       title: fullTitle,
       description: desc,
       siteName: siteConfig.name,
+      ...(ogAlternateLocales ? { alternateLocale: ogAlternateLocales } : {}),
       ...(overrideImage ? { images: overrideImage } : {}),
     },
     twitter: {

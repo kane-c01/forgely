@@ -11,11 +11,18 @@ import { SiteFooter } from '@/components/site/footer'
 import { faqItems } from '@/lib/faq'
 import { faqSchema, jsonLd } from '@/lib/schema'
 import { buildMetadata } from '@/lib/seo'
+import { siteConfig } from '@/lib/site'
 
 export const metadata = buildMetadata({
   title: 'Brand operating system for the AI era',
   description:
     'Forgely turns any product link into a cinematic, fully-stocked brand site — designed by AI, hosted on us, ready to sell in 5 minutes.',
+  ogAlternateLocales: ['zh_CN'],
+  hreflang: {
+    en: siteConfig.url,
+    'zh-CN': `${siteConfig.url}/zh`,
+    'x-default': siteConfig.url,
+  },
 })
 
 export default function HomePage() {

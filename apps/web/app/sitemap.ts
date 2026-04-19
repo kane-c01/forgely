@@ -34,5 +34,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
+    {
+      url: `${siteConfig.url}/zh`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+      alternates: {
+        languages: {
+          en: siteConfig.url,
+          'zh-CN': `${siteConfig.url}/zh`,
+        },
+      },
+    },
   ]
 }
