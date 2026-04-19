@@ -67,7 +67,7 @@ export function SiteNav() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Link
-            href={siteConfig.appUrl}
+            href={siteConfig.appLoginUrl}
             className="text-small text-text-secondary hover:text-text-primary"
           >
             Sign in
@@ -107,7 +107,7 @@ export function SiteNav() {
               </Link>
             ))}
             <Link
-              href={siteConfig.appUrl}
+              href={siteConfig.appLoginUrl}
               onClick={() => setOpen(false)}
               className="text-body text-text-secondary hover:text-text-primary"
             >

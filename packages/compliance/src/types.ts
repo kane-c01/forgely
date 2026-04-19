@@ -28,6 +28,10 @@ export type Region =
   | 'EU-CE'
   | 'UK-ASA'
   | 'CA-CASL'
+  | 'CN-ECOMMERCE'
+  | 'CN-PIPL'
+  | 'CN-ADVERTISING'
+  | 'CN-CONSUMER'
   | 'GLOBAL'
 
 /** 受支持的品类（用于品类特殊规则匹配） */

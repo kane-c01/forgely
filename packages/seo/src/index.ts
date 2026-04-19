@@ -66,3 +66,6 @@ export type {
   KeywordResearchResult,
   SerpCompetitor,
 } from './keywords.js'
+
+export { submitSitemap } from './submit.js'
+export type { SearchEngine, SubmitOptions, SubmitResult } from './submit.js'

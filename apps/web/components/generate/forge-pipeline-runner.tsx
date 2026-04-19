@@ -11,6 +11,7 @@ import {
   type PipelineStep,
 } from '@/lib/forge-pipeline'
 import { cn } from '@/lib/cn'
+import { siteConfig } from '@/lib/site'
 
 type StepStatus = 'pending' | 'running' | 'done'
 
@@ -159,7 +160,7 @@ export function ForgePipelineRunner({
           A faithful preview of the Agent pipeline — Scraper, Vision, Director, Planner, Copywriter,
           Artist, Compliance, SEO, Compiler, Deployer — all working in concert. The numbers, prompts
           and timings mirror the private-beta runtime; the live system is reserved for{' '}
-          <span className="text-text-primary">app.forgely.com</span>.
+          <span className="text-text-primary">{siteConfig.appHost}</span>.
         </p>
       </header>
 

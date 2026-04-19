@@ -62,6 +62,7 @@ curl -X POST http://localhost:3010/api/waitlist \
 ```env
 NEXT_PUBLIC_APP_URL=https://forgely.com
 NEXT_PUBLIC_APP_DASH_URL=https://app.forgely.com
+# 本地：与 apps/app 一致（默认 3001）。不设时开发模式会默认 http://localhost:3001，导航「登录」→ /login
 FORGELY_HASH_SALT=set-a-long-random-string
 FORGELY_WAITLIST_PATH=./data/waitlist.json   # 可选；默认即此值
 ```

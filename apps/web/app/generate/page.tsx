@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { ForgePipelineRunner } from '@/components/generate/forge-pipeline-runner'
 import { buttonClasses } from '@/components/ui/button'
 import { buildMetadata } from '@/lib/seo'
+import { siteConfig } from '@/lib/site'
 
 export const metadata = buildMetadata({
   title: 'Generate · 12-step preview',
@@ -27,7 +28,7 @@ export default function GeneratePage() {
           T27d · 12-step preview · staging
         </span>
         <Link
-          href="https://app.forgely.com"
+          href={siteConfig.appUrl}
           className={buttonClasses({ size: 'sm', variant: 'outline' })}
           target="_blank"
           rel="noreferrer"
@@ -54,8 +55,8 @@ export default function GeneratePage() {
               the Forgely runtime (docs §5.3 / §5.4). The marketing preview is locked to the
               toybloom.myshopify.com fixture so it always completes deterministically — the live
               pipeline plugs into your real Scraper output and Director script via{' '}
-              <Link href="https://app.forgely.com" className="text-forge-orange hover:underline">
-                app.forgely.com
+              <Link href={siteConfig.appUrl} className="text-forge-orange hover:underline">
+                {siteConfig.appHost}
               </Link>
               .
             </p>

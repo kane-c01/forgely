@@ -5,6 +5,7 @@ import { ArrowUp, Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
+import { siteConfig } from '@/lib/site'
 
 interface DemoTurn {
   role: 'user' | 'assistant'
@@ -216,7 +217,7 @@ export function InteractiveDemo({ className }: { className?: string }) {
           <p className="text-body-lg text-text-secondary mt-4">
             Three short conversations show how Forgely turns a link, an idea or a Copilot request
             into a real action. Pick any script — the live Copilot lives in{' '}
-            <span className="text-text-primary">app.forgely.com</span>.
+            <span className="text-text-primary">{siteConfig.appHost}</span>.
           </p>
         </div>
 

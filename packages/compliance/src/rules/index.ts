@@ -23,6 +23,10 @@ import { electronicsRules } from './category/electronics.js'
 import { foodRules } from './category/food.js'
 import { medicalRules } from './category/medical.js'
 import { supplementsRules } from './category/supplements.js'
+import { cnAdvertisingLawRules } from './cn/advertising-law.js'
+import { cnConsumerProtectionRules } from './cn/consumer-protection.js'
+import { cnEcommerceLawRules } from './cn/ecommerce-law.js'
+import { piplRules } from './cn/pipl.js'
 import { generalRules } from './general.js'
 
 /** 全部内置规则 */
@@ -45,6 +49,10 @@ export const ALL_RULES: Rule[] = [
   ...childrenRules,
   ...medicalRules,
   ...electronicsRules,
+  ...cnEcommerceLawRules,
+  ...piplRules,
+  ...cnAdvertisingLawRules,
+  ...cnConsumerProtectionRules,
   ...generalRules,
 ]
 
@@ -62,16 +70,24 @@ export function getRulesByRegion(regions: readonly Region[]): Rule[] {
 /** 按品类筛选规则 */
 export function getRulesByCategory(category: ProductCategory): Rule[] {
   return ALL_RULES.filter(
-    (r) => !r.appliesTo.categories || r.appliesTo.categories.length === 0 || r.appliesTo.categories.includes(category),
+    (r) =>
+      !r.appliesTo.categories ||
+      r.appliesTo.categories.length === 0 ||
+      r.appliesTo.categories.includes(category),
   )
 }
 
 /** 同时按 region + category 筛选（最常用） */
-export function selectRules(args: { regions: readonly Region[]; category: ProductCategory }): Rule[] {
+export function selectRules(args: {
+  regions: readonly Region[]
+  category: ProductCategory
+}): Rule[] {
   return ALL_RULES.filter((r) => {
     const regionOk = r.region === 'GLOBAL' || args.regions.includes(r.region)
     const categoryOk =
-      !r.appliesTo.categories || r.appliesTo.categories.length === 0 || r.appliesTo.categories.includes(args.category)
+      !r.appliesTo.categories ||
+      r.appliesTo.categories.length === 0 ||
+      r.appliesTo.categories.includes(args.category)
     return regionOk && categoryOk
   })
 }

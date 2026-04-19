@@ -58,7 +58,7 @@ export function ZhNav() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Link
-            href={siteConfig.appUrl}
+            href={siteConfig.appLoginUrl}
             className="text-small text-text-secondary hover:text-text-primary"
           >
             {t.signIn}
@@ -98,7 +98,7 @@ export function ZhNav() {
               </Link>
             ))}
             <Link
-              href={siteConfig.appUrl}
+              href={siteConfig.appLoginUrl}
               onClick={() => setOpen(false)}
               className="text-body text-text-secondary hover:text-text-primary"
             >
