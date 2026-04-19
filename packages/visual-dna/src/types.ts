@@ -93,6 +93,8 @@ export interface VisualDNA {
   bestFor: string[]
   /** Real-world brands this DNA echoes (for human reference). */
   referenceBrands: string[]
+  /** Path to a 512×512 reference image for this DNA (relative to public/). */
+  referenceImage?: string
   colors: DnaColors
   fonts: DnaFonts
   cameraLanguage: DnaCameraLanguage

@@ -14,6 +14,7 @@ export const organicGarden: VisualDNA = {
     'garden_lifestyle',
   ],
   referenceBrands: ['Our Place', 'Tata Harper', 'Erewhon', 'Vintner\u2019s Daughter'],
+  referenceImage: '/dna-references/organic_garden.jpg',
   colors: {
     primary: '#2F3A2A',
     secondary: '#7A8C5A',

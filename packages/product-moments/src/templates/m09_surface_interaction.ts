@@ -28,4 +28,5 @@ export const m09_surface_interaction: MomentPromptTemplate = {
   ],
   failureFallback: 'M03',
   referenceUrl: 'https://placehold.co/forgely/moments/surface_interaction.mp4',
+  referenceVideo: '/moment-references/surface_interaction.mp4',
 }

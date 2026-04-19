@@ -164,3 +164,16 @@ export {
   type InfiniteMovingCardsProps,
   type InfiniteMovingCardsItem,
 } from './infinite-moving-cards'
+
+export { DateRangePicker, type DateRangePickerProps } from './date-range-picker'
+export {
+  FileUpload,
+  type FileUploadProps,
+  type UploadedFile,
+  type FileUploadStatus,
+} from './file-upload'
+export { RichTextEditor, type RichTextEditorProps } from './rich-text-editor'
+export { ColorPicker, type ColorPickerProps } from './color-picker'
+export { FontPicker, type FontPickerProps, type FontPickerFont } from './font-picker'
+export { ImageGallery, type ImageGalleryProps, type GalleryImage } from './image-gallery'
+export { VideoPlayer, type VideoPlayerProps, type VideoSource } from './video-player'

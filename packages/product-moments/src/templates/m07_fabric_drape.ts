@@ -28,4 +28,5 @@ export const m07_fabric_drape: MomentPromptTemplate = {
   ],
   failureFallback: 'M04',
   referenceUrl: 'https://placehold.co/forgely/moments/fabric_drape.mp4',
+  referenceVideo: '/moment-references/fabric_drape.mp4',
 }

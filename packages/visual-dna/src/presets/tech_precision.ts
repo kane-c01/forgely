@@ -7,6 +7,7 @@ export const techPrecision: VisualDNA = {
     'Cool grayscale, brushed metal and laser-precise type — Apple-keynote-grade hardware showcase.',
   bestFor: ['electronics', 'tools', 'audio', 'developer_tools', 'b2b_saas', 'industrial_design'],
   referenceBrands: ['Apple', 'Nothing', 'Framework', 'Teenage Engineering'],
+  referenceImage: '/dna-references/tech_precision.jpg',
   colors: {
     primary: '#0A0A0F',
     secondary: '#3D4754',

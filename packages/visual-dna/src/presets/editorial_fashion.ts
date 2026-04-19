@@ -14,6 +14,7 @@ export const editorialFashion: VisualDNA = {
     'art_publications',
   ],
   referenceBrands: ['Acne Studios', 'Jacquemus', 'The Row', 'Saint Laurent'],
+  referenceImage: '/dna-references/editorial_fashion.jpg',
   colors: {
     primary: '#0E0E0E',
     secondary: '#F2EFEA',

@@ -28,4 +28,5 @@ export const m02_levitation: MomentPromptTemplate = {
   ],
   failureFallback: 'M03',
   referenceUrl: 'https://placehold.co/forgely/moments/levitation.mp4',
+  referenceVideo: '/moment-references/levitation.mp4',
 }

@@ -7,6 +7,7 @@ export const nordicMinimal: VisualDNA = {
     'Cool whites, raw oak and linen, diffuse Scandinavian daylight — quiet utility for home and family brands.',
   bestFor: ['home', 'apparel_basics', 'kids_toys', 'lifestyle', 'craft_furniture', 'stationery'],
   referenceBrands: ['HAY', 'Muji', 'Stutterheim', 'PlanToys', 'Skagerak'],
+  referenceImage: '/dna-references/nordic_minimal.jpg',
   colors: {
     primary: '#1A1A1F',
     secondary: '#A89580',

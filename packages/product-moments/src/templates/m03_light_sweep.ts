@@ -28,4 +28,5 @@ export const m03_light_sweep: MomentPromptTemplate = {
   ],
   failureFallback: 'M04',
   referenceUrl: 'https://placehold.co/forgely/moments/light_sweep.mp4',
+  referenceVideo: '/moment-references/light_sweep.mp4',
 }

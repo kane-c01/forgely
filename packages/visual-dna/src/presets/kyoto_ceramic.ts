@@ -7,6 +7,7 @@ export const kyotoCeramic: VisualDNA = {
     'Quiet, warm, hand-made minimalism — morning window light over wabi-sabi ceramics, slow camera, abundant negative space.',
   bestFor: ['ceramics', 'tea', 'incense', 'artisan_homewares', 'eastern_aesthetic', 'craft'],
   referenceBrands: ['Toast', 'Postalco', 'Niwaki', 'Kettl Tea', 'Ippodo'],
+  referenceImage: '/dna-references/kyoto_ceramic.jpg',
   colors: {
     primary: '#2D2A26',
     secondary: '#8B5A3C',

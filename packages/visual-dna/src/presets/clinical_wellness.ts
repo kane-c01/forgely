@@ -7,6 +7,7 @@ export const clinicalWellness: VisualDNA = {
     'Serious, scientific, premium — apothecary jars on dark surfaces with surgical lighting and metallic gold accents.',
   bestFor: ['supplements', 'skincare', 'beauty', 'biotech', 'pharmaceutical', 'wellness_premium'],
   referenceBrands: ['Aesop', 'La Mer', 'Augustinus Bader', 'BIOLOGIQUE RECHERCHE'],
+  referenceImage: '/dna-references/clinical_wellness.jpg',
   colors: {
     primary: '#0F1A14',
     secondary: '#C9A76A',

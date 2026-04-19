@@ -14,6 +14,7 @@ export const neonNight: VisualDNA = {
     'tech_lifestyle',
   ],
   referenceBrands: ['Liquid Death (after dark)', 'Nothing Audio', 'Ghost Energy'],
+  referenceImage: '/dna-references/neon_night.jpg',
   colors: {
     primary: '#0B0B14',
     secondary: '#FF2EC4',
