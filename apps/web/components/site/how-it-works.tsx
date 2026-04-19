@@ -1,5 +1,6 @@
 import { SectionHeading } from '@/components/ui/section-heading'
 
+// Pure presentational; no client interactivity / no @forgely/ui dependency.
 interface Step {
   index: string
   title: string
@@ -45,7 +46,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       aria-labelledby="how-title"
-      className="border-b border-border-subtle py-24 lg:py-32"
+      className="border-border-subtle border-b py-24 lg:py-32"
     >
       <div className="container-page flex flex-col gap-14">
         <SectionHeading
@@ -54,23 +55,18 @@ export function HowItWorks() {
           description="Five quiet steps, zero rituals. You stay the creative director. Forgely takes care of the production crew."
         />
 
-        <ol className="grid gap-px overflow-hidden rounded-2xl border border-border-strong bg-border-subtle md:grid-cols-2 lg:grid-cols-5">
+        <ol className="border-border-strong bg-border-subtle grid gap-px overflow-hidden rounded-2xl border md:grid-cols-2 lg:grid-cols-5">
           {steps.map((step) => (
-            <li
-              key={step.index}
-              className="flex flex-col gap-4 bg-bg-deep p-6 lg:p-7"
-            >
+            <li key={step.index} className="bg-bg-deep flex flex-col gap-4 p-6 lg:p-7">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-caption uppercase tracking-[0.22em] text-forge-orange">
+                <span className="text-caption text-forge-orange font-mono uppercase tracking-[0.22em]">
                   Step {step.index}
                 </span>
-                <span className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+                <span className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
                   {step.duration}
                 </span>
               </div>
-              <h3 className="font-display text-h3 font-light text-text-primary">
-                {step.title}
-              </h3>
+              <h3 className="font-display text-h3 text-text-primary font-light">{step.title}</h3>
               <p className="text-small text-text-secondary">{step.body}</p>
             </li>
           ))}

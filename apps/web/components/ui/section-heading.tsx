@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/cn'
+import { cn } from '@forgely/ui'
 
 interface SectionHeadingProps {
   eyebrow?: string
@@ -25,14 +25,12 @@ export function SectionHeading({
       )}
     >
       {eyebrow ? (
-        <span className="font-mono text-caption uppercase tracking-[0.22em] text-forge-orange">
+        <span className="text-caption text-forge-orange font-mono uppercase tracking-[0.22em]">
           {eyebrow}
         </span>
       ) : null}
-      <h2 className="font-display text-h1 font-light text-text-primary">{title}</h2>
-      {description ? (
-        <p className="text-body-lg text-text-secondary">{description}</p>
-      ) : null}
+      <h2 className="font-display text-h1 text-text-primary font-light">{title}</h2>
+      {description ? <p className="text-body-lg text-text-secondary">{description}</p> : null}
     </div>
   )
 }

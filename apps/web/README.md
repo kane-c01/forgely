@@ -1,72 +1,84 @@
 # `@forgely/web` — 对外官网 (forgely.com)
 
-W5 窗口负责。负责 `T07` (官网 MVP) 与 `T27` (Terminal 升级)。
+W5 窗口负责，负责 Task `T07` (官网 MVP) 与 `T27` (Terminal 升级)。
 
-## 当前状态：T07 MVP
+## 当前状态
 
-**已完成 (T07)**
-
-- Next.js 14 App Router · TypeScript strict · Tailwind 3
-- 7 段首页：Sticky Nav · Hero · Social Proof · How it works · Value Props · Showcase · Pricing · FAQ · Final CTA · Footer
-- Waitlist 表单 + `POST /api/waitlist` (Zod 校验 + 蜜罐 + IP 哈希 + 本地 JSON 存储)
-- SEO：`buildMetadata`、`Organization` / `SoftwareApplication` / `FAQPage` JSON-LD、`sitemap.xml`、`robots.txt`、`llms.txt`、动态 OG / favicon / Apple icon
-- 移动端响应式 + 无障碍（skip-link、键盘聚焦、aria-expanded、reduce-motion）
-- 设计 tokens 直接落到 `tailwind.config.ts`（W2 完成 `packages/design-tokens` 后切换为 import preset）
-- 共用 `Button`/`Input`/`Badge` 组件（W2 完成 `packages/ui` 后切换为 import）
-
-**T07 验收**
-
-- [x] 7 段全部完成
-- [x] Desktop / Tablet / Mobile 响应式
-- [x] Waitlist 收邮箱（写入 `data/waitlist.json`，Git ignore）
-- [ ] Lighthouse 桌面 ≥ 95 / 移动 ≥ 85（部署后跑一次确认）
+| Task                                           | 状态                                    | 备注                                                                                                   |
+| ---------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `T07-A` 9 段官网 MVP                           | ✅ 已合并 main                          | Nav · Hero · Social Proof · How it works · Value Props · Showcase · Pricing · FAQ · Final CTA · Footer |
+| `T07-B` 接入共享 packages                      | ✅ 本分支 (`feat/T07-tokens-ui-import`) | 切到 `@forgely/design-tokens` preset + `@forgely/ui` 组件                                              |
+| `T07-C` Waitlist 表单 + API                    | ✅ 已合并 main                          | 本地 JSON 存储，等 W3 落地 Prisma `Waitlist` 模型                                                      |
+| `T07-D` SEO + Schema + sitemap + llms.txt + OG | ✅ 已合并 main                          | 动态 OG/icon/apple-icon (Edge Runtime + Satori)                                                        |
+| `T07-E` a11y + reduce-motion                   | ✅ 已合并 main                          | skip-link、aria-expanded、honeypot、IP hash                                                            |
+| `T27` Terminal 升级                            | ⏳ 准备中                               | 预留接口：Hero `<ForgeBackdrop/>` 槽位 / Showcase 卡片 hover 视频 / 6 幕滚动                           |
 
 ## 启动
 
 ```bash
-pnpm install              # 在仓库根目录
+# 1. 仓库根目录 install (workspace)
+pnpm install
+
+# 2. 开发 (默认 3000；如其他窗口占用，自行换端口)
 pnpm --filter @forgely/web dev
-# → http://localhost:3000
+# 或:
+pnpm --filter @forgely/web exec next dev --port 3010
 ```
 
-## 脚本
+## 共享包依赖
+
+`apps/web` 通过 workspace 协议消费这两个包，避免重复实现：
+
+```jsonc
+// apps/web/package.json
+"dependencies": {
+  "@forgely/design-tokens": "workspace:*",  // tokens + Tailwind preset + CSS vars
+  "@forgely/ui":            "workspace:*"   // Button / Input / Badge / Card / Dialog (shadcn)
+}
+```
+
+| 文件                                | 引用方式                                                          |
+| ----------------------------------- | ----------------------------------------------------------------- |
+| `tailwind.config.ts`                | `presets: [forgelyPreset]` from `@forgely/design-tokens/tailwind` |
+| `app/globals.css`                   | `@import '@forgely/design-tokens/css'` 注入 root vars             |
+| `components/site/*`                 | `import { Button, Badge, cn } from '@forgely/ui'`                 |
+| `components/ui/section-heading.tsx` | 业务组件，仍在本 app；用 `cn` from `@forgely/ui`                  |
+
+## 端到端 smoke
 
 ```bash
-pnpm --filter @forgely/web build      # 生产构建
-pnpm --filter @forgely/web typecheck  # 严格 TS 检查
-pnpm --filter @forgely/web lint       # next lint (max-warnings 0)
+curl http://localhost:3010/                # 200 HTML
+curl http://localhost:3010/robots.txt
+curl http://localhost:3010/sitemap.xml
+curl http://localhost:3010/llms.txt
+curl http://localhost:3010/opengraph-image # 1200×630 PNG
+curl -X POST http://localhost:3010/api/waitlist \
+  -H 'content-type: application/json' \
+  -d '{"email":"you@brand.com","storeUrl":"https://shop.example.com"}'
 ```
 
-## 环境变量（`.env.local`）
+## 环境变量 (`.env.local`)
 
 ```env
 NEXT_PUBLIC_APP_URL=https://forgely.com
 NEXT_PUBLIC_APP_DASH_URL=https://app.forgely.com
 FORGELY_HASH_SALT=set-a-long-random-string
-FORGELY_WAITLIST_PATH=./data/waitlist.json   # 可选
+FORGELY_WAITLIST_PATH=./data/waitlist.json   # 可选；默认即此值
 ```
 
-## 架构选择
+## 待接入 (依赖其他窗口)
 
-| 决策                                    | 原因                                                                             |
-| --------------------------------------- | -------------------------------------------------------------------------------- |
-| 设计 tokens 内联到 `tailwind.config.ts` | W2 (`@forgely/design-tokens`) 还未交付；后续替换为 `presets: [forgelyPreset]`    |
-| 自带 `components/ui/*`                  | 与 `@forgely/ui` 同一签名，W2 交付后只需改 import 路径                           |
-| Waitlist 写本地 JSON                    | W3 (T05/T06) 还未交付；DB 接入后切换 `appendWaitlist` 内部实现即可               |
-| 静态背景 + CSS 渐变（无视频）           | T07 用占位，T27 升级到 R3F 工坊场景或预渲染 AV1 视频                             |
-| 全部动效服从 `prefers-reduced-motion`   | 满足 WCAG 2.2 AA + 高质感动效兼容性                                              |
+| 窗口          | 任务                                           | 我的切换点                                                                             |
+| ------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| W3 (T05/T06)  | Prisma `Waitlist` model + tRPC mutation        | `lib/waitlist-store.ts` 内部实现替换为 `prisma.waitlist.create / findUnique`，签名不变 |
+| W2 (T04)      | Aceternity / Magic UI 动效组件入 `@forgely/ui` | Hero 升级用 `<Spotlight/>` / `<BorderBeam/>` 等                                        |
+| W2 (T03 后续) | Card / Dialog / 更多 shadcn                    | Pricing 卡片可换 `<Card/>` 提升对齐                                                    |
 
-## T27 升级预留接口
+## T27 升级路线（W11–W13）
 
-- `components/site/hero.tsx` 中 `<ForgeBackdrop />` 即 3D / 视频槽位
-- `components/site/showcase.tsx` 中卡片 `gradient` 字段对应 T27 真实 hover 视频
-- 6 幕滚动剧本会包裹 `<main>`，使用 GSAP ScrollTrigger + Lenis（T27 引入）
-- Showcase 数据源：等 `packages/visual-dna` 与 `packages/product-moments` 完成后改为 import
-
-## 下一步（属于 T27）
-
-1. 真 3D Hero 场景（R3F + Drei + Theatre.js）或 Kling 渲染的 8s AV1 hero loop
-2. 6 幕 600vh 滚动剧本（GSAP + Lenis）
-3. Showcase hover 播视频
-4. Interactive demo（可试的 AI 对话）
-5. Testimonials 瀑布流
+1. **Hero 3D**：`<ForgeBackdrop/>` 槽位换为 R3F + Drei + Theatre.js 工坊场景，或 8s AV1 hero loop
+2. **6 幕滚动剧本** (600vh)：GSAP ScrollTrigger + Lenis，包裹 `<main>`
+3. **Showcase**：卡片 `gradient` 字段换为真实 hover 视频 (`<HoverPlay/>`)
+4. **Interactive Demo**：可交互的 AI 对话演示
+5. **Testimonials**：瀑布流证言墙
+6. **性能目标**：Lighthouse 桌面 ≥ 95 / 移动 ≥ 85（部署预览后实测）

@@ -136,6 +136,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@forgely/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
+      '@forgely/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.10.0(react-hook-form@7.72.1(react@18.3.1))

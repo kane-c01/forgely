@@ -3,9 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
-import { buttonClasses } from '@/components/ui/button'
+import { Button, cn } from '@forgely/ui'
 import { siteConfig } from '@/lib/site'
-import { cn } from '@/lib/cn'
 
 const navLinks = [
   { href: '#how-it-works', label: 'How it works' },
@@ -28,9 +27,9 @@ export function SiteNav() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 w-full transition duration-medium ease-standard',
+        'duration-medium ease-standard sticky top-0 z-40 w-full transition',
         scrolled
-          ? 'border-b border-border-subtle bg-bg-void/85 backdrop-blur-md'
+          ? 'border-border-subtle bg-bg-void/85 border-b backdrop-blur-md'
           : 'border-b border-transparent bg-transparent',
       )}
     >
@@ -38,18 +37,18 @@ export function SiteNav() {
         <Link href="/" className="flex items-center gap-2.5" aria-label={siteConfig.name}>
           <span
             aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-md bg-gradient-to-br from-forge-amber via-forge-orange to-forge-ember shadow-glow-forge"
+            className="from-forge-amber via-forge-orange to-forge-ember shadow-glow-forge grid h-8 w-8 place-items-center rounded-md bg-gradient-to-br"
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
-              className="h-4 w-4 text-bg-void"
+              className="text-bg-void h-4 w-4"
               aria-hidden="true"
             >
               <path d="M5 14L12 3l7 11-7 7-7-7zm7-7l-3 5h6l-3-5z" fill="currentColor" />
             </svg>
           </span>
-          <span className="font-display text-h3 tracking-tight text-text-primary">
+          <span className="font-display text-h3 text-text-primary tracking-tight">
             {siteConfig.name}
           </span>
         </Link>
@@ -59,7 +58,7 @@ export function SiteNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-small text-text-secondary transition hover:text-text-primary"
+              className="text-small text-text-secondary hover:text-text-primary transition"
             >
               {link.label}
             </Link>
@@ -73,14 +72,14 @@ export function SiteNav() {
           >
             Sign in
           </Link>
-          <Link href="#waitlist" className={buttonClasses({ size: 'sm' })}>
-            Start Forging
-          </Link>
+          <Button asChild size="sm" variant="primary">
+            <Link href="#waitlist">Start Forging</Link>
+          </Button>
         </div>
 
         <button
           type="button"
-          className="grid h-10 w-10 place-items-center rounded-md border border-border-subtle text-text-primary md:hidden"
+          className="border-border-subtle text-text-primary grid h-10 w-10 place-items-center rounded-md border md:hidden"
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
           aria-controls="mobile-nav"
@@ -94,7 +93,7 @@ export function SiteNav() {
         <nav
           id="mobile-nav"
           aria-label="Mobile"
-          className="border-t border-border-subtle bg-bg-deep md:hidden"
+          className="border-border-subtle bg-bg-deep border-t md:hidden"
         >
           <div className="container-page flex flex-col gap-4 py-6">
             {navLinks.map((link) => (
@@ -114,13 +113,11 @@ export function SiteNav() {
             >
               Sign in
             </Link>
-            <Link
-              href="#waitlist"
-              onClick={() => setOpen(false)}
-              className={buttonClasses({ size: 'md' })}
-            >
-              Start Forging
-            </Link>
+            <Button asChild variant="primary" size="md">
+              <Link href="#waitlist" onClick={() => setOpen(false)}>
+                Start Forging
+              </Link>
+            </Button>
           </div>
         </nav>
       ) : null}
