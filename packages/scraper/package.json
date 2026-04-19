@@ -37,6 +37,21 @@
       "import": "./src/adapters/etsy.ts",
       "default": "./src/adapters/etsy.ts"
     },
+    "./adapters/alibaba1688": {
+      "types": "./src/adapters/alibaba1688.ts",
+      "import": "./src/adapters/alibaba1688.ts",
+      "default": "./src/adapters/alibaba1688.ts"
+    },
+    "./adapters/taobao": {
+      "types": "./src/adapters/taobao.ts",
+      "import": "./src/adapters/taobao.ts",
+      "default": "./src/adapters/taobao.ts"
+    },
+    "./adapters/jd": {
+      "types": "./src/adapters/jd.ts",
+      "import": "./src/adapters/jd.ts",
+      "default": "./src/adapters/jd.ts"
+    },
     "./adapters/generic-ai": {
       "types": "./src/adapters/generic-ai.ts",
       "import": "./src/adapters/generic-ai.ts",

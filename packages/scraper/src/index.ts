@@ -42,9 +42,7 @@ export type { HttpRequestOptions, HttpResponse } from './http/client.js'
 export { createScraperApiClient } from './http/scraperapi.js'
 export type { ScraperApiClient, ScraperApiOptions } from './http/scraperapi.js'
 
-export {
-  NoopBrowserAdapter,
-} from './browser/types.js'
+export { NoopBrowserAdapter } from './browser/types.js'
 export type {
   BrowserAdapter,
   RenderHtmlOptions,
@@ -77,10 +75,7 @@ export { ShopifyAdapter } from './adapters/shopify.js'
 export type { ShopifyAdapterOptions } from './adapters/shopify.js'
 
 export { WooCommerceAdapter } from './adapters/woocommerce.js'
-export type {
-  WooCommerceAdapterOptions,
-  WooCommerceCredentials,
-} from './adapters/woocommerce.js'
+export type { WooCommerceAdapterOptions, WooCommerceCredentials } from './adapters/woocommerce.js'
 
 export { AmazonAdapter } from './adapters/amazon.js'
 export type { AmazonAdapterOptions } from './adapters/amazon.js'
@@ -90,6 +85,15 @@ export type { AliExpressAdapterOptions } from './adapters/aliexpress.js'
 
 export { EtsyAdapter } from './adapters/etsy.js'
 export type { EtsyAdapterOptions } from './adapters/etsy.js'
+
+export { Alibaba1688Adapter } from './adapters/alibaba1688.js'
+export type { Alibaba1688AdapterOptions } from './adapters/alibaba1688.js'
+
+export { TaobaoAdapter } from './adapters/taobao.js'
+export type { TaobaoAdapterOptions } from './adapters/taobao.js'
+
+export { JdAdapter } from './adapters/jd.js'
+export type { JdAdapterOptions } from './adapters/jd.js'
 
 export { GenericAIAdapter } from './adapters/generic-ai.js'
 export type { GenericAIAdapterOptions } from './adapters/generic-ai.js'
@@ -104,11 +108,14 @@ import type { AssetStorage } from './storage/types.js'
 import type { VisionClient } from './ai/vision.js'
 import type { RuleStore } from './ai/rule-store.js'
 
+import { Alibaba1688Adapter } from './adapters/alibaba1688.js'
 import { AliExpressAdapter } from './adapters/aliexpress.js'
 import { AmazonAdapter } from './adapters/amazon.js'
 import { EtsyAdapter } from './adapters/etsy.js'
 import { GenericAIAdapter } from './adapters/generic-ai.js'
+import { JdAdapter } from './adapters/jd.js'
 import { ShopifyAdapter } from './adapters/shopify.js'
+import { TaobaoAdapter } from './adapters/taobao.js'
 import { WooCommerceAdapter } from './adapters/woocommerce.js'
 import { ScraperRegistry } from './registry.js'
 
@@ -120,7 +127,17 @@ export interface BuildScraperRegistryOptions {
   scraperApi?: ScraperApiOptions | ScraperApiClient
   fetchImpl?: typeof fetch
   /** Disable specific adapters by id. */
-  disable?: Array<'shopify' | 'woocommerce' | 'amazon' | 'aliexpress' | 'etsy' | 'generic_ai'>
+  disable?: Array<
+    | 'shopify'
+    | 'woocommerce'
+    | 'amazon'
+    | 'aliexpress'
+    | 'alibaba_1688'
+    | 'taobao'
+    | 'jd'
+    | 'etsy'
+    | 'generic_ai'
+  >
 }
 
 /**
@@ -180,6 +197,33 @@ export function buildDefaultScraperRegistry(
   if (enable('etsy')) {
     registry.register(
       new EtsyAdapter({
+        ...(options.scraperApi !== undefined ? { scraperApi: options.scraperApi } : {}),
+        ...(options.storage ? { storage: options.storage } : {}),
+        fetchImpl,
+      }),
+    )
+  }
+  if (enable('alibaba_1688')) {
+    registry.register(
+      new Alibaba1688Adapter({
+        ...(options.scraperApi !== undefined ? { scraperApi: options.scraperApi } : {}),
+        ...(options.storage ? { storage: options.storage } : {}),
+        fetchImpl,
+      }),
+    )
+  }
+  if (enable('taobao')) {
+    registry.register(
+      new TaobaoAdapter({
+        ...(options.scraperApi !== undefined ? { scraperApi: options.scraperApi } : {}),
+        ...(options.storage ? { storage: options.storage } : {}),
+        fetchImpl,
+      }),
+    )
+  }
+  if (enable('jd')) {
+    registry.register(
+      new JdAdapter({
         ...(options.scraperApi !== undefined ? { scraperApi: options.scraperApi } : {}),
         ...(options.storage ? { storage: options.storage } : {}),
         fetchImpl,

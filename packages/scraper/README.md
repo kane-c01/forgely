@@ -2,14 +2,17 @@
 
 Multi-source scraper adapters for the Forgely AI generation pipeline.
 
-| Adapter            | Tier | Strategy                                                                      |
-| ------------------ | ---- | ----------------------------------------------------------------------------- |
-| `ShopifyAdapter`   | 1    | Public `/products.json` + `/collections.json` + `/meta.json` (no auth)        |
-| `WooCommerceAdapter` | 1/2 | Storefront REST → authenticated `wc/v3` REST (consumer key) → `/shop` HTML    |
-| `AmazonAdapter`    | 2    | Single product page via ScraperAPI (render JS), fallback to direct fetch      |
-| `AliExpressAdapter`| 2    | Item page via ScraperAPI, prefers embedded `runParams` JSON                   |
-| `EtsyAdapter`      | 2    | Listing or shop page via ScraperAPI (HTML)                                    |
-| `GenericAIAdapter` | 3    | Browser render + Claude Vision selector inference + per-host rule learning    |
+| Adapter              | Tier | Strategy                                                                   |
+| -------------------- | ---- | -------------------------------------------------------------------------- |
+| `ShopifyAdapter`     | 1    | Public `/products.json` + `/collections.json` + `/meta.json` (no auth)     |
+| `WooCommerceAdapter` | 1/2  | Storefront REST → authenticated `wc/v3` REST (consumer key) → `/shop` HTML |
+| `AmazonAdapter`      | 2    | Single product page via ScraperAPI (render JS), fallback to direct fetch   |
+| `AliExpressAdapter`  | 2    | Item page via ScraperAPI, prefers embedded `runParams` JSON                |
+| `EtsyAdapter`        | 2    | Listing or shop page via ScraperAPI (HTML)                                 |
+| `Alibaba1688Adapter` | 2    | 1688.com offer page via ScraperAPI (`country_code: cn`); CNY pricing       |
+| `TaobaoAdapter`      | 2    | Taobao + Tmall `item.htm?id=` shared adapter via ScraperAPI                |
+| `JdAdapter`          | 2    | JD.com `item.jd.com/<id>.html` via ScraperAPI; uses `og:price:amount` meta |
+| `GenericAIAdapter`   | 3    | Browser render + Claude Vision selector inference + per-host rule learning |
 
 All adapters return the same `ScrapedData` shape (see `src/types.ts`); upstream Analyzer / Planner agents are source-agnostic.
 
@@ -95,6 +98,8 @@ Adapters are tested with injected `fetchImpl` mocks; MSW is wired up for adapter
 
 - **T08** — Shopify Adapter (`src/adapters/shopify.ts`)
 - **T09** — WooCommerce Adapter, 3-strategy degradation (`src/adapters/woocommerce.ts`)
-- **T28** — Multi-source extension: Amazon / AliExpress / Etsy / GenericAI fallback (`src/adapters/{amazon,aliexpress,etsy,generic-ai}.ts`)
+- **T28** — Multi-source extension:
+  - Amazon, AliExpress, Etsy, GenericAI fallback (`src/adapters/{amazon,aliexpress,etsy,generic-ai}.ts`)
+  - Tier-2 China platforms for Persona A factory owners — 1688, Taobao/Tmall, JD (`src/adapters/{alibaba1688,taobao,jd}.ts`)
 
 See `docs/MASTER.md` chapter 7 for product-level requirements.
