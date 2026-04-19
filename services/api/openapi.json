@@ -1,0 +1,2936 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Forgely API",
+    "version": "0.1.0",
+    "description": "Forgely backend tRPC surface. Each procedure is reachable at POST /api/trpc/{procedure}. The body shape is `{ \"json\": <input> }` (tRPC v10 with superjson transformer); responses are wrapped as `{ result: { data: { json: ... } } }`. Bearer tokens (or the `forgely_session` HttpOnly cookie) gate non-public procedures."
+  },
+  "servers": [
+    {
+      "url": "https://app.forgely.com",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3001",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/api/trpc/auth.signup": {
+      "post": {
+        "operationId": "auth_signup",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.signin": {
+      "post": {
+        "operationId": "auth_signin",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.signin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.signout": {
+      "post": {
+        "operationId": "auth_signout",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.signout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.signoutAll": {
+      "post": {
+        "operationId": "auth_signoutAll",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.signoutAll",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.me": {
+      "post": {
+        "operationId": "auth_me",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.listSessions": {
+      "post": {
+        "operationId": "auth_listSessions",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.listSessions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.revokeSession": {
+      "post": {
+        "operationId": "auth_revokeSession",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.revokeSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.requestPasswordReset": {
+      "post": {
+        "operationId": "auth_requestPasswordReset",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.requestPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.confirmPasswordReset": {
+      "post": {
+        "operationId": "auth_confirmPasswordReset",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.confirmPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.resendEmailVerification": {
+      "post": {
+        "operationId": "auth_resendEmailVerification",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.resendEmailVerification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.verifyEmail": {
+      "post": {
+        "operationId": "auth_verifyEmail",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.verifyEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.beginTotpEnrollment": {
+      "post": {
+        "operationId": "auth_beginTotpEnrollment",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.beginTotpEnrollment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.confirmTotpEnrollment": {
+      "post": {
+        "operationId": "auth_confirmTotpEnrollment",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.confirmTotpEnrollment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/auth.disableTotp": {
+      "post": {
+        "operationId": "auth_disableTotp",
+        "tags": ["auth"],
+        "summary": "tRPC query: auth.disableTotp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.wechatAuthorizeUrl": {
+      "post": {
+        "operationId": "cnAuth_wechatAuthorizeUrl",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.wechatAuthorizeUrl",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.wechatCallback": {
+      "post": {
+        "operationId": "cnAuth_wechatCallback",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.wechatCallback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.wechatRefresh": {
+      "post": {
+        "operationId": "cnAuth_wechatRefresh",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.wechatRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.requestOtp": {
+      "post": {
+        "operationId": "cnAuth_requestOtp",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.requestOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.verifyOtp": {
+      "post": {
+        "operationId": "cnAuth_verifyOtp",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.verifyOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.loginWithPhoneOtp": {
+      "post": {
+        "operationId": "cnAuth_loginWithPhoneOtp",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.loginWithPhoneOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.bindPhone": {
+      "post": {
+        "operationId": "cnAuth_bindPhone",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.bindPhone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cnAuth.normalisePhone": {
+      "post": {
+        "operationId": "cnAuth_normalisePhone",
+        "tags": ["cnAuth"],
+        "summary": "tRPC query: cnAuth.normalisePhone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/conversation.start": {
+      "post": {
+        "operationId": "conversation_start",
+        "tags": ["conversation"],
+        "summary": "tRPC query: conversation.start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/conversation.nextTurn": {
+      "post": {
+        "operationId": "conversation_nextTurn",
+        "tags": ["conversation"],
+        "summary": "tRPC query: conversation.nextTurn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/conversation.submitAnswer": {
+      "post": {
+        "operationId": "conversation_submitAnswer",
+        "tags": ["conversation"],
+        "summary": "tRPC query: conversation.submitAnswer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/conversation.commit": {
+      "post": {
+        "operationId": "conversation_commit",
+        "tags": ["conversation"],
+        "summary": "tRPC query: conversation.commit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/conversation.get": {
+      "post": {
+        "operationId": "conversation_get",
+        "tags": ["conversation"],
+        "summary": "tRPC query: conversation.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/credits.balance": {
+      "post": {
+        "operationId": "credits_balance",
+        "tags": ["credits"],
+        "summary": "tRPC query: credits.balance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/credits.history": {
+      "post": {
+        "operationId": "credits_history",
+        "tags": ["credits"],
+        "summary": "tRPC query: credits.history",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/credits.consumeInternal": {
+      "post": {
+        "operationId": "credits_consumeInternal",
+        "tags": ["credits"],
+        "summary": "tRPC query: credits.consumeInternal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/credits.checkAiRateLimit": {
+      "post": {
+        "operationId": "credits_checkAiRateLimit",
+        "tags": ["credits"],
+        "summary": "tRPC query: credits.checkAiRateLimit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.catalog": {
+      "post": {
+        "operationId": "billing_catalog",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.catalog",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.subscription": {
+      "post": {
+        "operationId": "billing_subscription",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.subscription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.invoices": {
+      "post": {
+        "operationId": "billing_invoices",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.invoices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.startCreditPackCheckout": {
+      "post": {
+        "operationId": "billing_startCreditPackCheckout",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.startCreditPackCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.startSubscriptionCheckout": {
+      "post": {
+        "operationId": "billing_startSubscriptionCheckout",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.startSubscriptionCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.openCustomerPortal": {
+      "post": {
+        "operationId": "billing_openCustomerPortal",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.openCustomerPortal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/billing.previewCoupon": {
+      "post": {
+        "operationId": "billing_previewCoupon",
+        "tags": ["billing"],
+        "summary": "tRPC query: billing.previewCoupon",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/compliance.check": {
+      "post": {
+        "operationId": "compliance_check",
+        "tags": ["compliance"],
+        "summary": "tRPC query: compliance.check",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/compliance.scan": {
+      "post": {
+        "operationId": "compliance_scan",
+        "tags": ["compliance"],
+        "summary": "tRPC query: compliance.scan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/compliance.applyFix": {
+      "post": {
+        "operationId": "compliance_applyFix",
+        "tags": ["compliance"],
+        "summary": "tRPC query: compliance.applyFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/compliance.gate": {
+      "post": {
+        "operationId": "compliance_gate",
+        "tags": ["compliance"],
+        "summary": "tRPC query: compliance.gate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/seo.scorePage": {
+      "post": {
+        "operationId": "seo_scorePage",
+        "tags": ["seo"],
+        "summary": "tRPC query: seo.scorePage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/seo.scorePages": {
+      "post": {
+        "operationId": "seo_scorePages",
+        "tags": ["seo"],
+        "summary": "tRPC query: seo.scorePages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/seo.generateArtefacts": {
+      "post": {
+        "operationId": "seo_generateArtefacts",
+        "tags": ["seo"],
+        "summary": "tRPC query: seo.generateArtefacts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/seo.buildMeta": {
+      "post": {
+        "operationId": "seo_buildMeta",
+        "tags": ["seo"],
+        "summary": "tRPC query: seo.buildMeta",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/seo.researchKeyword": {
+      "post": {
+        "operationId": "seo_researchKeyword",
+        "tags": ["seo"],
+        "summary": "tRPC query: seo.researchKeyword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.list": {
+      "post": {
+        "operationId": "sites_list",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.get": {
+      "post": {
+        "operationId": "sites_get",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.create": {
+      "post": {
+        "operationId": "sites_create",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.update": {
+      "post": {
+        "operationId": "sites_update",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.archive": {
+      "post": {
+        "operationId": "sites_archive",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.archive",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/sites.isSubdomainAvailable": {
+      "post": {
+        "operationId": "sites_isSubdomainAvailable",
+        "tags": ["sites"],
+        "summary": "tRPC query: sites.isSubdomainAvailable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/products.list": {
+      "post": {
+        "operationId": "products_list",
+        "tags": ["products"],
+        "summary": "tRPC query: products.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/products.get": {
+      "post": {
+        "operationId": "products_get",
+        "tags": ["products"],
+        "summary": "tRPC query: products.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/orders.list": {
+      "post": {
+        "operationId": "orders_list",
+        "tags": ["orders"],
+        "summary": "tRPC query: orders.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/orders.get": {
+      "post": {
+        "operationId": "orders_get",
+        "tags": ["orders"],
+        "summary": "tRPC query: orders.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/orders.refund": {
+      "post": {
+        "operationId": "orders_refund",
+        "tags": ["orders"],
+        "summary": "tRPC query: orders.refund",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/customers.list": {
+      "post": {
+        "operationId": "customers_list",
+        "tags": ["customers"],
+        "summary": "tRPC query: customers.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/customers.get": {
+      "post": {
+        "operationId": "customers_get",
+        "tags": ["customers"],
+        "summary": "tRPC query: customers.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/media.list": {
+      "post": {
+        "operationId": "media_list",
+        "tags": ["media"],
+        "summary": "tRPC query: media.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/media.get": {
+      "post": {
+        "operationId": "media_get",
+        "tags": ["media"],
+        "summary": "tRPC query: media.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/media.presign": {
+      "post": {
+        "operationId": "media_presign",
+        "tags": ["media"],
+        "summary": "tRPC query: media.presign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/media.register": {
+      "post": {
+        "operationId": "media_register",
+        "tags": ["media"],
+        "summary": "tRPC query: media.register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/media.archive": {
+      "post": {
+        "operationId": "media_archive",
+        "tags": ["media"],
+        "summary": "tRPC query: media.archive",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/brandKits.list": {
+      "post": {
+        "operationId": "brandKits_list",
+        "tags": ["brandKits"],
+        "summary": "tRPC query: brandKits.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/brandKits.get": {
+      "post": {
+        "operationId": "brandKits_get",
+        "tags": ["brandKits"],
+        "summary": "tRPC query: brandKits.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/brandKits.create": {
+      "post": {
+        "operationId": "brandKits_create",
+        "tags": ["brandKits"],
+        "summary": "tRPC query: brandKits.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/brandKits.update": {
+      "post": {
+        "operationId": "brandKits_update",
+        "tags": ["brandKits"],
+        "summary": "tRPC query: brandKits.update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/brandKits.delete": {
+      "post": {
+        "operationId": "brandKits_delete",
+        "tags": ["brandKits"],
+        "summary": "tRPC query: brandKits.delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cms.list": {
+      "post": {
+        "operationId": "cms_list",
+        "tags": ["cms"],
+        "summary": "tRPC query: cms.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cms.get": {
+      "post": {
+        "operationId": "cms_get",
+        "tags": ["cms"],
+        "summary": "tRPC query: cms.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cms.create": {
+      "post": {
+        "operationId": "cms_create",
+        "tags": ["cms"],
+        "summary": "tRPC query: cms.create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cms.update": {
+      "post": {
+        "operationId": "cms_update",
+        "tags": ["cms"],
+        "summary": "tRPC query: cms.update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/cms.delete": {
+      "post": {
+        "operationId": "cms_delete",
+        "tags": ["cms"],
+        "summary": "tRPC query: cms.delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/generation.list": {
+      "post": {
+        "operationId": "generation_list",
+        "tags": ["generation"],
+        "summary": "tRPC query: generation.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/generation.get": {
+      "post": {
+        "operationId": "generation_get",
+        "tags": ["generation"],
+        "summary": "tRPC query: generation.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/generation.start": {
+      "post": {
+        "operationId": "generation_start",
+        "tags": ["generation"],
+        "summary": "tRPC query: generation.start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/generation.cancel": {
+      "post": {
+        "operationId": "generation_cancel",
+        "tags": ["generation"],
+        "summary": "tRPC query: generation.cancel",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/copilot.startConversation": {
+      "post": {
+        "operationId": "copilot_startConversation",
+        "tags": ["copilot"],
+        "summary": "tRPC query: copilot.startConversation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/copilot.list": {
+      "post": {
+        "operationId": "copilot_list",
+        "tags": ["copilot"],
+        "summary": "tRPC query: copilot.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/copilot.get": {
+      "post": {
+        "operationId": "copilot_get",
+        "tags": ["copilot"],
+        "summary": "tRPC query: copilot.get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/copilot.appendMessage": {
+      "post": {
+        "operationId": "copilot_appendMessage",
+        "tags": ["copilot"],
+        "summary": "tRPC query: copilot.appendMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/trpc/copilot.delete": {
+      "post": {
+        "operationId": "copilot_delete",
+        "tags": ["copilot"],
+        "summary": "tRPC query: copilot.delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — payload depends on the procedure."
+          },
+          "4XX": {
+            "description": "Validation / auth error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrpcError"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "Internal error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TrpcRequest": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TrpcError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "TOO_MANY_REQUESTS",
+                  "INTERNAL_SERVER_ERROR"
+                ]
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "forgelyCode": {
+                    "type": "string"
+                  },
+                  "httpStatus": {
+                    "type": "integer"
+                  },
+                  "localizedMessages": {
+                    "type": "object",
+                    "properties": {
+                      "en": {
+                        "type": "string"
+                      },
+                      "zh-CN": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

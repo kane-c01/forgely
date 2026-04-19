@@ -64,7 +64,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "openapi:generate": "tsx scripts/generate-openapi.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts",
