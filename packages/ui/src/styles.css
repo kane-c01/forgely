@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    background-color: theme('colors.bg-void');
+    color: theme('colors.text-primary');
+    font-family: theme('fontFamily.body');
+  }
+
+  ::selection {
+    background-color: theme('colors.forge-orange');
+    color: theme('colors.bg-void');
+  }
+}
+
+@layer utilities {
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}

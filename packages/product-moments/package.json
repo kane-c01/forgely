@@ -2,7 +2,7 @@
   "name": "@forgely/product-moments",
   "version": "0.0.0",
   "private": true,
-  "description": "10 Product Moment prompt templates",
+  "description": "Forgely Product Moment templates, selector and Kling prompt builder.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -13,6 +13,9 @@
       "default": "./src/index.ts"
     }
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",

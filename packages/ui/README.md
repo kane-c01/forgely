@@ -1,45 +1,45 @@
 # @forgely/ui
 
-Forgely's shared component library, themed with the
-[`@forgely/design-tokens`](../design-tokens) Tailwind preset and built on
-[shadcn/ui](https://ui.shadcn.com) primitives.
+> Forgely shared component library — shadcn/ui primitives, Aceternity & Magic UI animated surfaces, themed end-to-end with `@forgely/design-tokens`.
 
-> **Sprint-0 surface (Task T03 – partial)**: 5 P0 components shipped.
-> Remaining shadcn / Aceternity / Magic UI components land progressively in
-> T03 (full) and T04. See `PROGRESS.md`.
+Sprint 0 ships:
 
-## Components shipped today
+- **Primitives (T03 P0)** — Button, Input, Textarea, Label, Card, Badge, Alert, Dialog, Sheet, Drawer, Select, Dropdown Menu, Tooltip, Toaster (Sonner), Avatar, Separator, Tabs, Progress, Spinner, Skeleton, Table, Form (RHF + Zod), Checkbox, Switch, Popover, Stepper, Pagination, Empty State, Code Block, Command Menu (⌘K).
+- **Animated surfaces (T04)** — Marquee, BorderBeam, ShineBorder, NumberTicker, AnimatedBeam (Magic UI) · 3D Card, StickyScroll, BentoGrid, Spotlight, TextGenerateEffect, HeroParallax, CanvasReveal, InfiniteMovingCards (Aceternity).
 
-| Name | Purpose |
-|---|---|
-| `Button` (+ `buttonVariants`) | Primary CTA with `primary / secondary / ghost / destructive` variants |
-| `Input` | Native text input themed for the dark surface |
-| `Card` (+ Header / Title / Description / Content / Footer) | Content surface module |
-| `Badge` (+ `badgeVariants`) | Status / tier / plan label, mono-uppercase |
-| `Dialog` (Radix-based, accessible) | Modal with overlay, close button and animation hooks |
-| `cn` | `clsx` + `tailwind-merge` helper |
+All components are dark-first, accessible, `forwardRef`-compatible and use Forgely tokens — no hard-coded colors, fonts or shadows.
 
-## Usage
+## Install (workspace)
 
-```tsx
-import { Button, Card, Badge, Dialog, DialogTrigger, DialogContent, DialogTitle } from '@forgely/ui'
+```ts
+import { Button, Card, Spotlight, Marquee, toast } from '@forgely/ui'
+import '@forgely/ui/styles.css'
+```
 
-export function Example() {
-  return (
-    <Card>
-      <CardHeader>
-        <Badge variant="forge">Pro</Badge>
-        <CardTitle>Forge a brand site in minutes</CardTitle>
-      </CardHeader>
-    </Card>
-  )
+In Tailwind, extend the preset from `@forgely/design-tokens`:
+
+```ts
+import { forgelyPreset } from '@forgely/design-tokens/tailwind.preset'
+
+export default {
+  presets: [forgelyPreset],
+  content: ['./src/**/*.{ts,tsx}'],
 }
 ```
 
-## Conventions
+## Storybook
 
-- All components use `React.forwardRef` so they compose with form libraries.
-- Class lists are merged via the local `cn(...)` helper (`clsx` + `tailwind-merge`).
-- Variants use `class-variance-authority`, never inline `className` switches.
-- Tokens are referenced through Tailwind utilities (`bg-bg-void`, `text-forge-orange`) — never hard-coded hex.
-- Dark mode is the default — light themes will land later as a `data-theme="light"` override.
+```bash
+pnpm --filter @forgely/ui storybook
+```
+
+The dark "Cinematic Industrial" backdrop is configured in `.storybook/preview.ts`.
+
+Each component ships with at least one story; foundations (Design Tokens) live under `Foundations/Design Tokens` for non-engineering review.
+
+## Adding components
+
+1. Drop the source under `src/<kebab-name>.tsx`, follow the existing dark-first pattern.
+2. Re-export from `src/index.ts`.
+3. Add a `*.stories.tsx` next to it.
+4. Run `pnpm --filter @forgely/ui typecheck`.

@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#storybook-root {
+  background-color: #08080a;
+  color: #f4f4f7;
+  font-family: 'Inter', system-ui, sans-serif;
+}
