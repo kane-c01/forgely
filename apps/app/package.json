@@ -18,8 +18,9 @@
     "@forgely/seo": "workspace:*",
     "@forgely/ui": "workspace:*",
     "@forgely/worker": "workspace:*",
-    "@trpc/client": "^10.45.2",
-    "@trpc/server": "^10.45.2",
+    "@trpc/client": "^10.45.4",
+    "@trpc/react-query": "^10.45.2",
+    "@trpc/server": "^10.45.4",
     "next": "14.2.13",
     "react": "18.3.1",
     "react-dom": "18.3.1"
