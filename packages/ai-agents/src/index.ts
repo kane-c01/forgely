@@ -64,6 +64,16 @@ export {
   autoRegisterArtistProviders,
 } from './agents/artist-providers'
 
+// Picker (T-W6 Sprint 3) — surfaces the 3 most "hero-worthy" products
+export {
+  rankProducts,
+  rankUnknownProducts,
+  PickerProductSchema,
+  type PickerProduct,
+  type PickerCandidate,
+  type PickerOptions,
+} from './agents/picker'
+
 // Conversation orchestrator (multi-turn user dialog — drives the 3 input paths)
 export {
   startConversation,
