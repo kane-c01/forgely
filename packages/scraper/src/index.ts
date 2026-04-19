@@ -42,9 +42,7 @@ export type { HttpRequestOptions, HttpResponse } from './http/client.js'
 export { createScraperApiClient } from './http/scraperapi.js'
 export type { ScraperApiClient, ScraperApiOptions } from './http/scraperapi.js'
 
-export {
-  NoopBrowserAdapter,
-} from './browser/types.js'
+export { NoopBrowserAdapter } from './browser/types.js'
 export type {
   BrowserAdapter,
   RenderHtmlOptions,
@@ -72,15 +70,20 @@ export type {
 export type { RuleStore, ScraperRule } from './ai/rule-store.js'
 export { InMemoryRuleStore } from './ai/rule-store.js'
 
+export type {
+  PrismaLikeClient,
+  PrismaRuleStoreOptions,
+  PrismaScraperRuleDelegate,
+  PrismaScraperRuleRow,
+} from './ai/prisma-rule-store.js'
+export { PrismaRuleStore } from './ai/prisma-rule-store.js'
+
 // ── adapters ────────────────────────────────────────────────────
 export { ShopifyAdapter } from './adapters/shopify.js'
 export type { ShopifyAdapterOptions } from './adapters/shopify.js'
 
 export { WooCommerceAdapter } from './adapters/woocommerce.js'
-export type {
-  WooCommerceAdapterOptions,
-  WooCommerceCredentials,
-} from './adapters/woocommerce.js'
+export type { WooCommerceAdapterOptions, WooCommerceCredentials } from './adapters/woocommerce.js'
 
 export { AmazonAdapter } from './adapters/amazon.js'
 export type { AmazonAdapterOptions } from './adapters/amazon.js'
@@ -90,6 +93,18 @@ export type { AliExpressAdapterOptions } from './adapters/aliexpress.js'
 
 export { EtsyAdapter } from './adapters/etsy.js'
 export type { EtsyAdapterOptions } from './adapters/etsy.js'
+
+export { Alibaba1688Adapter } from './adapters/alibaba1688/index.js'
+export type { Alibaba1688AdapterOptions } from './adapters/alibaba1688/index.js'
+
+export { TaobaoAdapter } from './adapters/taobao/index.js'
+export type { TaobaoAdapterOptions } from './adapters/taobao/index.js'
+
+export { JdAdapter } from './adapters/jd/index.js'
+export type { JdAdapterOptions } from './adapters/jd/index.js'
+
+export { PinduoduoAdapter } from './adapters/pinduoduo/index.js'
+export type { PinduoduoAdapterOptions } from './adapters/pinduoduo/index.js'
 
 export { GenericAIAdapter } from './adapters/generic-ai.js'
 export type { GenericAIAdapterOptions } from './adapters/generic-ai.js'
@@ -104,11 +119,15 @@ import type { AssetStorage } from './storage/types.js'
 import type { VisionClient } from './ai/vision.js'
 import type { RuleStore } from './ai/rule-store.js'
 
+import { Alibaba1688Adapter } from './adapters/alibaba1688/index.js'
 import { AliExpressAdapter } from './adapters/aliexpress.js'
 import { AmazonAdapter } from './adapters/amazon.js'
 import { EtsyAdapter } from './adapters/etsy.js'
 import { GenericAIAdapter } from './adapters/generic-ai.js'
+import { JdAdapter } from './adapters/jd/index.js'
+import { PinduoduoAdapter } from './adapters/pinduoduo/index.js'
 import { ShopifyAdapter } from './adapters/shopify.js'
+import { TaobaoAdapter } from './adapters/taobao/index.js'
 import { WooCommerceAdapter } from './adapters/woocommerce.js'
 import { ScraperRegistry } from './registry.js'
 
@@ -120,7 +139,18 @@ export interface BuildScraperRegistryOptions {
   scraperApi?: ScraperApiOptions | ScraperApiClient
   fetchImpl?: typeof fetch
   /** Disable specific adapters by id. */
-  disable?: Array<'shopify' | 'woocommerce' | 'amazon' | 'aliexpress' | 'etsy' | 'generic_ai'>
+  disable?: Array<
+    | 'shopify'
+    | 'woocommerce'
+    | 'amazon'
+    | 'aliexpress'
+    | 'alibaba_1688'
+    | 'taobao'
+    | 'jd'
+    | 'pinduoduo'
+    | 'etsy'
+    | 'generic_ai'
+  >
 }
 
 /**
@@ -186,6 +216,19 @@ export function buildDefaultScraperRegistry(
       }),
     )
   }
+
+  // ── China Tier-2 (Persona A) — prefer Playwright browser when supplied,
+  // fall back to ScraperAPI / direct fetch.
+  const cnDeps = {
+    fetchImpl,
+    ...(options.browser ? { browser: options.browser } : {}),
+    ...(options.scraperApi !== undefined ? { scraperApi: options.scraperApi } : {}),
+    ...(options.storage ? { storage: options.storage } : {}),
+  }
+  if (enable('alibaba_1688')) registry.register(new Alibaba1688Adapter(cnDeps))
+  if (enable('taobao')) registry.register(new TaobaoAdapter(cnDeps))
+  if (enable('jd')) registry.register(new JdAdapter(cnDeps))
+  if (enable('pinduoduo')) registry.register(new PinduoduoAdapter(cnDeps))
 
   return registry
 }

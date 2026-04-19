@@ -116,10 +116,15 @@ export class GenericAIAdapter implements ScraperAdapter {
     // 3. Apply selectors
     const products = await this.extract(html, finalUrl, selectors, options)
     if (products.length === 0) {
-      throw new ScraperError(
-        `Generic AI adapter could not extract any product from ${url}`,
-        { code: 'GENERIC_AI_NO_PRODUCTS', source: 'generic_ai' },
-      )
+      // Penalise the cached rule so it stops being trusted; fresh selectors
+      // will be re-derived next time.
+      if (usedRule && this.ruleStore.markFailure) {
+        await this.ruleStore.markFailure(hostname)
+      }
+      throw new ScraperError(`Generic AI adapter could not extract any product from ${url}`, {
+        code: 'GENERIC_AI_NO_PRODUCTS',
+        source: 'generic_ai',
+      })
     }
 
     // 4. Promote rule when extraction succeeds
@@ -132,11 +137,15 @@ export class GenericAIAdapter implements ScraperAdapter {
         lastUsedAt: new Date(),
       })
     } else if (usedRule) {
-      await this.ruleStore.save({
-        ...usedRule,
-        lastUsedAt: new Date(),
-        successRate: Math.min(1, usedRule.successRate + 0.02),
-      })
+      if (this.ruleStore.markSuccess) {
+        await this.ruleStore.markSuccess(hostname)
+      } else {
+        await this.ruleStore.save({
+          ...usedRule,
+          lastUsedAt: new Date(),
+          successRate: Math.min(1, usedRule.successRate + 0.02),
+        })
+      }
     }
 
     return {
@@ -179,7 +188,7 @@ export class GenericAIAdapter implements ScraperAdapter {
       if (!title) continue
 
       const link = selectors.link ? $card.find(selectors.link).first().attr('href') : null
-      const productUrl = link ? absoluteUrl(link, url) ?? url : url
+      const productUrl = link ? (absoluteUrl(link, url) ?? url) : url
       const priceText = selectors.price ? $card.find(selectors.price).first().text().trim() : ''
       const description = selectors.description
         ? $card.find(selectors.description).first().text().replace(/\s+/g, ' ').trim()
