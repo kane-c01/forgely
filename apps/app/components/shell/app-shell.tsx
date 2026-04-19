@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { CommandPalette } from '@/components/command/command-palette'
 import { CommandPaletteProvider } from '@/components/command/command-palette-context'
@@ -23,13 +23,23 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname()
   const inferredSiteId = pathname.match(/^\/sites\/([^/]+)/)?.[1]
   const current = (inferredSiteId && sites.find((s) => s.id === inferredSiteId)) || defaultSite
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   return (
     <CopilotProvider>
       <CommandPaletteProvider>
-        <SidebarNav siteId={current.id} />
-        <div className="ml-[60px] flex min-h-screen flex-col bg-bg-void">
-          <TopBar currentSite={current} sites={sites} credits={CREDITS_BALANCE} />
-          <main className="flex-1 px-8 py-6">{children}</main>
+        <SidebarNav
+          siteId={current.id}
+          mobileOpen={mobileNavOpen}
+          onMobileClose={() => setMobileNavOpen(false)}
+        />
+        <div className="bg-bg-void flex min-h-screen flex-col md:ml-[60px]">
+          <TopBar
+            currentSite={current}
+            sites={sites}
+            credits={CREDITS_BALANCE}
+            onMenuClick={() => setMobileNavOpen(true)}
+          />
+          <main className="flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-6">{children}</main>
         </div>
         <CopilotLauncher />
         <CopilotDrawer />
