@@ -19,25 +19,28 @@
  *   - `assertCan` (`./_acl`) — fine-grained RBAC inside the role tier.
  */
 
-// `../../trpc` is provided by W3 / T06 — until that lands, this import is
-// flagged as unresolved by editors but the file compiles cleanly inside the
-// integrated build.
-import { router } from '../../trpc'
-import { superAuditRouter } from './audit'
-import { superFinanceRouter } from './finance'
-import { superTeamRouter } from './team'
-import { superUsersRouter } from './users'
+import { router } from '../../router/trpc.js'
+import { superAuditRouter } from './audit.js'
+import { superFinanceRouter } from './finance.js'
+import { superHealthRouter } from './health.js'
+import { superMarketingRouter } from './marketing.js'
+import { superPluginsRouter } from './plugins.js'
+import { superTeamRouter } from './team.js'
+import { superUsersRouter } from './users.js'
 
 export const superRouter = router({
   users: superUsersRouter,
   finance: superFinanceRouter,
   audit: superAuditRouter,
   team: superTeamRouter,
+  marketing: superMarketingRouter,
+  plugins: superPluginsRouter,
+  health: superHealthRouter,
 })
 
 export type SuperRouter = typeof superRouter
 
-export { canPerform, assertCan, SUPER_ROLES } from './_acl'
-export type { SuperRole, SuperAction } from './_acl'
-export { recordAudit, SUPER_ACTIONS } from './_audit-log'
-export * from './_schemas'
+export { canPerform, assertCan, SUPER_ROLES } from './_acl.js'
+export type { SuperRole, SuperAction } from './_acl.js'
+export { recordAudit, SUPER_ACTIONS } from './_audit-log.js'
+export * from './_schemas.js'

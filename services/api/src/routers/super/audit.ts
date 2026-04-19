@@ -2,11 +2,11 @@
  * /super > Audit Log tRPC sub-router. ADMIN+.
  */
 
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 import { router, superAdminProcedure } from '../../router/trpc.js'
-import { assertCan } from './_acl'
-import { auditQueryInput } from './_schemas'
+import { assertCan } from './_acl.js'
+import { auditQueryInput } from './_schemas.js'
 
 export const superAuditRouter = router({
   list: superAdminProcedure.input(auditQueryInput).query(async ({ ctx, input }) => {
@@ -60,7 +60,17 @@ export const superAuditRouter = router({
       orderBy: { createdAt: 'desc' },
       take: 5000,
     })
-    const header = ['id', 'actorType', 'actorId', 'action', 'targetType', 'targetId', 'reason', 'ipAddress', 'createdAt']
+    const header = [
+      'id',
+      'actorType',
+      'actorId',
+      'action',
+      'targetType',
+      'targetId',
+      'reason',
+      'ipAddress',
+      'createdAt',
+    ]
     const csv = [
       header.join(','),
       ...rows.map((r) =>
