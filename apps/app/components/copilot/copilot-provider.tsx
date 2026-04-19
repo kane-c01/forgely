@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from 'react'
 
+import { trpc } from '@/lib/trpc'
+
 import type { CopilotMessage, CopilotPageContext, ToolCall, ToolName } from './types'
 import { fakeAssistant } from './fake-assistant'
 
@@ -99,11 +101,58 @@ export function CopilotProvider({ children }: ProviderProps) {
     },
   ])
   const [pending, setPending] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const contextRef = useRef(context)
   contextRef.current = context
   const messagesRef = useRef(messages)
   messagesRef.current = messages
   const runnersRef = useRef<Map<ToolName, ToolRunner>>(new Map())
+
+  // Persistence layer: best-effort writes to `trpc.copilot.*`. Failures
+  // are silent — the UX falls back to in-memory mode (which is what
+  // happens for unauthenticated users / local dev without DATABASE_URL).
+  const startConversation = trpc.copilot.startConversation.useMutation()
+  const appendMessage = trpc.copilot.appendMessage.useMutation()
+
+  const conversationIdRef = useRef<string | null>(null)
+  conversationIdRef.current = conversationId
+
+  const ensureConversation = useCallback(async (): Promise<string | null> => {
+    if (conversationIdRef.current) return conversationIdRef.current
+    try {
+      const res = await startConversation.mutateAsync({})
+      setConversationId(res.conversationId)
+      return res.conversationId
+    } catch {
+      return null
+    }
+  }, [startConversation])
+
+  const persistMessage = useCallback(
+    async (msg: CopilotMessage) => {
+      const cid = await ensureConversation()
+      if (!cid) return
+      try {
+        await appendMessage.mutateAsync({
+          conversationId: cid,
+          message: {
+            role: msg.role,
+            content: msg.text,
+            toolCalls: msg.toolCalls?.map((c) => ({
+              id: c.id,
+              name: c.name,
+              arguments: c.arguments,
+            })),
+            clientId: msg.id,
+          },
+          creditsCost: 1,
+        })
+      } catch {
+        /* persistence is best-effort */
+      }
+    },
+    [appendMessage, ensureConversation],
+  )
 
   const registerTool = useCallback((name: ToolName, runner: ToolRunner) => {
     runnersRef.current.set(name, runner)
@@ -124,8 +173,12 @@ export function CopilotProvider({ children }: ProviderProps) {
       }
       setMessages((m) => [...m, userMsg])
       setPending(true)
+      // Best-effort persist the user's turn.
+      void persistMessage(userMsg)
 
-      // Simulate roundtrip latency
+      // TODO(W3): swap this for `await trpc.copilot.chat.mutateAsync({...})`
+      // once the chat endpoint lands. The fakeAssistant return shape
+      // already mirrors the planned `{ text, toolCalls }` payload.
       await new Promise((r) => setTimeout(r, 650))
       const reply = fakeAssistant(text.trim(), contextRef.current)
       const assistantMsg: CopilotMessage = {
@@ -141,8 +194,12 @@ export function CopilotProvider({ children }: ProviderProps) {
       }
       setMessages((m) => [...m, assistantMsg])
       setPending(false)
+      // Best-effort persist the assistant turn (charges 1 credit
+      // server-side; clamps to [1,20] there). No-op if persistence
+      // failed earlier.
+      void persistMessage(assistantMsg)
     },
-    [pending],
+    [pending, persistMessage],
   )
 
   const updateTool = useCallback((messageId: string, toolId: string, patch: Partial<ToolCall>) => {

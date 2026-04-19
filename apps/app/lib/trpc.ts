@@ -26,7 +26,7 @@ import type { AppRouter } from '@forgely/api/router'
 
 // Explicit annotation is required because the inferred type reaches
 // into private @trpc declarations that don't survive `declaration: true`.
-export const trpc: CreateTRPCReact<AppRouter, unknown> = createTRPCReact<AppRouter>()
+export const trpc: CreateTRPCReact<AppRouter, unknown, null> = createTRPCReact<AppRouter>()
 
 function getBaseUrl(): string {
   if (typeof window !== 'undefined') return ''

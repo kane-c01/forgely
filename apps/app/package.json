@@ -18,12 +18,14 @@
     "@forgely/seo": "workspace:*",
     "@forgely/ui": "workspace:*",
     "@forgely/worker": "workspace:*",
+    "@tanstack/react-query": "^5.99.2",
     "@trpc/client": "^10.45.4",
-    "@trpc/react-query": "^10.45.2",
+    "@trpc/react-query": "^10.45.4",
     "@trpc/server": "^10.45.4",
     "next": "14.2.13",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "superjson": "^2.2.1"
   },
   "devDependencies": {
     "@types/node": "^20.16.10",
