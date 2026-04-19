@@ -687,3 +687,55 @@ model Waitlist {
 
   @@index([source, createdAt])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  COUPONS  (Promotional codes — independent of Stripe coupon ids so we can
+//  redeem against credit packs / subscriptions / one-shot services from one
+//  catalog. Stripe coupon id is captured when applicable so the discount
+//  is applied at the Stripe layer too.)
+// ════════════════════════════════════════════════════════════════════════════
+
+model Coupon {
+  id              String    @id @default(cuid())
+  /// Human-typed code (uppercase). Unique. e.g. "LAUNCH50" / "FRIEND10"
+  code            String    @unique
+  description     String?
+  /// percent_off | amount_off
+  discountType    String
+  /// 1..100 when discountType = percent_off; cents when amount_off.
+  discountValue   Int
+  /// What this coupon can be used against:
+  /// subscription | credit_pack | service | any
+  appliesTo       String    @default("any")
+  currency        String    @default("usd")
+  /// Optional Stripe coupon id (cou_xxx) for native Stripe redemption.
+  stripeCouponId  String?
+  /// Per-coupon redemption cap. Null = unlimited.
+  maxRedemptions  Int?
+  /// Per-user redemption cap.
+  maxPerUser      Int?
+  redemptions     Int       @default(0)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  redemptionsLog  CouponRedemption[]
+
+  @@index([active, expiresAt])
+}
+
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId     String
+  /// stripe_session_id / stripe_subscription_id / "service:..." etc.
+  context    String
+  amountOffUsd Int     @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([couponId, createdAt])
+  @@index([userId, createdAt])
+}

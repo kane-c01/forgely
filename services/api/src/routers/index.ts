@@ -13,6 +13,7 @@ import { router } from '../router/trpc.js'
 
 import { brandKitsRouter } from './brand-kits.js'
 import { cmsRouter } from './cms.js'
+import { copilotRouter } from './copilot.js'
 import { customersRouter } from './customers.js'
 import { generationRouter } from './generation.js'
 import { mediaRouter } from './media.js'
@@ -30,6 +31,7 @@ export const tenantRouters = router({
   brandKits: brandKitsRouter,
   cms: cmsRouter,
   generation: generationRouter,
+  copilot: copilotRouter,
 })
 
 export type TenantRouters = typeof tenantRouters
@@ -37,6 +39,7 @@ export type TenantRouters = typeof tenantRouters
 export {
   brandKitsRouter,
   cmsRouter,
+  copilotRouter,
   customersRouter,
   generationRouter,
   mediaRouter,
