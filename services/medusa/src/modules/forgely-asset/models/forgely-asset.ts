@@ -1,0 +1,32 @@
+import { model } from '@medusajs/framework/utils'
+
+export const ForgelyAsset = model.define('forgely_asset', {
+  id: model.id().primaryKey(),
+  tenant_id: model.text().index('idx_asset_tenant'),
+  site_id: model.text().nullable().index('idx_asset_site'),
+  type: model.enum([
+    'logo',
+    'hero_video',
+    'micro_video',
+    'product_image',
+    'brand_story_image',
+    'font',
+    'color_palette',
+    'icon',
+    'og_image',
+    'favicon',
+    'other',
+  ]),
+  filename: model.text(),
+  url: model.text(),
+  r2_key: model.text().nullable(),
+  mime_type: model.text().nullable(),
+  size_bytes: model.number().nullable(),
+  width: model.number().nullable(),
+  height: model.number().nullable(),
+  duration_ms: model.number().nullable(),
+  ai_provider: model.text().nullable(),
+  ai_prompt: model.text().nullable(),
+  generation_id: model.text().nullable(),
+  metadata: model.json().nullable(),
+})

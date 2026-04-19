@@ -1,1 +1,5 @@
-export const __packageName = '@forgely/medusa'
+export { FORGELY_TENANT_MODULE } from './modules/forgely-tenant'
+export { FORGELY_ASSET_MODULE } from './modules/forgely-asset'
+export { FORGELY_THEME_MODULE } from './modules/forgely-theme'
+export { FORGELY_GEN_MODULE } from './modules/forgely-gen'
+export { FORGELY_AI_MODULE } from './modules/forgely-ai'
