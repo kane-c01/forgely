@@ -16,6 +16,20 @@ export class ForgelyError extends Error {
   ) {
     super(`[${code}] ${userMessage}`)
   }
+
+  /**
+   * Return the localised user message for the given language tag.
+   *
+   * MVP: there's no i18n catalog yet, so we always return the English
+   * `userMessage` we were constructed with. The signature is in place
+   * so callers (`router/trpc.ts`, `stripe/webhook.ts`) can pass the
+   * locale once W5's `next-intl` integration provides per-request
+   * language detection.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- locale arg reserved for future i18n integration
+  getUserMessage(_locale: string = 'en'): string {
+    return this.userMessage
+  }
 }
 
 export const FORGELY_ERROR_CODES = [
