@@ -23,7 +23,6 @@
     "@medusajs/admin-sdk": "^2.13.5",
     "@medusajs/framework": "^2.13.5",
     "@medusajs/medusa": "^2.13.5",
-    "@medusajs/medusa-cli": "^2.13.5",
     "@mikro-orm/core": "^6.4.0",
     "@mikro-orm/migrations": "^6.4.0",
     "@mikro-orm/postgresql": "^6.4.0",

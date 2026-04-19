@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1.7
+# Forgely 用户后台 + Super Admin (apps/app — app.forgely.cn)
+# Build:  docker build -f infra/docker/Dockerfile.app -t forgely/app .
+# Run:    docker run --env-file .env -p 3001:3001 forgely/app
+
+ARG NODE_VERSION=20
+ARG PNPM_VERSION=9.12.0
+
+FROM node:${NODE_VERSION}-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/web/package.json apps/web/
+COPY apps/app/package.json apps/app/
+COPY apps/storefront/package.json apps/storefront/
+COPY services/api/package.json services/api/
+COPY services/worker/package.json services/worker/
+COPY services/medusa/package.json services/medusa/
+COPY services/deploy/package.json services/deploy/
+COPY packages/3d/package.json packages/3d/
+COPY packages/ai-agents/package.json packages/ai-agents/
+COPY packages/animations/package.json packages/animations/
+COPY packages/api-client/package.json packages/api-client/
+COPY packages/charts/package.json packages/charts/
+COPY packages/compliance/package.json packages/compliance/
+COPY packages/design-tokens/package.json packages/design-tokens/
+COPY packages/dsl/package.json packages/dsl/
+COPY packages/icons/package.json packages/icons/
+COPY packages/product-moments/package.json packages/product-moments/
+COPY packages/scraper/package.json packages/scraper/
+COPY packages/seo/package.json packages/seo/
+COPY packages/ui/package.json packages/ui/
+COPY packages/visual-dna/package.json packages/visual-dna/
+
+ENV HUSKY=0
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+FROM node:${NODE_VERSION}-alpine AS build
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+COPY --from=deps /repo/node_modules ./node_modules
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @forgely/api prisma:generate
+RUN pnpm --filter @forgely/app build
+
+FROM node:${NODE_VERSION}-alpine AS runtime
+RUN apk add --no-cache tini
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3001
+ENV HOSTNAME=0.0.0.0
+
+COPY --from=build /repo/apps/app/.next/standalone ./
+COPY --from=build /repo/apps/app/.next/static ./apps/app/.next/static
+
+EXPOSE 3001
+USER node
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "apps/app/server.js"]

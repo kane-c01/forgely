@@ -12,8 +12,7 @@ const nextConfig = {
   ],
   experimental: {
     typedRoutes: true,
-    // Native bindings & heavy server-only deps must NOT be webpack-bundled
-    // — let Node `require()` resolve them at runtime from node_modules.
+    instrumentationHook: true,
     serverComponentsExternalPackages: [
       'argon2',
       '@prisma/client',
@@ -26,18 +25,11 @@ const nextConfig = {
     ],
   },
   webpack(config, { isServer }) {
-    // services/api ships pure ESM with `.js` import suffixes (correct for
-    // Node runtime). Next.js's webpack resolver doesn't apply
-    // `extensionAlias`, so `from '../routers/index.js'` can't reach the
-    // `.ts` source. Teach the resolver to fall back to `.ts` / `.tsx`.
     config.resolve.extensionAlias = {
       ...(config.resolve.extensionAlias ?? {}),
       '.js': ['.ts', '.tsx', '.js', '.jsx'],
       '.mjs': ['.mts', '.mjs'],
     }
-    // Native + heavy server-only packages: keep them as runtime requires
-    // so webpack doesn't try to bundle their `.node` binaries / large
-    // platform-specific assets.
     if (isServer) {
       const externals = [
         'argon2',
@@ -65,4 +57,20 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+let exportedConfig = nextConfig
+
+if (process.env.SENTRY_DSN) {
+  const { withSentryConfig } = await import('@sentry/nextjs')
+  exportedConfig = withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: false,
+  })
+}
+
+export default exportedConfig

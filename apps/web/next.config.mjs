@@ -9,6 +9,7 @@ const nextConfig = {
   compress: true,
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+    instrumentationHook: true,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -36,4 +37,22 @@ const nextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+const intlConfig = withNextIntl(nextConfig)
+
+let exportedConfig = intlConfig
+
+if (process.env.SENTRY_DSN) {
+  const { withSentryConfig } = await import('@sentry/nextjs')
+  exportedConfig = withSentryConfig(intlConfig, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: false,
+  })
+}
+
+export default exportedConfig

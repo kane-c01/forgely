@@ -11,12 +11,15 @@
     "lint": "next lint --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "echo \"web: no unit tests yet\" && exit 0",
-    "clean": "rm -rf .next .turbo node_modules"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "clean": "rm -rf .next .turbo node_modules playwright-report test-results"
   },
   "dependencies": {
     "@forgely/design-tokens": "workspace:*",
     "@forgely/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
+    "@sentry/nextjs": "^8.42.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.1",
     "gsap": "^3.12.5",
@@ -24,6 +27,7 @@
     "lucide-react": "^0.451.0",
     "next": "14.2.15",
     "next-intl": "^4.9.1",
+    "posthog-js": "^1.187.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
@@ -32,6 +36,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",

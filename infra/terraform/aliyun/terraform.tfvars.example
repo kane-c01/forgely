@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (gitignored) and override per environment.
+region               = "cn-hangzhou"
+project              = "forgely"
+env                  = "staging"
+vpc_cidr             = "10.10.0.0/16"
+vswitch_cidr         = "10.10.1.0/24"
+polardb_node_class   = "polar.pg.x4.medium"
+redis_instance_class = "redis.master.small.default"

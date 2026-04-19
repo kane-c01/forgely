@@ -9,6 +9,8 @@
  *   - `@forgely/api/router`   — tRPC appRouter (mountable from apps/app)
  */
 
+import './observability/sentry.js'
+
 export { prisma, Prisma } from './db.js'
 export type {
   User,

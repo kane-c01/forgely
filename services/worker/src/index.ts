@@ -9,6 +9,8 @@
  * @forgely/worker start`). The default `boot()` reads ENV and chooses
  * the providers automatically.
  */
+import { captureException, flushSentry } from './observability/sentry'
+
 export {
   runPipeline,
   type PipelineInput,
@@ -62,3 +64,20 @@ export function boot(): void {
 if (process.env.FORGELY_WORKER_AUTOBOOT === '1') {
   boot()
 }
+
+const flushAndExit = async (signal: NodeJS.Signals) => {
+  console.info(`[worker] received ${signal}, flushing Sentry…`)
+  await flushSentry(2000)
+  process.exit(0)
+}
+
+process.on('SIGTERM', flushAndExit)
+process.on('SIGINT', flushAndExit)
+process.on('uncaughtException', (err) => {
+  captureException(err, { handler: 'uncaughtException' })
+  console.error('[worker] uncaughtException', err)
+})
+process.on('unhandledRejection', (reason) => {
+  captureException(reason, { handler: 'unhandledRejection' })
+  console.error('[worker] unhandledRejection', reason)
+})

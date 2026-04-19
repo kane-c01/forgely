@@ -5,6 +5,7 @@ import { Inter, Fraunces, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Toaster } from 'sonner'
+import { PosthogProvider } from '@/components/analytics/posthog-provider'
 import { buildMetadata } from '@/lib/seo'
 import { jsonLd, organizationSchema, softwareApplicationSchema } from '@/lib/schema'
 import { localeHtmlLang, routing, type Locale } from '@/i18n/routing'
@@ -43,11 +44,7 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!hasLocale(routing.locales, locale)) return {}
   return buildMetadata({ locale: locale as Locale })
@@ -92,18 +89,19 @@ export default async function LocaleLayout({
       <body className="bg-bg-void text-text-primary font-body antialiased">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-forge-orange focus:px-4 focus:py-2 focus:text-bg-void"
+          className="focus:bg-forge-orange focus:text-bg-void sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:px-4 focus:py-2"
         >
           {t('skipToContent')}
         </a>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <PosthogProvider>{children}</PosthogProvider>
+        </NextIntlClientProvider>
         <Toaster
           position="bottom-right"
           theme="dark"
           toastOptions={{
             classNames: {
-              toast:
-                'bg-bg-elevated border border-border-strong text-text-primary',
+              toast: 'bg-bg-elevated border border-border-strong text-text-primary',
             },
           }}
         />
