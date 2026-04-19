@@ -47,7 +47,11 @@ async function stripeFetch<T>(path: string, init: RequestInit = {}): Promise<T> 
   })
   if (!res.ok) {
     const txt = await res.text()
-    throw new ForgelyError('STRIPE_UPSTREAM', `Stripe ${path} 失败: ${res.status} ${txt.slice(0, 200)}`, 502)
+    throw new ForgelyError(
+      'STRIPE_UPSTREAM',
+      `Stripe ${path} 失败: ${res.status} ${txt.slice(0, 200)}`,
+      502,
+    )
   }
   return (await res.json()) as T
 }
@@ -120,4 +124,83 @@ export async function createConnectedPaymentIntent(opts: {
     body,
   })
   return { id: res.id, clientSecret: res.client_secret }
+}
+
+/**
+ * Refund a connected-account PaymentIntent (or one of its Charges).
+ *
+ * Stripe Connect refund options:
+ *   - `charge`     refund a specific Charge id (preferred when known)
+ *   - `payment_intent` refund the latest charge of a PaymentIntent
+ *
+ * `reverse_transfer=true` ensures the platform's application fee is
+ * reversed proportionally so the merchant doesn't end up footing the bill.
+ *
+ * Returns the canonical Stripe refund summary; throws STRIPE_UPSTREAM
+ * with body context on non-2xx.
+ */
+export async function refundConnectedPayment(opts: {
+  /** One of charge / paymentIntent must be set. */
+  chargeId?: string
+  paymentIntentId?: string
+  amountCents?: number
+  reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer'
+  /** Reverse the platform application fee in proportion. */
+  reverseTransfer?: boolean
+  /** Stripe-Account header for direct charges (when refunding on the connected account). */
+  onConnectedAccount?: string
+  metadata?: Record<string, string>
+}): Promise<{
+  refundId: string
+  status: 'pending' | 'succeeded' | 'failed' | 'canceled' | 'requires_action'
+  amountCents: number
+}> {
+  if (!opts.chargeId && !opts.paymentIntentId) {
+    throw new ForgelyError(
+      'STRIPE_UPSTREAM',
+      'refundConnectedPayment: 必须提供 chargeId 或 paymentIntentId 之一。',
+      400,
+    )
+  }
+  const body = new URLSearchParams({
+    ...(opts.chargeId ? { charge: opts.chargeId } : {}),
+    ...(opts.paymentIntentId ? { payment_intent: opts.paymentIntentId } : {}),
+    ...(opts.amountCents !== undefined ? { amount: String(opts.amountCents) } : {}),
+    ...(opts.reason ? { reason: opts.reason } : {}),
+    ...(opts.reverseTransfer === false ? {} : { reverse_transfer: 'true' }),
+    ...(opts.reverseTransfer === false ? {} : { refund_application_fee: 'true' }),
+  })
+  if (opts.metadata) {
+    for (const [k, v] of Object.entries(opts.metadata)) {
+      body.append(`metadata[${k}]`, v)
+    }
+  }
+
+  const headers = opts.onConnectedAccount
+    ? { 'stripe-account': opts.onConnectedAccount }
+    : undefined
+
+  const res = await stripeFetch<{
+    id: string
+    status: 'pending' | 'succeeded' | 'failed' | 'canceled' | 'requires_action'
+    amount: number
+  }>('/refunds', {
+    method: 'POST',
+    headers,
+    body,
+  })
+  return { refundId: res.id, status: res.status, amountCents: res.amount }
+}
+
+/**
+ * Optional: detach a connected account (e.g. user requested to switch
+ * Stripe accounts). Stripe doesn't support hard delete via API; we just
+ * clear the requirements so future PaymentIntents fall back to the
+ * platform default.
+ */
+export async function disconnectAccount(accountId: string): Promise<void> {
+  await stripeFetch(`/accounts/${accountId}`, {
+    method: 'POST',
+    body: new URLSearchParams({ 'metadata[forgely_disconnected_at]': new Date().toISOString() }),
+  })
 }
