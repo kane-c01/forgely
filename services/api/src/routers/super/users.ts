@@ -12,6 +12,7 @@
  */
 
 import { router, superAdminProcedure } from '../../trpc'
+import type { Prisma } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { assertCan } from './_acl'
 import { recordAudit, SUPER_ACTIONS } from './_audit-log'
@@ -24,51 +25,155 @@ import {
   userIdInput,
 } from './_schemas'
 
+/**
+ * Enrich a Prisma `User` row with the derived fields the /super UI uses
+ * (`status`, `sitesCount`, `creditsBalance`, `lifetimeSpendUsd`,
+ * `signedUpAt`, `lastSeenAt`).
+ *
+ * Shape matches `apps/app/lib/super/types.ts::SuperUserRow` so the
+ * frontend can consume `trpc.super.users.list` rows without an adapter.
+ */
+interface UserWithRelations {
+  id: string
+  email: string
+  name: string | null
+  plan: string
+  role: string
+  region: string
+  deletedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+  _count: { sites: number }
+  credits: { balance: number } | null
+  subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean } | null
+  creditTxns: Array<{ amount: number; type: string }>
+}
+
+function mapUserRow(u: UserWithRelations) {
+  // `deletedAt` is our soft-delete flag; treat it as suspended for the UI.
+  const status: 'active' | 'suspended' | 'pending' | 'banned' = u.deletedAt ? 'suspended' : 'active'
+  const plan = (['free', 'starter', 'pro', 'business'] as const).includes(
+    u.plan as 'free' | 'starter' | 'pro' | 'business',
+  )
+    ? (u.plan as 'free' | 'starter' | 'pro' | 'business')
+    : 'free'
+  // Paid-in credits — the non-`grant`, non-`monthly_reset` deltas give us
+  // a cheap lifetime-spend proxy until Stripe invoice history lands.
+  const lifetimeSpendCredits = u.creditTxns
+    .filter((t) => t.type === 'purchase' || t.type === 'subscription')
+    .reduce((s, t) => s + Math.max(0, t.amount), 0)
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name ?? u.email.split('@')[0] ?? u.email,
+    status,
+    plan,
+    sitesCount: u._count.sites,
+    creditsBalance: u.credits?.balance ?? 0,
+    // Credits ≈ USD at 1¢ each in MVP (docs/MASTER.md §3.6).
+    lifetimeSpendUsd: Math.round(lifetimeSpendCredits / 100),
+    signedUpAt: u.createdAt.getTime(),
+    lastSeenAt: u.updatedAt.getTime(),
+    country: u.region === 'cn' ? 'CN' : undefined,
+  }
+}
+
 export const superUsersRouter = router({
   list: superAdminProcedure.input(listUsersInput).query(async ({ ctx, input }) => {
     assertCan(ctx.user?.role, 'users.read')
-    const where = {
-      AND: [
-        input.status ? { status: input.status } : {},
-        input.plan ? { plan: input.plan } : {},
-        input.search
-          ? {
-              OR: [
-                { email: { contains: input.search, mode: 'insensitive' as const } },
-                { name: { contains: input.search, mode: 'insensitive' as const } },
-                { id: { equals: input.search } },
-              ],
-            }
-          : {},
-      ],
+
+    const conditions: Prisma.UserWhereInput[] = []
+    if (input.plan) conditions.push({ plan: input.plan })
+    if (input.status === 'suspended') conditions.push({ deletedAt: { not: null } })
+    if (input.status === 'active') conditions.push({ deletedAt: null })
+    if (input.search) {
+      conditions.push({
+        OR: [
+          { email: { contains: input.search, mode: 'insensitive' } },
+          { name: { contains: input.search, mode: 'insensitive' } },
+          { id: { equals: input.search } },
+        ],
+      })
     }
+    const where: Prisma.UserWhereInput = conditions.length ? { AND: conditions } : {}
+
     const [rows, total] = await Promise.all([
       ctx.prisma.user.findMany({
         where,
-        // `lastSeenAt` will be added by W3 in a follow-up; sort by
-        // `createdAt` desc as a sensible fallback.
         orderBy: { createdAt: 'desc' },
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
+        include: {
+          _count: { select: { sites: true } },
+          credits: { select: { balance: true } },
+          subscription: { select: { plan: true, status: true, cancelAtPeriodEnd: true } },
+          creditTxns: { select: { amount: true, type: true }, take: 200 },
+        },
       }),
       ctx.prisma.user.count({ where }),
     ])
-    return { rows, total, page: input.page, pageSize: input.pageSize }
+    return {
+      rows: rows.map((r) => mapUserRow(r as unknown as UserWithRelations)),
+      total,
+      page: input.page,
+      pageSize: input.pageSize,
+    }
   }),
 
   detail: superAdminProcedure.input(userIdInput).query(async ({ ctx, input }) => {
     assertCan(ctx.user?.role, 'users.detail.read')
-    // NOTE: `creditTransactions` relation will be added by W3 in a follow-up
-    // schema migration. Until then we cast to satisfy the typecheck and skip
-    // the relation include — the route still returns the core User row.
     const user = await ctx.prisma.user.findUnique({
       where: { id: input.userId },
       include: {
         sites: { take: 8, orderBy: { updatedAt: 'desc' } },
-      } as Parameters<typeof ctx.prisma.user.findUnique>[0]['include'],
+        credits: { select: { balance: true } },
+        subscription: { select: { plan: true, status: true, cancelAtPeriodEnd: true } },
+        creditTxns: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, type: true, amount: true, createdAt: true, description: true },
+        },
+        _count: { select: { sites: true } },
+      },
     })
     if (!user) throw new TRPCError({ code: 'NOT_FOUND' })
-    return user
+
+    const allTxns = await ctx.prisma.creditTransaction.findMany({
+      where: { userId: user.id },
+      select: { amount: true, type: true },
+      take: 500,
+    })
+    const base = mapUserRow({
+      ...user,
+      creditTxns: allTxns,
+    } as unknown as UserWithRelations)
+
+    return {
+      ...base,
+      emailVerified: !!user.emailVerifiedAt,
+      phone: user.phoneE164 ?? undefined,
+      twoFactorEnabled: !!user.totpEnabledAt,
+      notes: [],
+      recentSites: user.sites.map((s) => ({
+        id: s.id,
+        name: s.name,
+        domain: s.customDomain ?? `${s.subdomain}.forgely.app`,
+        status: (s.status === 'published'
+          ? 'published'
+          : s.status === 'suspended'
+            ? 'paused'
+            : 'draft') as 'draft' | 'published' | 'paused',
+        publishedAt: s.publishedAt ? s.publishedAt.getTime() : null,
+      })),
+      recentTransactions: user.creditTxns.map((t) => ({
+        id: t.id,
+        type:
+          t.type === 'refund' ? 'refund' : t.type === 'purchase' ? 'credits_pack' : 'subscription',
+        amountUsd: Math.round(Math.abs(t.amount) / 100),
+        occurredAt: t.createdAt.getTime(),
+        description: t.description ?? t.type,
+      })),
+    }
   }),
 
   suspend: superAdminProcedure.input(suspendUserInput).mutation(async ({ ctx, input }) => {

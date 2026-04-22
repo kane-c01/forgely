@@ -19,6 +19,7 @@ import {
   productsRouter,
   sitesRouter,
 } from '../routers/index.js'
+import { superRouter } from '../routers/super/index.js'
 import { authRouter } from './auth.js'
 import { billingRouter } from './billing.js'
 import { cnAuthRouter } from './cn-auth.js'
@@ -57,6 +58,8 @@ export const appRouter = router({
   cms: cmsRouter,
   generation: generationRouter,
   copilot: copilotRouter,
+  // Super-admin / platform ops — RBAC re-enforced per procedure.
+  super: superRouter,
 })
 
 export { appRouter as default }

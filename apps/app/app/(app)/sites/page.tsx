@@ -11,7 +11,7 @@ import { selectDataSource } from '@/lib/data-source'
 import { sites as mockSites } from '@/lib/mocks'
 import { formatCurrency, formatNumber, relativeTime } from '@/lib/format'
 import { trpc } from '@/lib/trpc'
-import type { Site } from '@/lib/types'
+import type { Site, SiteStatus } from '@/lib/types'
 
 const STATUS_TONE = {
   published: 'success',
@@ -20,21 +20,46 @@ const STATUS_TONE = {
   archived: 'neutral',
 } as const
 
-/** Adapt the tRPC `sites.list` row shape to our local `Site` UI type. */
-function adaptTrpcSite(row: Record<string, unknown>): Site {
+/** Prisma `Site` row fields we care about on this screen. */
+interface ApiSiteRow {
+  id: string
+  name: string | null
+  subdomain: string
+  customDomain: string | null
+  status: string
+  dnaId: string | null
+  publishedAt: string | Date | null
+  updatedAt: string | Date
+}
+
+/** Map Prisma `Site.status` → the 4-state UI `SiteStatus`. */
+function mapStatus(raw: string): SiteStatus {
+  if (raw === 'published') return 'published'
+  if (raw === 'generating') return 'building'
+  if (raw === 'suspended') return 'archived'
+  return 'draft'
+}
+
+function adaptTrpcSite(row: ApiSiteRow): Site {
+  const domain = row.customDomain || `${row.subdomain}.forgely.app`
   return {
-    id: String(row.id ?? ''),
-    name: String(row.name ?? row.title ?? '(untitled site)'),
-    domain: String(row.domain ?? row.subdomain ?? `${String(row.id)}.forgely.app`),
-    status: (row.status as Site['status']) ?? 'draft',
-    publishedAt: (row.publishedAt as string | null) ?? null,
-    visualDna: String(row.visualDna ?? 'kyoto-ceramic'),
-    thumbnail: typeof row.thumbnail === 'string' ? row.thumbnail : '🌐',
+    id: row.id,
+    name: row.name ?? '(untitled site)',
+    domain,
+    status: mapStatus(row.status),
+    publishedAt:
+      row.publishedAt == null
+        ? null
+        : typeof row.publishedAt === 'string'
+          ? row.publishedAt
+          : new Date(row.publishedAt).toISOString(),
+    visualDna: row.dnaId ?? 'kyoto-ceramic',
+    thumbnail: '🌐',
     metrics: {
-      revenue30d: Number((row.metrics as Record<string, number> | undefined)?.revenue30d ?? 0),
-      orders30d: Number((row.metrics as Record<string, number> | undefined)?.orders30d ?? 0),
-      visitors30d: Number((row.metrics as Record<string, number> | undefined)?.visitors30d ?? 0),
-      conversion: Number((row.metrics as Record<string, number> | undefined)?.conversion ?? 0),
+      revenue30d: 0,
+      orders30d: 0,
+      visitors30d: 0,
+      conversion: 0,
     },
   }
 }
@@ -42,13 +67,12 @@ function adaptTrpcSite(row: Record<string, unknown>): Site {
 export default function SitesIndex() {
   useCopilotContext({ kind: 'global' })
 
-  const query = trpc.sites.list.useQuery({})
-  // tRPC returns whatever the procedure defines; we accept either an array
-  // directly or a `{ rows }` envelope and adapt to the local UI type.
-  const rawRows = Array.isArray(query.data)
-    ? (query.data as Record<string, unknown>[])
-    : ((query.data as { rows?: Record<string, unknown>[] } | undefined)?.rows ?? [])
-  const trpcSites = rawRows.length > 0 ? rawRows.map(adaptTrpcSite) : undefined
+  const query = trpc.sites.list.useQuery({ limit: 50 }, { retry: false })
+
+  // `sites.list` returns `{ items, nextCursor }` (Prisma paginate envelope).
+  const items = (query.data as { items?: ApiSiteRow[] } | undefined)?.items
+  const trpcSites = items ? items.map(adaptTrpcSite) : undefined
+
   const ds = selectDataSource(
     {
       data: trpcSites,

@@ -25,6 +25,7 @@ import type {
   StripePayoutRow,
   StripePayoutStatus,
 } from '@/lib/super'
+import { trpc } from '@/lib/trpc'
 
 type TabId = 'payouts' | 'credits' | 'refunds'
 
@@ -35,7 +36,10 @@ const PAYOUT_TONE: Record<StripePayoutStatus, 'success' | 'info' | 'warning' | '
   failed: 'error',
 }
 
-const CT_TONE: Record<CreditTransactionRow['type'], 'forge' | 'success' | 'warning' | 'info' | 'error'> = {
+const CT_TONE: Record<
+  CreditTransactionRow['type'],
+  'forge' | 'success' | 'warning' | 'info' | 'error'
+> = {
   consumption: 'forge',
   purchase: 'success',
   monthly_reset: 'info',
@@ -50,8 +54,23 @@ const REFUND_TONE: Record<RefundStatus, 'warning' | 'info' | 'success' | 'error'
   rejected: 'error',
 }
 
-export function FinanceClient({ snapshot }: { snapshot: FinanceSnapshot }) {
+export function FinanceClient({ snapshot: initialSnapshot }: { snapshot: FinanceSnapshot }) {
   const [tab, setTab] = useState<TabId>('payouts')
+
+  const liveQuery = trpc.super.finance.overview.useQuery(undefined, {
+    retry: false,
+    staleTime: 30_000,
+  })
+  // Live overview exposes mrr/arr/netRevenue30d/creditTransactions/refunds;
+  // payouts still come from Stripe sync (stubbed — keep mock so the tab
+  // doesn't go blank).
+  const snapshot: FinanceSnapshot = liveQuery.data
+    ? {
+        ...initialSnapshot,
+        ...liveQuery.data,
+        payouts: liveQuery.data.payouts.length ? liveQuery.data.payouts : initialSnapshot.payouts,
+      }
+    : initialSnapshot
 
   const grossSpend = snapshot.creditTransactions
     .filter((tx) => tx.type === 'consumption')
@@ -91,7 +110,7 @@ export function FinanceClient({ snapshot }: { snapshot: FinanceSnapshot }) {
       </div>
 
       <SectionCard title="Ledger" bodyClassName="p-0">
-        <div className="flex border-b border-border-subtle">
+        <div className="border-border-subtle flex border-b">
           <Tab id="payouts" current={tab} onSelect={setTab}>
             Stripe payouts ({snapshot.payouts.length})
           </Tab>
@@ -101,7 +120,7 @@ export function FinanceClient({ snapshot }: { snapshot: FinanceSnapshot }) {
           <Tab id="refunds" current={tab} onSelect={setTab}>
             Refunds ({snapshot.refunds.length})
           </Tab>
-          <div className="ml-auto flex items-center gap-3 px-4 font-mono text-caption uppercase tracking-[0.16em] text-text-muted">
+          <div className="text-caption text-text-muted ml-auto flex items-center gap-3 px-4 font-mono uppercase tracking-[0.16em]">
             Spend ledger {formatCount(grossSpend)} credits · 30d
           </div>
         </div>
@@ -113,7 +132,7 @@ export function FinanceClient({ snapshot }: { snapshot: FinanceSnapshot }) {
 
       <p className="text-caption text-text-muted">
         Stripe webhook reconciliation runs every 5 minutes. Payouts ship to{' '}
-        <span className="font-mono text-text-secondary">acct_forgely_main</span> in USD; FX is
+        <span className="text-text-secondary font-mono">acct_forgely_main</span> in USD; FX is
         handled by Stripe. All ledger entries are append-only.
       </p>
     </div>
@@ -137,10 +156,10 @@ function Tab({
       type="button"
       onClick={() => onSelect(id)}
       className={
-        'border-b-2 px-4 py-3 font-mono text-caption uppercase tracking-[0.18em] transition-colors ' +
+        'text-caption border-b-2 px-4 py-3 font-mono uppercase tracking-[0.18em] transition-colors ' +
         (active
           ? 'border-forge-orange text-forge-amber'
-          : 'border-transparent text-text-muted hover:text-text-primary')
+          : 'text-text-muted hover:text-text-primary border-transparent')
       }
     >
       {children}
@@ -150,13 +169,26 @@ function Tab({
 
 function PayoutsTable({ rows }: { rows: StripePayoutRow[] }) {
   const columns: DataTableColumn<StripePayoutRow>[] = [
-    { key: 'id', header: 'Payout', render: (r) => <span className="font-mono text-caption">{r.id}</span>, sortAccessor: (r) => r.id },
+    {
+      key: 'id',
+      header: 'Payout',
+      render: (r) => <span className="text-caption font-mono">{r.id}</span>,
+      sortAccessor: (r) => r.id,
+    },
     {
       key: 'status',
       header: 'Status',
       render: (r) => (
         <span className="inline-flex items-center gap-2">
-          <StatusDot tone={PAYOUT_TONE[r.status] === 'error' ? 'error' : PAYOUT_TONE[r.status] === 'warning' ? 'warning' : 'ok'} />
+          <StatusDot
+            tone={
+              PAYOUT_TONE[r.status] === 'error'
+                ? 'error'
+                : PAYOUT_TONE[r.status] === 'warning'
+                  ? 'warning'
+                  : 'ok'
+            }
+          />
           <Badge tone={PAYOUT_TONE[r.status]}>{r.status.replace('_', ' ')}</Badge>
         </span>
       ),
@@ -166,19 +198,38 @@ function PayoutsTable({ rows }: { rows: StripePayoutRow[] }) {
       key: 'amount',
       header: 'Amount',
       align: 'right',
-      render: (r) => <span className="font-mono tabular-nums text-forge-amber">{formatUsd(r.amountUsd)}</span>,
+      render: (r) => (
+        <span className="text-forge-amber font-mono tabular-nums">{formatUsd(r.amountUsd)}</span>
+      ),
       sortAccessor: (r) => r.amountUsd,
     },
-    { key: 'bank', header: 'Bank', render: (r) => <span className="font-mono text-caption text-text-muted">•••• {r.bankLast4}</span> },
+    {
+      key: 'bank',
+      header: 'Bank',
+      render: (r) => (
+        <span className="text-caption text-text-muted font-mono">•••• {r.bankLast4}</span>
+      ),
+    },
     {
       key: 'arrival',
       header: 'Arrival',
       align: 'right',
-      render: (r) => <span className="font-mono text-caption text-text-muted">{formatTimestamp(r.arrivalDate)}</span>,
+      render: (r) => (
+        <span className="text-caption text-text-muted font-mono">
+          {formatTimestamp(r.arrivalDate)}
+        </span>
+      ),
       sortAccessor: (r) => r.arrivalDate,
     },
   ]
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} initialSort={{ key: 'arrival', direction: 'desc' }} />
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.id}
+      initialSort={{ key: 'arrival', direction: 'desc' }}
+    />
+  )
 }
 
 function CreditsTable({ rows }: { rows: CreditTransactionRow[] }) {
@@ -186,7 +237,11 @@ function CreditsTable({ rows }: { rows: CreditTransactionRow[] }) {
     {
       key: 'time',
       header: 'When',
-      render: (r) => <span className="font-mono text-caption tabular-nums text-text-muted">{formatRelative(r.occurredAt, MOCK_NOW_UTC_MS)}</span>,
+      render: (r) => (
+        <span className="text-caption text-text-muted font-mono tabular-nums">
+          {formatRelative(r.occurredAt, MOCK_NOW_UTC_MS)}
+        </span>
+      ),
       sortAccessor: (r) => r.occurredAt,
     },
     {
@@ -195,19 +250,30 @@ function CreditsTable({ rows }: { rows: CreditTransactionRow[] }) {
       render: (r) => (
         <div>
           <div className="text-small text-text-primary">{r.userEmail}</div>
-          <div className="font-mono text-caption text-text-muted">{r.userId}</div>
+          <div className="text-caption text-text-muted font-mono">{r.userId}</div>
         </div>
       ),
       sortAccessor: (r) => r.userEmail,
     },
-    { key: 'type', header: 'Type', render: (r) => <Badge tone={CT_TONE[r.type]}>{r.type.replace('_', ' ')}</Badge>, sortAccessor: (r) => r.type },
-    { key: 'desc', header: 'Description', render: (r) => <span className="text-small text-text-secondary">{r.description}</span> },
+    {
+      key: 'type',
+      header: 'Type',
+      render: (r) => <Badge tone={CT_TONE[r.type]}>{r.type.replace('_', ' ')}</Badge>,
+      sortAccessor: (r) => r.type,
+    },
+    {
+      key: 'desc',
+      header: 'Description',
+      render: (r) => <span className="text-small text-text-secondary">{r.description}</span>,
+    },
     {
       key: 'amount',
       header: 'Δ Credits',
       align: 'right',
       render: (r) => (
-        <span className={'font-mono tabular-nums ' + (r.amount < 0 ? 'text-error' : 'text-success')}>
+        <span
+          className={'font-mono tabular-nums ' + (r.amount < 0 ? 'text-error' : 'text-success')}
+        >
           {r.amount > 0 ? '+' : ''}
           {formatCount(r.amount)}
         </span>
@@ -218,32 +284,54 @@ function CreditsTable({ rows }: { rows: CreditTransactionRow[] }) {
       key: 'balance',
       header: 'Balance',
       align: 'right',
-      render: (r) => <span className="font-mono tabular-nums text-text-secondary">{formatCount(r.balanceAfter)}</span>,
+      render: (r) => (
+        <span className="text-text-secondary font-mono tabular-nums">
+          {formatCount(r.balanceAfter)}
+        </span>
+      ),
       sortAccessor: (r) => r.balanceAfter,
     },
   ]
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} initialSort={{ key: 'time', direction: 'desc' }} density="compact" />
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.id}
+      initialSort={{ key: 'time', direction: 'desc' }}
+      density="compact"
+    />
+  )
 }
 
 function RefundsTable({ rows }: { rows: RefundRow[] }) {
   const columns: DataTableColumn<RefundRow>[] = [
-    { key: 'id', header: 'Refund', render: (r) => <span className="font-mono text-caption">{r.id}</span> },
+    {
+      key: 'id',
+      header: 'Refund',
+      render: (r) => <span className="text-caption font-mono">{r.id}</span>,
+    },
     {
       key: 'user',
       header: 'User',
       render: (r) => (
         <div>
           <div className="text-small text-text-primary">{r.userEmail}</div>
-          <div className="font-mono text-caption text-text-muted">{r.userId}</div>
+          <div className="text-caption text-text-muted font-mono">{r.userId}</div>
         </div>
       ),
     },
-    { key: 'reason', header: 'Reason', render: (r) => <span className="text-small text-text-secondary">{r.reason}</span> },
+    {
+      key: 'reason',
+      header: 'Reason',
+      render: (r) => <span className="text-small text-text-secondary">{r.reason}</span>,
+    },
     {
       key: 'amount',
       header: 'Amount',
       align: 'right',
-      render: (r) => <span className="font-mono tabular-nums text-error">−{formatUsd(r.amountUsd)}</span>,
+      render: (r) => (
+        <span className="text-error font-mono tabular-nums">−{formatUsd(r.amountUsd)}</span>
+      ),
       sortAccessor: (r) => r.amountUsd,
     },
     {
@@ -257,7 +345,12 @@ function RefundsTable({ rows }: { rows: RefundRow[] }) {
       header: 'Age',
       align: 'right',
       render: (r) => (
-        <span className={'font-mono text-caption tabular-nums ' + (r.ageHours > 24 ? 'text-error' : 'text-text-muted')}>
+        <span
+          className={
+            'text-caption font-mono tabular-nums ' +
+            (r.ageHours > 24 ? 'text-error' : 'text-text-muted')
+          }
+        >
           {r.ageHours}h
         </span>
       ),
@@ -279,5 +372,12 @@ function RefundsTable({ rows }: { rows: RefundRow[] }) {
       ),
     },
   ]
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} initialSort={{ key: 'age', direction: 'desc' }} />
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.id}
+      initialSort={{ key: 'age', direction: 'desc' }}
+    />
+  )
 }
