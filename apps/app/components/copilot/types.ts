@@ -40,6 +40,7 @@ export type ToolName =
   | 'rewrite_copy'
   | 'bulk_update_products'
   | 'suggest_pricing'
+  | 'generate_photos'
   // theme
   | 'modify_theme_block'
   | 'add_theme_block'
@@ -55,14 +56,42 @@ export type ToolName =
   | 'create_discount'
   | 'send_campaign'
   | 'schedule_email'
-  // customers
+  // orders / customers
   | 'send_customer_message'
   | 'issue_refund'
   | 'tag_customer'
+  | 'mark_fulfilled'
   // analytics
   | 'compare_periods'
   | 'forecast_revenue'
   | 'identify_trends'
+  // compliance
+  | 'run_compliance_check'
+  | 'apply_compliance_fix'
+  // seo
+  | 'run_seo_audit'
+  | 'submit_sitemap'
+  | 'research_keyword'
+  // super admin — users
+  | 'super_query_user'
+  | 'super_ban_user'
+  | 'super_unban_user'
+  | 'super_credit_adjustment'
+  | 'super_login_as_user'
+  // super admin — finance
+  | 'approve_refund'
+  | 'deny_refund'
+  | 'super_force_refund'
+  | 'super_export_finance'
+  // super admin — sites
+  | 'super_freeze_site'
+  | 'super_unfreeze_site'
+  // super admin — plugins
+  | 'approve_plugin'
+  | 'reject_plugin'
+  // super admin — marketing
+  | 'super_send_announcement'
+  | 'launch_email_campaign'
 
 export interface ToolCall {
   id: string

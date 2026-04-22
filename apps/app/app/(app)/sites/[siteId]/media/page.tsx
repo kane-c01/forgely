@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 
 import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
+import { MediaCopilotBridge } from '@/components/copilot/bridges'
 import { MediaCard } from '@/components/media/media-card'
 import { MediaDetailDrawer } from '@/components/media/media-detail-drawer'
 import { PageHeader } from '@/components/shell/page-header'
@@ -15,15 +16,16 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { mediaAssets as ALL_ASSETS } from '@/lib/mocks'
 import type { MediaAsset, MediaKind } from '@/lib/types'
 
-const FILTERS: Array<{ value: 'all' | MediaKind; label: string; icon: 'Image' | 'Brand' | 'Box' }> = [
-  { value: 'all', label: 'All', icon: 'Image' },
-  { value: 'logo', label: 'Logos', icon: 'Brand' },
-  { value: 'product-photo', label: 'Product', icon: 'Box' },
-  { value: 'lifestyle', label: 'Lifestyle', icon: 'Image' },
-  { value: 'video', label: 'Video', icon: 'Image' },
-  { value: '3d', label: '3D', icon: 'Box' },
-  { value: 'icon', label: 'Icons', icon: 'Image' },
-]
+const FILTERS: Array<{ value: 'all' | MediaKind; label: string; icon: 'Image' | 'Brand' | 'Box' }> =
+  [
+    { value: 'all', label: 'All', icon: 'Image' },
+    { value: 'logo', label: 'Logos', icon: 'Brand' },
+    { value: 'product-photo', label: 'Product', icon: 'Box' },
+    { value: 'lifestyle', label: 'Lifestyle', icon: 'Image' },
+    { value: 'video', label: 'Video', icon: 'Image' },
+    { value: '3d', label: '3D', icon: 'Box' },
+    { value: 'icon', label: 'Icons', icon: 'Image' },
+  ]
 
 export default function MediaPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'media', siteId: params.siteId })
@@ -46,6 +48,7 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
+      <MediaCopilotBridge siteId={params.siteId} />
       <PageHeader
         eyebrow="Brand"
         title="Media library"
@@ -69,7 +72,7 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
           <>
             <span>{rows.length} assets</span>
             <span>·</span>
-            <span className="tabular-nums text-text-secondary">{totalSize.toFixed(1)} MB</span>
+            <span className="text-text-secondary tabular-nums">{totalSize.toFixed(1)} MB</span>
           </>
         }
       />
@@ -87,7 +90,10 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Icon.Search
+              size={14}
+              className="text-text-muted absolute left-3 top-1/2 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -104,12 +110,21 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
           icon={<Icon.Image size={28} />}
           title="No assets yet"
           description="Drop files here, paste from clipboard, or ask Copilot to generate them."
-          action={<Button><Icon.Upload size={14} /> Upload first asset</Button>}
+          action={
+            <Button>
+              <Icon.Upload size={14} /> Upload first asset
+            </Button>
+          }
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {rows.map((a) => (
-            <MediaCard key={a.id} asset={a} selected={selected?.id === a.id} onClick={() => setSelected(a)} />
+            <MediaCard
+              key={a.id}
+              asset={a}
+              selected={selected?.id === a.id}
+              onClick={() => setSelected(a)}
+            />
           ))}
         </div>
       )}

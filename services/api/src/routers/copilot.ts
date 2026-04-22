@@ -156,4 +156,43 @@ export const copilotRouter = router({
     })
     return { ok: true as const }
   }),
+
+  /**
+   * 记录一次 Copilot 工具调用的审计日志。
+   *
+   * 被 `useCopilotTool` 在 runner 成功 / 失败后调用，使得每个工具执行
+   * 都有可追溯的 AuditLog 行（满足 W5 dispatch §5 要求）。
+   */
+  recordToolUse: protectedProcedure
+    .input(
+      z.object({
+        tool: z.string().min(1).max(64),
+        outcome: z.enum(['success', 'failed']).default('success'),
+        targetType: z.string().min(1).max(40).default('copilot'),
+        targetId: z.string().min(1).max(200).default('n/a'),
+        arguments: z.record(z.unknown()).optional(),
+        result: z.string().max(2000).optional(),
+        error: z.string().max(2000).optional(),
+        /** 路由 context（dashboard / product / super 等）。 */
+        pageContext: z.record(z.unknown()).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await recordAudit({
+        actorId: ctx.user.id,
+        action: input.outcome === 'success' ? 'copilot.tool.executed' : 'copilot.tool.failed',
+        targetType: input.targetType,
+        targetId: input.targetId,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+        after: {
+          tool: input.tool,
+          arguments: input.arguments ?? {},
+          result: input.result,
+          error: input.error,
+          pageContext: input.pageContext,
+        },
+      })
+      return { ok: true as const, loggedAt: new Date().toISOString() }
+    }),
 })

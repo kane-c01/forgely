@@ -25,6 +25,7 @@ import {
   type SiteMeta,
 } from '@forgely/seo'
 
+import { SeoCopilotBridge } from '@/components/copilot/bridges'
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -231,6 +232,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoCopilotBridge siteId={params.siteId} />
       <PageHeader
         eyebrow="SEO + GEO"
         title="SEO control center"

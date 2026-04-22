@@ -40,6 +40,10 @@ export const AUDIT_ACTIONS = [
   'auth.email_verified',
   'auth.totp_enrolled',
   'auth.totp_disabled',
+  /** Copilot 工具执行 —— after.tool, after.arguments, after.result（W5）。 */
+  'copilot.tool.executed',
+  /** Copilot 工具执行失败 —— after.tool, after.error（W5）。 */
+  'copilot.tool.failed',
   'sites.create',
   'sites.update',
   'sites.archive',

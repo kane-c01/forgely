@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { useCopilotContext } from '@/components/copilot/copilot-provider'
+import { CustomerDetailCopilotBridge } from '@/components/copilot/bridges'
 import { OrderStatusBadge } from '@/components/orders/order-status'
 import { AIQuickActions } from '@/components/products/ai-quick-actions'
 import { PageHeader } from '@/components/shell/page-header'
@@ -33,7 +34,12 @@ export default function CustomerDetailPage({
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <div className="flex items-center gap-2 font-mono text-caption text-text-muted">
+      <CustomerDetailCopilotBridge
+        siteId={params.siteId}
+        customerId={customer.id}
+        customerName={customer.name}
+      />
+      <div className="text-caption text-text-muted flex items-center gap-2 font-mono">
         <Link href={`/sites/${params.siteId}/customers`} className="hover:text-text-primary">
           Customers
         </Link>
@@ -70,10 +76,26 @@ export default function CustomerDetailPage({
 
       <AIQuickActions
         actions={[
-          { emoji: '✨', label: 'Forecast LTV', prompt: `Forecast lifetime value for ${customer.name}.` },
-          { emoji: '🎟', label: 'Send VIP discount', prompt: `Send a 20% off code to ${customer.name} valid for 14 days.` },
-          { emoji: '🏷', label: 'Tag as wholesale', prompt: `Tag ${customer.name} as wholesale and apply tier-2 pricing.` },
-          { emoji: '📨', label: 'Draft re-engagement email', prompt: `Draft a friendly re-engagement email for ${customer.name}.` },
+          {
+            emoji: '✨',
+            label: 'Forecast LTV',
+            prompt: `Forecast lifetime value for ${customer.name}.`,
+          },
+          {
+            emoji: '🎟',
+            label: 'Send VIP discount',
+            prompt: `Send a 20% off code to ${customer.name} valid for 14 days.`,
+          },
+          {
+            emoji: '🏷',
+            label: 'Tag as wholesale',
+            prompt: `Tag ${customer.name} as wholesale and apply tier-2 pricing.`,
+          },
+          {
+            emoji: '📨',
+            label: 'Draft re-engagement email',
+            prompt: `Draft a friendly re-engagement email for ${customer.name}.`,
+          },
         ]}
       />
 
@@ -92,33 +114,33 @@ export default function CustomerDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Order history</CardTitle>
-              <span className="font-mono text-caption text-text-muted">
+              <span className="text-caption text-text-muted font-mono">
                 {customerOrders.length} order{customerOrders.length === 1 ? '' : 's'}
               </span>
             </CardHeader>
             <CardContent className="p-0">
               {customerOrders.length === 0 ? (
-                <p className="px-5 py-8 text-center text-small text-text-muted">No orders yet.</p>
+                <p className="text-small text-text-muted px-5 py-8 text-center">No orders yet.</p>
               ) : (
-                <ul className="divide-y divide-border-subtle">
+                <ul className="divide-border-subtle divide-y">
                   {customerOrders.map((o) => (
                     <li key={o.id}>
                       <Link
                         href={`/sites/${params.siteId}/orders/${o.id}`}
-                        className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg-elevated/60"
+                        className="hover:bg-bg-elevated/60 flex items-center justify-between gap-3 px-5 py-3 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-caption text-text-muted">{o.number}</span>
+                          <span className="text-caption text-text-muted font-mono">{o.number}</span>
                           <span className="text-small text-text-primary">
                             {o.itemCount} item{o.itemCount === 1 ? '' : 's'}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
                           <OrderStatusBadge status={o.status} />
-                          <span className="font-mono tabular-nums text-text-primary">
+                          <span className="text-text-primary font-mono tabular-nums">
                             {formatCurrency(o.totalCents)}
                           </span>
-                          <span className="font-mono text-caption text-text-muted">
+                          <span className="text-caption text-text-muted font-mono">
                             {relativeTime(o.createdAt)}
                           </span>
                         </div>
@@ -140,14 +162,14 @@ export default function CustomerDetailPage({
               <div className="flex items-center gap-3">
                 <Avatar name={customer.name} />
                 <div>
-                  <p className="text-small font-medium text-text-primary">{customer.name}</p>
-                  <p className="font-mono text-caption text-text-muted">{customer.email}</p>
+                  <p className="text-small text-text-primary font-medium">{customer.name}</p>
+                  <p className="text-caption text-text-muted font-mono">{customer.email}</p>
                   {customer.phone ? (
-                    <p className="font-mono text-caption text-text-muted">{customer.phone}</p>
+                    <p className="text-caption text-text-muted font-mono">{customer.phone}</p>
                   ) : null}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-caption">
+              <div className="text-caption grid grid-cols-2 gap-2">
                 <Button size="xs" variant="secondary">
                   <Icon.Send size={12} /> Email
                 </Button>
@@ -176,11 +198,11 @@ export default function CustomerDetailPage({
 
 function KpiTile({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-lg border border-border-subtle bg-bg-surface p-4">
-      <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">{label}</p>
+    <div className="border-border-subtle bg-bg-surface rounded-lg border p-4">
+      <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">{label}</p>
       <p
         className={
-          'mt-2 font-display text-h2 leading-none tabular-nums ' +
+          'font-display text-h2 mt-2 tabular-nums leading-none ' +
           (accent ? 'text-forge-amber' : 'text-text-primary')
         }
       >
