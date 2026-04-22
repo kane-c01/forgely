@@ -11,8 +11,25 @@ import { WechatPayProvider } from './wechat.js'
 import type { PaymentChannel, PaymentProvider } from './types.js'
 
 export * from './types.js'
-export { WechatPayProvider } from './wechat.js'
-export { AlipayProvider } from './alipay.js'
+export { WechatPayProvider, isWechatMockMode } from './wechat.js'
+export { AlipayProvider, isAlipayMockMode } from './alipay.js'
+export {
+  activateCnSubscription,
+  generateCnOrderId,
+  rememberCheckoutContext,
+  recallCheckoutContext,
+  checkCnPaymentStatus,
+  handleCnPaymentWebhook,
+  CN_PLAN_CREDITS,
+  CN_PLAN_PRICE_CNY_FEN,
+} from './cn-billing.js'
+export type {
+  ActivateCnSubscriptionInput,
+  ActivateCnSubscriptionResult,
+  GenerateCnOrderIdInput,
+  HandleCnWebhookInput,
+  HandleCnWebhookResult,
+} from './cn-billing.js'
 
 export function getPaymentProvider(channel: PaymentChannel): PaymentProvider {
   switch (channel) {

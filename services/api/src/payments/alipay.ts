@@ -1,14 +1,18 @@
 /**
- * 支付宝 OpenAPI Provider — PC / Wap / App / Native(扫码)。
+ * 支付宝 OpenAPI Provider — PC / Wap / App / Native(扫码).
  *
- * 真签名实现（仅依赖 node:crypto，无 alipay-sdk peer dep）：
+ * RSA2 签名实现（node:crypto，同时兼容 alipay-sdk）：
  *   - 网关：https://openapi.alipay.com/gateway.do
  *   - 加签 RSA2 (SHA256WithRSA): app_private_key
  *   - 验签 RSA2: alipay_public_key
  *   - 支持 method: alipay.trade.page.pay / wap.pay / precreate / app.pay /
  *                  alipay.trade.refund
  *
- * @owner W3 — Sprint 3 (生产签名实现)
+ * Mock mode:
+ *   ALIPAY_APP_ID / ALIPAY_APP_PRIVATE_KEY / ALIPAY_PUBLIC_KEY 任一缺失时走 mock ——
+ *   createCheckout 返回假 qr_code / redirect_url，verifyWebhook 直接 trust。
+ *
+ * @owner W4 — payments real
  */
 import { createPrivateKey, createPublicKey, createSign, createVerify } from 'node:crypto'
 
@@ -29,6 +33,15 @@ interface Env {
   gateway: string
 }
 
+/** True when required prod env vars are missing — we fall back to mock mode. */
+export const isAlipayMockMode = (): boolean => {
+  return (
+    !process.env.ALIPAY_APP_ID ||
+    !process.env.ALIPAY_APP_PRIVATE_KEY ||
+    !process.env.ALIPAY_PUBLIC_KEY
+  )
+}
+
 function readEnv(): Env {
   const env = {
     appId: process.env.ALIPAY_APP_ID ?? '',
@@ -47,7 +60,6 @@ function readEnv(): Env {
 
 const wrapPrivateKeyPem = (raw: string): string => {
   if (raw.includes('-----BEGIN')) return raw
-  // Treat as raw base64 PKCS#8 string.
   const lines = raw.match(/.{1,64}/g) ?? []
   return `-----BEGIN PRIVATE KEY-----\n${lines.join('\n')}\n-----END PRIVATE KEY-----\n`
 }
@@ -91,6 +103,18 @@ export class AlipayProvider implements PaymentProvider {
   readonly channel = 'alipay' as const
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutResult> {
+    if (isAlipayMockMode()) {
+      const qr = `https://qr.alipay.com/mock/${input.orderId}`
+      const redirect = `https://openapi.alipay.com/mock?out_trade_no=${input.orderId}`
+      return {
+        channel: 'alipay',
+        qrCode: input.scene === 'native' ? qr : undefined,
+        redirectUrl: input.scene !== 'native' ? redirect : undefined,
+        externalId: input.orderId,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      }
+    }
+
     const env = readEnv()
     const method = ((): string => {
       switch (input.scene) {
@@ -171,6 +195,24 @@ export class AlipayProvider implements PaymentProvider {
 
   async verifyWebhook(_headers: Headers, body: string): Promise<WebhookEvent> {
     void _headers
+    if (isAlipayMockMode()) {
+      const params = Object.fromEntries(new URLSearchParams(body)) as Record<string, string>
+      const orderId = params.out_trade_no
+      if (!orderId) {
+        throw new ForgelyError('ALIPAY_WEBHOOK_INVALID', 'mock 模式缺少 out_trade_no。', 400)
+      }
+      return {
+        channel: 'alipay',
+        type: params.trade_status === 'TRADE_SUCCESS' || !params.trade_status ? 'paid' : 'failed',
+        orderId,
+        externalId: params.trade_no ?? `mock_tx_${orderId}`,
+        amountCents: Math.round(parseFloat(params.total_amount ?? '0') * 100),
+        currency: 'CNY',
+        paidAt: new Date(),
+        raw: { mock: true, params },
+      }
+    }
+
     const env = readEnv()
     const params = Object.fromEntries(new URLSearchParams(body)) as Record<string, string>
     const signature = params.sign
@@ -212,6 +254,14 @@ export class AlipayProvider implements PaymentProvider {
     amountCents: number
     reason?: string
   }): Promise<RefundResult> {
+    if (isAlipayMockMode()) {
+      return {
+        refundId: `mock_alipay_refund_${input.externalId}`,
+        status: 'success',
+        amountCents: input.amountCents,
+      }
+    }
+
     const env = readEnv()
     const bizContent = {
       trade_no: input.externalId,
