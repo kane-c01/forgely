@@ -81,10 +81,13 @@ export const FORGELY_ERROR_CODES = [
   'WECHAT_UNIONID_MISSING',
   // CN auth — sms
   'SMS_NOT_CONFIGURED',
+  'SMS_SEND_FAILED',
   'INVALID_PHONE',
   'OTP_NOT_FOUND',
   'OTP_INVALID',
   'OTP_LOCKED',
+  // CN auth — wechat mock
+  'WECHAT_MOCK_DISALLOWED',
   // generic
   'NOT_FOUND',
   'CONFLICT',

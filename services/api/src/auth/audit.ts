@@ -33,6 +33,8 @@ export const recordLoginEvent = async (input: LoginEventInput): Promise<void> =>
 export const AUDIT_ACTIONS = [
   'auth.signup',
   'auth.signin',
+  /** 泛登录事件（W6 CN pivot）—— after.provider = 'wechat' | 'phone' | 'email'。 */
+  'auth.login',
   'auth.signout',
   'auth.signout_all',
   'auth.password_reset_request',
@@ -40,6 +42,8 @@ export const AUDIT_ACTIONS = [
   'auth.email_verified',
   'auth.totp_enrolled',
   'auth.totp_disabled',
+  /** 首次登录后完成 onboarding 表单。 */
+  'auth.onboarded',
   'sites.create',
   'sites.update',
   'sites.archive',

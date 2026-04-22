@@ -77,6 +77,9 @@
     "schema": "prisma/schema.prisma"
   },
   "dependencies": {
+    "@alicloud/dysmsapi20170525": "^4.5.1",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/tea-util": "^1.4.11",
     "@auth/core": "^0.37.4",
     "@forgely/ai-agents": "workspace:*",
     "@forgely/compliance": "workspace:*",
@@ -85,8 +88,8 @@
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^8.42.0",
     "@trpc/server": "^10.45.2",
-    "ioredis": "^5.4.1",
     "argon2": "^0.41.1",
+    "ioredis": "^5.4.1",
     "jose": "^5.9.6",
     "next-auth": "^5.0.0-beta.25",
     "stripe": "^17.4.0",

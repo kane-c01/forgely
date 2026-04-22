@@ -64,6 +64,16 @@ model User {
   /// UI 语言偏好（zh-CN / zh-HK / zh-TW / en）。
   locale            String    @default("zh-CN")
 
+  /// 首次登录完成 onboarding 的时间（公司名/类目/目标市场）。
+  /// null → 下次登录仍然 redirect /onboarding。填完后发 100 免费积分。
+  onboardedAt       DateTime?
+  /// 公司/商家名（onboarding 采集）。
+  companyName       String?
+  /// 经营品类 slug（apparel|beauty|electronics|home|food|other）。
+  businessCategory  String?
+  /// 目标市场 ISO 国家代码 JSON 数组 ["US","EU","JP"]。
+  targetMarkets     Json?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
