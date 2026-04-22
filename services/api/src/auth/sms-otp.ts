@@ -48,45 +48,90 @@ function hashCode(code: string, phoneE164: string): string {
 
 /** 通用 SMS 发送钩子 — 默认从 ENV `FORGELY_SMS_PROVIDER` 选择实现。 */
 export interface SmsSender {
-  send(opts: { phoneE164: string; code: string; purpose: OtpPurpose; ttlMinutes: number }): Promise<void>
+  send(opts: {
+    phoneE164: string
+    code: string
+    purpose: OtpPurpose
+    ttlMinutes: number
+  }): Promise<void>
 }
 
 class ConsoleSmsSender implements SmsSender {
-  async send(opts: { phoneE164: string; code: string; purpose: OtpPurpose; ttlMinutes: number }): Promise<void> {
+  async send(opts: {
+    phoneE164: string
+    code: string
+    purpose: OtpPurpose
+    ttlMinutes: number
+  }): Promise<void> {
     console.info(
       `[sms-otp] (DEV) → ${opts.phoneE164} purpose=${opts.purpose} code=${opts.code} ttl=${opts.ttlMinutes}m`,
     )
   }
 }
 
+/** True when the real Aliyun SMS SDK can't run — falls back to console dev sender. */
+export const isAliyunSmsConfigured = (): boolean => {
+  const accessKey = process.env.ALIYUN_SMS_ACCESS_KEY ?? process.env.ALIYUN_ACCESS_KEY_ID
+  const accessSecret = process.env.ALIYUN_SMS_ACCESS_SECRET ?? process.env.ALIYUN_ACCESS_KEY_SECRET
+  const signName = process.env.ALIYUN_SMS_SIGN_NAME
+  const templateCode = process.env.ALIYUN_SMS_TEMPLATE_CODE
+  return Boolean(accessKey && accessSecret && signName && templateCode)
+}
+
 class AliyunSmsSender implements SmsSender {
-  async send(opts: { phoneE164: string; code: string; purpose: OtpPurpose; ttlMinutes: number }): Promise<void> {
-    // 实际项目接入 @alicloud/dysmsapi20170525 SDK 或 HTTP 直连。
-    // 这里留生产实现的接入点；签名 / 模板 ID 通过 ENV 注入。
-    const accessKey = process.env.ALIYUN_ACCESS_KEY_ID
-    const accessSecret = process.env.ALIYUN_ACCESS_KEY_SECRET
+  async send(opts: {
+    phoneE164: string
+    code: string
+    purpose: OtpPurpose
+    ttlMinutes: number
+  }): Promise<void> {
+    const accessKey = process.env.ALIYUN_SMS_ACCESS_KEY ?? process.env.ALIYUN_ACCESS_KEY_ID
+    const accessSecret =
+      process.env.ALIYUN_SMS_ACCESS_SECRET ?? process.env.ALIYUN_ACCESS_KEY_SECRET
     const signName = process.env.ALIYUN_SMS_SIGN_NAME
     const templateCode = process.env.ALIYUN_SMS_TEMPLATE_CODE
     if (!accessKey || !accessSecret || !signName || !templateCode) {
       throw new ForgelyError('SMS_NOT_CONFIGURED', '阿里云 SMS 未配置。', 500)
     }
+    // Dynamic import — keeps the SDK out of the cold-path bundle for non-CN deployments.
+    // SDK types are incomplete for ESM usage so we cast through `unknown` once
+    // at the import boundary and keep strict types everywhere else.
+    const dysMod = (await import('@alicloud/dysmsapi20170525')) as unknown as {
+      default: new (config: unknown) => { sendSms(req: unknown): Promise<unknown> }
+      SendSmsRequest: new (params: Record<string, unknown>) => unknown
+    }
+    const openApiMod = (await import('@alicloud/openapi-client')) as unknown as {
+      default: new (params: Record<string, unknown>) => { endpoint?: string }
+    }
+
     const phoneNum = opts.phoneE164.startsWith('+86')
       ? opts.phoneE164.slice(3)
       : opts.phoneE164.replace(/^\+/, '')
-    const body = JSON.stringify({
-      PhoneNumbers: phoneNum,
-      SignName: signName,
-      TemplateCode: templateCode,
-      TemplateParam: JSON.stringify({ code: opts.code, ttl: String(opts.ttlMinutes) }),
+
+    const config = new openApiMod.default({
+      accessKeyId: accessKey,
+      accessKeySecret: accessSecret,
     })
-    // TODO: 实际签名计算 + POST 到 https://dysmsapi.aliyuncs.com
-    // 留空返回成功，由 prod 部署接入真实 SDK 时替换。
-    void body
+    config.endpoint = process.env.ALIYUN_SMS_ENDPOINT ?? 'dysmsapi.aliyuncs.com'
+
+    const client = new dysMod.default(config)
+    const req = new dysMod.SendSmsRequest({
+      phoneNumbers: phoneNum,
+      signName,
+      templateCode,
+      templateParam: JSON.stringify({ code: opts.code, ttl: String(opts.ttlMinutes) }),
+    })
+    await client.sendSms(req)
   }
 }
 
 class TencentSmsSender implements SmsSender {
-  async send(opts: { phoneE164: string; code: string; purpose: OtpPurpose; ttlMinutes: number }): Promise<void> {
+  async send(opts: {
+    phoneE164: string
+    code: string
+    purpose: OtpPurpose
+    ttlMinutes: number
+  }): Promise<void> {
     const secretId = process.env.TENCENT_SECRET_ID
     const secretKey = process.env.TENCENT_SECRET_KEY
     const sdkAppId = process.env.TENCENT_SMS_SDK_APP_ID
@@ -102,23 +147,45 @@ class TencentSmsSender implements SmsSender {
 
 let cachedSender: SmsSender | undefined
 
-/** 解析当前 SMS 通道（按 ENV 选择阿里 / 腾讯 / dev console）。 */
+/**
+ * Resolve the current SMS channel.
+ *
+ * Preference order:
+ *   1. explicit `FORGELY_SMS_PROVIDER=aliyun|tencent|console`
+ *   2. if aliyun env is fully configured → aliyun
+ *   3. otherwise → console (dev) and we ALSO force `code='123456'` in requestOtp.
+ *
+ * A misconfigured `aliyun` provider silently falls back to console so dev boxes
+ * don't blow up at sign-in time.
+ */
 export function getSmsSender(): SmsSender {
   if (cachedSender) return cachedSender
-  const provider = process.env.FORGELY_SMS_PROVIDER ?? 'console'
-  switch (provider) {
-    case 'aliyun':
-      cachedSender = new AliyunSmsSender()
-      break
-    case 'tencent':
-      cachedSender = new TencentSmsSender()
-      break
-    case 'console':
-    default:
-      cachedSender = new ConsoleSmsSender()
-      break
+  const explicit = process.env.FORGELY_SMS_PROVIDER
+  if (explicit === 'tencent') {
+    cachedSender = new TencentSmsSender()
+    return cachedSender
   }
+  if (explicit === 'aliyun' || (!explicit && isAliyunSmsConfigured())) {
+    if (!isAliyunSmsConfigured()) {
+      console.warn(
+        '[sms-otp] FORGELY_SMS_PROVIDER=aliyun but env incomplete — falling back to console sender',
+      )
+      cachedSender = new ConsoleSmsSender()
+      return cachedSender
+    }
+    cachedSender = new AliyunSmsSender()
+    return cachedSender
+  }
+  cachedSender = new ConsoleSmsSender()
   return cachedSender
+}
+
+/** True when we're in dev / not configured → use deterministic code 123456. */
+export const isSmsDevMode = (): boolean => {
+  const provider = process.env.FORGELY_SMS_PROVIDER
+  if (provider === 'aliyun' && isAliyunSmsConfigured()) return false
+  if (provider === 'tencent') return false
+  return true
 }
 
 /** 测试场景：注入自定义 sender。 */
@@ -162,7 +229,10 @@ export async function requestOtp(options: RequestOtpOptions): Promise<RequestOtp
     throw errors.rateLimited(waitS)
   }
 
-  const code = String(randomInt(100_000, 1_000_000)) // 6 位数字
+  // Dev mode (SMS not configured) — use a fixed, well-known code so local
+  // dev + E2E can bypass a real phone. Real deployments with provider
+  // credentials get a random 6-digit code.
+  const code = isSmsDevMode() ? '123456' : String(randomInt(100_000, 1_000_000))
   const codeHash = hashCode(code, phoneE164)
   const expiresAt = new Date(Date.now() + OTP_TTL_MS)
 

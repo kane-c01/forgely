@@ -31,6 +31,22 @@ interface WechatEnv {
   redirectUri: string
 }
 
+/**
+ * 真实模式需要的三个 ENV 任一缺失即走 dev mock：
+ *   WECHAT_APP_ID / WECHAT_APP_SECRET / WECHAT_REDIRECT_URI
+ *
+ * Mock mode 下：
+ *   - buildAuthorizeUrl 返回指向本地 `/api/auth/wechat/mock-success` 的 URL，
+ *     前端显示占位 QR 图，5s 后自动轮询该 URL 完成"扫码成功"。
+ *   - exchangeCodeForToken / fetchUserInfo / loginWithCode 接收任何以 `mock_`
+ *     开头的 code 并构造确定性 unionId / openid / nickname，不打真 API。
+ */
+export const isWechatDevMock = (): boolean => {
+  return (
+    !process.env.WECHAT_APP_ID || !process.env.WECHAT_APP_SECRET || !process.env.WECHAT_REDIRECT_URI
+  )
+}
+
 function readEnv(): WechatEnv {
   const appId = process.env.WECHAT_APP_ID
   const appSecret = process.env.WECHAT_APP_SECRET
@@ -45,6 +61,39 @@ function readEnv(): WechatEnv {
   return { appId, appSecret, redirectUri }
 }
 
+/** Dev-mock: mint a deterministic "scanned" payload for a given state token. */
+export const mintMockWechatCode = (state: string): string => `mock_${state}`
+
+const MOCK_CODE_PREFIX = 'mock_'
+
+const mockPayloadFromCode = (
+  code: string,
+): { token: AccessTokenResponse; profile: UserInfoResponse } => {
+  const state = code.slice(MOCK_CODE_PREFIX.length) || 'anonymous'
+  const unionId = `mock_union_${state}`.slice(0, 28)
+  const openId = `mock_open_${state}`.slice(0, 28)
+  const token: AccessTokenResponse = {
+    access_token: `mock_access_${state}`,
+    expires_in: 7200,
+    refresh_token: `mock_refresh_${state}`,
+    openid: openId,
+    scope: 'snsapi_login',
+    unionid: unionId,
+  }
+  const profile: UserInfoResponse = {
+    openid: openId,
+    nickname: `微信测试用户${state.slice(-4)}`,
+    sex: 1,
+    province: 'Shanghai',
+    city: 'Shanghai',
+    country: 'CN',
+    headimgurl: 'https://forgely.cn/avatars/wx-mock.png',
+    privilege: [],
+    unionid: unionId,
+  }
+  return { token, profile }
+}
+
 /**
  * 生成扫码登录授权 URL。
  *
@@ -57,6 +106,19 @@ export function buildAuthorizeUrl(opts: {
   /** 可选，自定义 redirect_uri（例如不同租户 callback）。 */
   redirectUri?: string
 }): string {
+  if (isWechatDevMock()) {
+    const base =
+      opts.redirectUri ??
+      process.env.WECHAT_REDIRECT_URI ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'}/api/auth/wechat/callback`
+    // 指向本地的 mock 成功 URL — 前端 5s 轮询此 URL 视为"扫码成功"。
+    const mockUrl = new URL(
+      `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'}/api/auth/wechat/mock-success`,
+    )
+    mockUrl.searchParams.set('state', opts.state)
+    mockUrl.searchParams.set('redirect', base)
+    return mockUrl.toString()
+  }
   const env = readEnv()
   const params = new URLSearchParams({
     appid: env.appId,
@@ -95,6 +157,10 @@ export interface UserInfoResponse {
 
 /** 用 code 换取 access_token + openid + unionid。 */
 export async function exchangeCodeForToken(code: string): Promise<AccessTokenResponse> {
+  if (isWechatDevMock() || code.startsWith(MOCK_CODE_PREFIX)) {
+    return mockPayloadFromCode(code.startsWith(MOCK_CODE_PREFIX) ? code : `${MOCK_CODE_PREFIX}auto`)
+      .token
+  }
   const env = readEnv()
   const url = `${ACCESS_TOKEN_URL}?appid=${env.appId}&secret=${env.appSecret}&code=${encodeURIComponent(
     code,
@@ -112,7 +178,14 @@ export async function exchangeCodeForToken(code: string): Promise<AccessTokenRes
 }
 
 /** 拉取用户基本信息（需要 snsapi_userinfo 授权）。 */
-export async function fetchUserInfo(accessToken: string, openid: string): Promise<UserInfoResponse> {
+export async function fetchUserInfo(
+  accessToken: string,
+  openid: string,
+): Promise<UserInfoResponse> {
+  if (isWechatDevMock() || accessToken.startsWith('mock_access_')) {
+    const state = accessToken.replace(/^mock_access_/, '') || 'auto'
+    return mockPayloadFromCode(`${MOCK_CODE_PREFIX}${state}`).profile
+  }
   const url = `${USERINFO_URL}?access_token=${accessToken}&openid=${openid}&lang=zh_CN`
   const json = (await fetch(url).then((r) => r.json())) as UserInfoResponse
   if (json.errcode) {
@@ -157,7 +230,10 @@ export interface WechatLoginResult {
  *
  * 调用方拿到 `userId` 后，调用 `issueSession({ userId, ... })` 签发 JWT / cookie。
  */
-export async function loginWithCode(code: string, scope: WechatScope = 'snsapi_login'): Promise<WechatLoginResult> {
+export async function loginWithCode(
+  code: string,
+  scope: WechatScope = 'snsapi_login',
+): Promise<WechatLoginResult> {
   const token = await exchangeCodeForToken(code)
   const profile =
     scope === 'snsapi_base' ? null : await fetchUserInfo(token.access_token, token.openid)

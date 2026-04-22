@@ -98,3 +98,50 @@ export {
   disableTotp,
 } from './totp.js'
 export type { BeginTotpEnrollmentResult } from './totp.js'
+
+// ─── CN auth (W3 cn-auth-real) ──────────────────────────────────────────
+export {
+  buildAuthorizeUrl,
+  exchangeCodeForToken,
+  fetchUserInfo,
+  refreshAccessToken,
+  loginWithCode,
+  isWechatDevMock,
+  mintMockWechatCode,
+} from './wechat.js'
+export type {
+  WechatScope,
+  WechatLoginResult,
+  AccessTokenResponse,
+  UserInfoResponse,
+} from './wechat.js'
+
+export {
+  normalisePhone,
+  requestOtp,
+  verifyOtp,
+  loginWithPhoneOtp,
+  bindPhoneToUser,
+  getSmsSender,
+  setSmsSender,
+  isSmsDevMode,
+  isAliyunSmsConfigured,
+} from './sms-otp.js'
+export type {
+  OtpPurpose,
+  SmsSender,
+  RequestOtpOptions,
+  RequestOtpResult,
+  VerifyOtpOptions,
+  VerifyOtpResult,
+} from './sms-otp.js'
+
+export {
+  SESSION_COOKIE_NAME,
+  buildSessionCookie,
+  buildClearSessionCookie,
+  parseSessionCookie,
+  setSessionCookie,
+  clearSessionCookie,
+} from './session.js'
+export type { SessionCookieOptions } from './session.js'
