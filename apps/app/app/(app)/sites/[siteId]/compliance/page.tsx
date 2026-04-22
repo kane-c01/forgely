@@ -24,6 +24,7 @@ import {
   type Severity,
 } from '@forgely/compliance'
 
+import { ComplianceCopilotBridge } from '@/components/copilot/bridges'
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -196,6 +197,7 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
 
   return (
     <div className="flex flex-col gap-6">
+      <ComplianceCopilotBridge siteId={params.siteId} />
       <PageHeader
         eyebrow="Compliance"
         title="Compliance center"

@@ -58,4 +58,56 @@ export const customersRouter = router({
       if (!customer) throw errors.notFound('Customer')
       return customer
     }),
+
+  /** Copilot `tag_customer`。 */
+  tag: protectedProcedure
+    .input(
+      z.object({
+        siteId: IdSchema,
+        customerId: z.string().min(1),
+        tags: z.array(z.string().trim().min(1).max(40)).min(1).max(16),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await resolveSalesChannel(ctx, input.siteId)
+      return medusa.tagCustomer(input.customerId, input.tags)
+    }),
+
+  /** Copilot `send_campaign` —— 给一个客户发 campaign（MVP 写 audit 即可）。 */
+  sendCampaign: protectedProcedure
+    .input(
+      z.object({
+        siteId: IdSchema,
+        customerId: z.string().min(1),
+        campaignSlug: z.string().trim().min(1).max(80),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await resolveSalesChannel(ctx, input.siteId)
+      return {
+        customerId: input.customerId,
+        campaignSlug: input.campaignSlug,
+        scheduledAt: new Date().toISOString(),
+      }
+    }),
+
+  /** Copilot `schedule_email` —— 安排一封邮件（MVP 只记录）。 */
+  scheduleEmail: protectedProcedure
+    .input(
+      z.object({
+        siteId: IdSchema,
+        customerId: z.string().min(1),
+        subject: z.string().trim().min(1).max(200),
+        body: z.string().trim().min(1).max(20_000),
+        sendAt: z.string().datetime().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await resolveSalesChannel(ctx, input.siteId)
+      return {
+        customerId: input.customerId,
+        subject: input.subject,
+        sendAt: input.sendAt ?? new Date(Date.now() + 60_000).toISOString(),
+      }
+    }),
 })

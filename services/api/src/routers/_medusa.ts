@@ -140,4 +140,36 @@ export const medusa = {
   ): Promise<{ orderId: string; refundedUsd: number }> {
     return { orderId, refundedUsd: amountUsd }
   },
+
+  /** W5 Copilot `update_product` 支持：改 title / handle / price / status 等。 */
+  async updateProduct(
+    productId: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ productId: string; patchedFields: string[] }> {
+    return {
+      productId,
+      patchedFields: Object.keys(patch),
+    }
+  },
+
+  /** W5 Copilot `mark_fulfilled` 支持。 */
+  async fulfillOrder(orderId: string): Promise<{ orderId: string; fulfillmentStatus: string }> {
+    return { orderId, fulfillmentStatus: 'fulfilled' }
+  },
+
+  /** W5 Copilot `tag_customer` 支持。 */
+  async tagCustomer(
+    customerId: string,
+    tags: string[],
+  ): Promise<{ customerId: string; tags: string[] }> {
+    return { customerId, tags }
+  },
+
+  /** W5 Copilot `send_customer_message`。 */
+  async sendCustomerMessage(
+    customerId: string,
+    _body: string,
+  ): Promise<{ customerId: string; messageId: string }> {
+    return { customerId, messageId: `msg_${Date.now()}` }
+  },
 }

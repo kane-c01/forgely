@@ -84,5 +84,18 @@ export function EditorCopilotBridge() {
     return `Removed block ${id}.`
   })
 
+  // change_fonts → apply body/heading font to the site's hero block (MVP).
+  useRegisterCopilotTool('change_fonts', (args) => {
+    const block = editor.activePage.blocks.find((b) => b.type === 'hero')
+    if (!block) return 'No hero block to restyle on this page.'
+    const body = typeof args.body === 'string' ? args.body : undefined
+    const heading = typeof args.heading === 'string' ? args.heading : undefined
+    if (!body && !heading) return 'Provide at least one of {body, heading}.'
+    if (heading) editor.updateBlockProp(block.id, 'fontHeading', heading)
+    if (body) editor.updateBlockProp(block.id, 'fontBody', body)
+    const parts = [heading && `heading → ${heading}`, body && `body → ${body}`].filter(Boolean)
+    return `Updated fonts (${parts.join(', ')}).`
+  })
+
   return null
 }

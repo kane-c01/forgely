@@ -70,4 +70,27 @@ export const ordersRouter = router({
     await resolveSalesChannel(ctx, input.siteId)
     return medusa.refundOrder(input.orderId, input.amountUsd)
   }),
+
+  /** Copilot `mark_fulfilled` —— 订单标记发货完成。 */
+  markFulfilled: protectedProcedure
+    .input(z.object({ siteId: IdSchema, orderId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      await resolveSalesChannel(ctx, input.siteId)
+      return medusa.fulfillOrder(input.orderId)
+    }),
+
+  /** Copilot `send_customer_message` —— 给订单客户发一条消息。 */
+  sendCustomerMessage: protectedProcedure
+    .input(
+      z.object({
+        siteId: IdSchema,
+        orderId: z.string().min(1),
+        customerId: z.string().min(1).optional(),
+        body: z.string().trim().min(1).max(4000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await resolveSalesChannel(ctx, input.siteId)
+      return medusa.sendCustomerMessage(input.customerId ?? input.orderId, input.body)
+    }),
 })

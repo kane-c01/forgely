@@ -19,11 +19,13 @@ import {
   productsRouter,
   sitesRouter,
 } from '../routers/index.js'
+import { superRouter } from '../routers/super/index.js'
 import { authRouter } from './auth.js'
 import { billingRouter } from './billing.js'
 import { cnAuthRouter } from './cn-auth.js'
 import { complianceRouter } from './compliance.js'
 import { conversationRouter } from './conversation.js'
+import { copilotOpsRouter } from './copilot-ops.js'
 import { creditsRouter } from './credits.js'
 import { seoRouter } from './seo.js'
 import { router } from './trpc.js'
@@ -57,6 +59,8 @@ export const appRouter = router({
   cms: cmsRouter,
   generation: generationRouter,
   copilot: copilotRouter,
+  copilotOps: copilotOpsRouter,
+  super: superRouter,
 })
 
 export { appRouter as default }

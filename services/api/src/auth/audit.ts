@@ -44,6 +44,10 @@ export const AUDIT_ACTIONS = [
   'auth.totp_disabled',
   /** 首次登录后完成 onboarding 表单。 */
   'auth.onboarded',
+  /** Copilot 工具执行 —— after.tool, after.arguments, after.result（W5）。 */
+  'copilot.tool.executed',
+  /** Copilot 工具执行失败 —— after.tool, after.error（W5）。 */
+  'copilot.tool.failed',
   'sites.create',
   'sites.update',
   'sites.archive',
