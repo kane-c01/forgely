@@ -893,10 +893,11 @@ model GenerationStep {
   id            String     @id @default(cuid())
   generationId  String
   generation    Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
-  /// scrape | analyze | direct | plan | copy | art | compliance | seo | compile | deploy | …
+  /// scrape | analyze | plan | direct | copywrite | gen-hero | gen-products |
+  /// gen-brand-assets | compile | deploy | seo | compliance
   stepName      String
-  /// pending | running | completed | failed | skipped
-  status        String     @default("pending")
+  /// queued | running | succeeded | failed | skipped
+  status        String     @default("queued")
   /// Sequence index for ordered progress UI.
   ordinal       Int        @default(0)
   startedAt     DateTime?
@@ -905,6 +906,8 @@ model GenerationStep {
   errorMessage  String?    @db.Text
   payload       Json?
 
+  /// One row per (generation, step). Emitters upsert by this pair.
+  @@unique([generationId, stepName])
   @@index([generationId, ordinal])
   @@index([status, startedAt])
 }

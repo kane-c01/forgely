@@ -13,7 +13,9 @@
 import IORedis, { type Redis as IORedisInstance } from 'ioredis'
 import { Queue, Worker, type Job, type WorkerOptions } from 'bullmq'
 
-import { runPipeline, type PipelineHooks, type PipelineInput, type PipelineResult } from './pipeline'
+import { type PipelineHooks, type PipelineInput, type PipelineResult } from './pipeline'
+import { runPipelineWithEvents } from './pipeline-wrapper'
+import { emitStep, seedSteps } from './events'
 
 export const QUEUE_NAME = 'forgely-generation'
 
@@ -77,21 +79,26 @@ export interface StartWorkerOptions {
  * boot script. The worker auto-publishes pipeline `onStep` events to
  * the `forgely-generation:events` Redis Stream so SSE clients can tail it.
  */
-export function startGenerationWorker(opts: StartWorkerOptions): Worker<PipelineInput, PipelineResult> {
+export function startGenerationWorker(
+  opts: StartWorkerOptions,
+): Worker<PipelineInput, PipelineResult> {
   const conn = getConnection()
   const worker = new Worker<PipelineInput, PipelineResult>(
     QUEUE_NAME,
     async (job) => {
+      const generationId = job.id ?? `gen_${Date.now()}`
       const baseHooks = opts.hooksFor(job)
       const hooks: PipelineHooks = {
         ...baseHooks,
         onStep: async (step, progress) => {
           baseHooks.onStep?.(step, progress)
-          await publishStep(conn, job.id ?? 'unknown', step, progress)
+          // Keep legacy BullMQ progress reporting for the admin Bull Board.
           await job.updateProgress({ step, progress })
         },
       }
-      return runPipeline(job.data, hooks)
+      // The wrapper emits `failed` on the active step before throwing;
+      // we simply surface the exception so BullMQ records + retries.
+      return runPipelineWithEvents(job.data, hooks, { generationId })
     },
     {
       connection: conn,
@@ -106,110 +113,19 @@ export function startGenerationWorker(opts: StartWorkerOptions): Worker<Pipeline
   worker.on('completed', (job) => {
     console.info(`[worker] job ${job.id} completed in ${job.processedOn ?? 0}ms`)
   })
+  worker.on('active', (job) => {
+    // Mark the `scrape` step as queued→running as early as possible so
+    // the SSE UI sees activity within milliseconds of `generate.commit`.
+    void seedSteps(job.id ?? 'unknown').catch(() => {})
+  })
 
   return worker
 }
 
-/** Publish a step event to the per-generation Redis Stream. */
-async function publishStep(
-  conn: IORedisInstance,
-  jobId: string,
-  step: string,
-  progress: number,
-): Promise<void> {
-  await conn.xadd(
-    `forgely-generation:events:${jobId}`,
-    'MAXLEN',
-    '~',
-    '500',
-    '*',
-    'step',
-    step,
-    'progress',
-    String(progress),
-    'ts',
-    String(Date.now()),
-  )
-  // Mirror onto the global topic for super-admin LIVE feed.
-  await conn.xadd(
-    'forgely-generation:events',
-    'MAXLEN',
-    '~',
-    '5000',
-    '*',
-    'jobId',
-    jobId,
-    'step',
-    step,
-    'progress',
-    String(progress),
-    'ts',
-    String(Date.now()),
-  )
-}
-
-/** Read recent events for one generation (for SSE catch-up on reconnect). */
-export async function readRecentEvents(
-  generationId: string,
-  count = 50,
-): Promise<Array<{ step: string; progress: number; ts: number }>> {
-  const conn = getConnection()
-  const entries = (await conn.xrevrange(
-    `forgely-generation:events:${generationId}`,
-    '+',
-    '-',
-    'COUNT',
-    String(count),
-  )) as Array<[string, string[]]>
-  return entries
-    .reverse()
-    .map(([, fields]) => {
-      const obj: Record<string, string> = {}
-      for (let i = 0; i < fields.length; i += 2) {
-        obj[fields[i]!] = fields[i + 1]!
-      }
-      return {
-        step: obj.step ?? 'unknown',
-        progress: Number(obj.progress ?? '0'),
-        ts: Number(obj.ts ?? Date.now()),
-      }
-    })
-}
-
-/** Tail a per-generation event stream from `lastId` forward (blocking). */
-export async function* tailEvents(
-  generationId: string,
-  lastId: string = '$',
-): AsyncGenerator<{ id: string; step: string; progress: number; ts: number }> {
-  const conn = getConnection()
-  let cursor = lastId
-  while (true) {
-    const entries = (await conn.xread(
-      'BLOCK',
-      30_000,
-      'STREAMS',
-      `forgely-generation:events:${generationId}`,
-      cursor,
-    )) as Array<[string, Array<[string, string[]]>]> | null
-    if (!entries || entries.length === 0) {
-      yield { id: cursor, step: 'heartbeat', progress: 0, ts: Date.now() }
-      continue
-    }
-    const stream = entries[0]?.[1] ?? []
-    for (const [id, fields] of stream) {
-      cursor = id
-      const obj: Record<string, string> = {}
-      for (let i = 0; i < fields.length; i += 2) {
-        obj[fields[i]!] = fields[i + 1]!
-      }
-      yield {
-        id,
-        step: obj.step ?? 'unknown',
-        progress: Number(obj.progress ?? '0'),
-        ts: Number(obj.ts ?? Date.now()),
-      }
-    }
-  }
+/** Emit a pre-queue event so the UI sees `queued` status immediately on commit. */
+export async function signalQueued(generationId: string): Promise<void> {
+  await seedSteps(generationId)
+  await emitStep({ generationId, step: 'scrape', status: 'queued' })
 }
 
 /** Disconnect — used in tests and graceful shutdown. */
@@ -219,3 +135,8 @@ export async function shutdownQueue(): Promise<void> {
   queue = undefined
   connection = undefined
 }
+
+// Backwards-compat named re-exports so existing importers
+// (`@forgely/worker/queue`) still type-check while Sprint 3 migrates them
+// to `@forgely/worker/events`.
+export { readStepHistory as readRecentEvents, tailSteps as tailEvents } from './events'

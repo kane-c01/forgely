@@ -196,13 +196,14 @@ export default function GeneratePage() {
     try {
       if (conversationId && source === 'trpc') {
         const subdomain = `forge-${Math.random().toString(36).slice(2, 8)}`
-        const res = await commitMutation.mutateAsync({
+        const res = (await commitMutation.mutateAsync({
           conversationId,
           siteId: subdomain,
           subdomain,
           brandName: 'My Brand',
-        })
-        router.push(`/sites/${(res as { siteId?: string }).siteId ?? subdomain}/generating`)
+        })) as { siteId?: string; generationId?: string }
+        const params = res.generationId ? `?gen=${encodeURIComponent(res.generationId)}` : ''
+        router.push(`/sites/${res.siteId ?? subdomain}/generating${params}`)
       } else {
         // Mock — pretend we kicked off, jump to generating page on the
         // default mock site so the user can see the next step.

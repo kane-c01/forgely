@@ -1,74 +1,78 @@
 /**
- * The 12-step "施法" pipeline as it appears to the user.
+ * The 12-step "施法" pipeline as presented to the user.
  *
- * The actual `services/worker.PipelineStep` enum has 8 backend stages —
- * we expand them into 12 UI cards so the cinematic feel matches
- * docs/MASTER.md §13. Backend events (`step: 'analyzing' | 'planning' |
- * ...`) map onto the closest UI step via `STAGE_TO_INDEX`.
+ * Step ids are authoritative — the worker emits the same strings via
+ * `emitStep(generationId, step, status, payload)` (see
+ * `@forgely/worker/events.STEP_NAMES`). Keep this file and the worker
+ * constant in lock-step.
  */
 export interface SpellStep {
-  id: string
+  /** Matches `@forgely/worker/events.STEP_NAMES[i]`. */
+  id: StepId
   label: string
   emoji: string
-  /** Single line shown under the label while in-progress. */
+  /** Single line shown under the label while queued / running. */
   detail: string
 }
 
+export type StepId =
+  | 'scrape'
+  | 'analyze'
+  | 'plan'
+  | 'direct'
+  | 'copywrite'
+  | 'gen-hero'
+  | 'gen-products'
+  | 'gen-brand-assets'
+  | 'compile'
+  | 'deploy'
+  | 'seo'
+  | 'compliance'
+
 export const SPELL_STEPS: SpellStep[] = [
   {
-    id: 'connecting',
-    label: 'Connecting to source',
-    emoji: '🔌',
-    detail: 'Establishing secure handshake.',
-  },
-  {
-    id: 'scraping',
+    id: 'scrape',
     label: 'Scraping catalogue',
     emoji: '🕸️',
     detail: 'Reading products, photos, prices.',
   },
   {
-    id: 'analyzing',
+    id: 'analyze',
     label: 'Analyzing brand',
     emoji: '🔍',
     detail: 'Inferring tone, palette, audience.',
   },
-  { id: 'planning', label: 'Planning sections', emoji: '🧭', detail: 'Choosing layout + flow.' },
-  { id: 'directing', label: 'Directing scenes', emoji: '🎬', detail: 'Storyboarding the hero.' },
-  { id: 'copywriting', label: 'Writing copy', emoji: '✍️', detail: 'En + Zh-CN headlines.' },
+  { id: 'plan', label: 'Planning sections', emoji: '🧭', detail: 'Choosing layout + flow.' },
+  { id: 'direct', label: 'Directing scenes', emoji: '🎬', detail: 'Storyboarding the hero.' },
+  { id: 'copywrite', label: 'Writing copy', emoji: '✍️', detail: 'En + Zh-CN headlines.' },
   {
-    id: 'generating_assets',
-    label: 'Forging media',
-    emoji: '🖼️',
-    detail: 'Hero video, lifestyle stills.',
+    id: 'gen-hero',
+    label: 'Forging hero video',
+    emoji: '🎞️',
+    detail: 'Cinematic 24fps hero.',
   },
   {
-    id: 'compositing',
-    label: 'Compositing',
-    emoji: '🧵',
-    detail: 'Stitching layers + colour grade.',
+    id: 'gen-products',
+    label: 'Rendering products',
+    emoji: '🛍️',
+    detail: 'Lifestyle stills per SKU.',
   },
-  { id: 'compiling', label: 'Compiling site', emoji: '⚙️', detail: 'Tailwind, RSC, hydration.' },
-  { id: 'optimising', label: 'Optimising', emoji: '⚡', detail: 'Image CDN + edge cache.' },
-  { id: 'deploying', label: 'Deploying to edge', emoji: '🚀', detail: 'Cloudflare Pages.' },
-  { id: 'finished', label: 'Forged', emoji: '✨', detail: 'Your site is live.' },
+  {
+    id: 'gen-brand-assets',
+    label: 'Brand assets',
+    emoji: '🎨',
+    detail: 'Logo variants, palette locks.',
+  },
+  { id: 'compile', label: 'Compiling site', emoji: '⚙️', detail: 'Tailwind, RSC, hydration.' },
+  { id: 'deploy', label: 'Deploying to edge', emoji: '🚀', detail: 'Cloudflare Pages.' },
+  { id: 'seo', label: 'SEO pass', emoji: '🗺️', detail: 'Schema.org + sitemap.' },
+  { id: 'compliance', label: 'Compliance scan', emoji: '🛡️', detail: 'Final review + audit.' },
 ]
 
-export type SpellStatus = 'pending' | 'running' | 'done' | 'error'
+/** Status vocabulary shared across worker, SSE, DB and UI. */
+export type SpellStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'
 
-/** Map server `PipelineStep` events → UI step id. */
-export const STAGE_TO_INDEX: Record<string, number> = {
-  connecting: 0,
-  scraping: 1,
-  scraped: 1,
-  analyzing: 2,
-  planning: 3,
-  directing: 4,
-  copywriting: 5,
-  generating_assets: 6,
-  compositing: 7,
-  compiling: 8,
-  optimising: 9,
-  deploying: 10,
-  finished: 11,
-}
+/** Fast id → index lookup. */
+export const STEP_INDEX: Record<StepId, number> = Object.fromEntries(
+  SPELL_STEPS.map((s, i) => [s.id, i]),
+) as Record<StepId, number>

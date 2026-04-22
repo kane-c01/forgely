@@ -8,7 +8,7 @@
  *
  * @owner W1 — Sprint 3
  */
-import { enqueueGeneration } from '@forgely/worker/queue'
+import { enqueueGeneration, signalQueued } from '@forgely/worker/queue'
 
 import { prisma } from '../db.js'
 import { ForgelyError } from '../errors.js'
@@ -22,7 +22,9 @@ export interface DispatchGenerationOptions {
 }
 
 /** Push the pipeline job to BullMQ + flip Site to `generating`. */
-export async function dispatchGeneration(opts: DispatchGenerationOptions): Promise<{ jobId: string }> {
+export async function dispatchGeneration(
+  opts: DispatchGenerationOptions,
+): Promise<{ jobId: string }> {
   await prisma.site.update({
     where: { id: opts.siteId },
     data: { status: 'generating' },
@@ -32,6 +34,11 @@ export async function dispatchGeneration(opts: DispatchGenerationOptions): Promi
     data: { status: 'running' },
   })
   try {
+    // Make the "queued" row visible to the UI the moment the user clicks
+    // Confirm — before BullMQ even routes the job to a worker.
+    await signalQueued(opts.generationId).catch((err) => {
+      console.warn('[dispatchGeneration] signalQueued failed:', (err as Error).message)
+    })
     const jobId = await enqueueGeneration(opts.pipelineInput, { generationId: opts.generationId })
     return { jobId }
   } catch (err) {
@@ -39,11 +46,7 @@ export async function dispatchGeneration(opts: DispatchGenerationOptions): Promi
       where: { id: opts.generationId },
       data: { status: 'failed', errorMessage: (err as Error).message },
     })
-    throw new ForgelyError(
-      'INTERNAL_ERROR',
-      `生成排队失败：${(err as Error).message}`,
-      500,
-    )
+    throw new ForgelyError('INTERNAL_ERROR', `生成排队失败：${(err as Error).message}`, 500)
   }
 }
 
@@ -97,7 +100,9 @@ export async function purgeExpiredOtps(now: Date = new Date()): Promise<{ delete
 }
 
 /** Cron — release credit reservations that exceeded their TTL (30 min). */
-export async function releaseStaleReservations(now: Date = new Date()): Promise<{ released: number }> {
+export async function releaseStaleReservations(
+  now: Date = new Date(),
+): Promise<{ released: number }> {
   const cutoff = new Date(now.getTime() - 30 * 60 * 1000)
   const stale = await prisma.creditReservation.findMany({
     where: { state: 'reserved', createdAt: { lt: cutoff } },
