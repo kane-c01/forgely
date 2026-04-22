@@ -6,14 +6,17 @@
  *   - 公众号 / 小程序：snsapi_login / snsapi_userinfo
  *
  * 不依赖 next-auth，在 services/api 层直接实现，配合
- * `services/api/src/auth/sessions.ts` 的 issueSession() 完成会话签发。
+ * `services/api/src/auth/sessions.ts` 的 createSession() 完成会话签发。
  *
  * ENV 变量（写到 .env，不入库）：
- *   WECHAT_APP_ID
- *   WECHAT_APP_SECRET
- *   WECHAT_REDIRECT_URI    e.g. https://app.forgely.cn/api/auth/wechat/callback
+ *   WECHAT_OPEN_APP_ID         生产模式：开放平台 AppID
+ *   WECHAT_OPEN_APP_SECRET     生产模式：开放平台 Secret
+ *   WECHAT_REDIRECT_URI        e.g. https://app.forgely.cn/api/auth/wechat/callback
  *
- * @owner W1 — CN pivot (docs/PIVOT-CN.md)
+ * 没配任何一个 → 自动降级成 **dev mock mode**：
+ *   buildAuthorizeUrl() 返回内部 mock URL，loginWithCode() 返回稳定 mock 用户。
+ *
+ * @owner W6 — docs/SPRINT-3-DISPATCH.md
  */
 import { prisma } from '../db.js'
 import { ForgelyError } from '../errors.js'
@@ -31,41 +34,52 @@ interface WechatEnv {
   redirectUri: string
 }
 
-function readEnv(): WechatEnv {
-  const appId = process.env.WECHAT_APP_ID
-  const appSecret = process.env.WECHAT_APP_SECRET
-  const redirectUri = process.env.WECHAT_REDIRECT_URI
-  if (!appId || !appSecret || !redirectUri) {
-    throw new ForgelyError(
-      'WECHAT_NOT_CONFIGURED',
-      '微信登录未配置：缺少 WECHAT_APP_ID / WECHAT_APP_SECRET / WECHAT_REDIRECT_URI 环境变量。',
-      500,
-    )
-  }
+function getEnv(): WechatEnv | null {
+  const appId = process.env.WECHAT_OPEN_APP_ID ?? process.env.WECHAT_APP_ID
+  const appSecret = process.env.WECHAT_OPEN_APP_SECRET ?? process.env.WECHAT_APP_SECRET
+  const redirectUri =
+    process.env.WECHAT_REDIRECT_URI ??
+    (process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/api/auth/wechat/callback`
+      : undefined)
+  if (!appId || !appSecret || !redirectUri) return null
   return { appId, appSecret, redirectUri }
+}
+
+/** 生产环境是否已配齐微信开放平台凭证 —— 未配 → mock mode。 */
+export function isWechatConfigured(): boolean {
+  return getEnv() !== null
 }
 
 /**
  * 生成扫码登录授权 URL。
  *
- * @param state 客户端生成的 CSRF token，回调时校验。
- * @param scope 默认 `snsapi_login`（网站扫码）。
+ * 未配微信 env → 返回内部 mock URL（前端会直接轮询 claim 拿 mock user）。
  */
 export function buildAuthorizeUrl(opts: {
   state: string
   scope?: WechatScope
   /** 可选，自定义 redirect_uri（例如不同租户 callback）。 */
   redirectUri?: string
-}): string {
-  const env = readEnv()
+}): { url: string; mock: boolean } {
+  const env = getEnv()
+  if (!env) {
+    return {
+      url: `internal://wechat-mock?state=${encodeURIComponent(opts.state)}`,
+      mock: true,
+    }
+  }
   const params = new URLSearchParams({
     appid: env.appId,
-    redirect_uri: encodeURIComponent(opts.redirectUri ?? env.redirectUri),
+    redirect_uri: opts.redirectUri ?? env.redirectUri,
     response_type: 'code',
     scope: opts.scope ?? 'snsapi_login',
     state: opts.state,
   })
-  return `${QR_AUTH_URL}?${params.toString()}#wechat_redirect`
+  return {
+    url: `${QR_AUTH_URL}?${params.toString()}#wechat_redirect`,
+    mock: false,
+  }
 }
 
 export interface AccessTokenResponse {
@@ -95,7 +109,10 @@ export interface UserInfoResponse {
 
 /** 用 code 换取 access_token + openid + unionid。 */
 export async function exchangeCodeForToken(code: string): Promise<AccessTokenResponse> {
-  const env = readEnv()
+  const env = getEnv()
+  if (!env) {
+    throw new ForgelyError('WECHAT_NOT_CONFIGURED', '微信开放平台凭证未配置', 500)
+  }
   const url = `${ACCESS_TOKEN_URL}?appid=${env.appId}&secret=${env.appSecret}&code=${encodeURIComponent(
     code,
   )}&grant_type=authorization_code`
@@ -112,7 +129,10 @@ export async function exchangeCodeForToken(code: string): Promise<AccessTokenRes
 }
 
 /** 拉取用户基本信息（需要 snsapi_userinfo 授权）。 */
-export async function fetchUserInfo(accessToken: string, openid: string): Promise<UserInfoResponse> {
+export async function fetchUserInfo(
+  accessToken: string,
+  openid: string,
+): Promise<UserInfoResponse> {
   const url = `${USERINFO_URL}?access_token=${accessToken}&openid=${openid}&lang=zh_CN`
   const json = (await fetch(url).then((r) => r.json())) as UserInfoResponse
   if (json.errcode) {
@@ -128,7 +148,10 @@ export async function fetchUserInfo(accessToken: string, openid: string): Promis
 
 /** 刷新过期的 access_token。 */
 export async function refreshAccessToken(refreshToken: string): Promise<AccessTokenResponse> {
-  const env = readEnv()
+  const env = getEnv()
+  if (!env) {
+    throw new ForgelyError('WECHAT_NOT_CONFIGURED', '微信开放平台凭证未配置', 500)
+  }
   const url = `${REFRESH_URL}?appid=${env.appId}&grant_type=refresh_token&refresh_token=${encodeURIComponent(
     refreshToken,
   )}`
@@ -155,9 +178,12 @@ export interface WechatLoginResult {
 /**
  * 完整的微信登录流程：code → token → userinfo → upsert User + WechatAccount。
  *
- * 调用方拿到 `userId` 后，调用 `issueSession({ userId, ... })` 签发 JWT / cookie。
+ * 调用方拿到 `userId` 后，调用 `createSession({ user, ... })` 签发 JWT / cookie。
  */
-export async function loginWithCode(code: string, scope: WechatScope = 'snsapi_login'): Promise<WechatLoginResult> {
+export async function loginWithCode(
+  code: string,
+  scope: WechatScope = 'snsapi_login',
+): Promise<WechatLoginResult> {
   const token = await exchangeCodeForToken(code)
   const profile =
     scope === 'snsapi_base' ? null : await fetchUserInfo(token.access_token, token.openid)
@@ -170,7 +196,6 @@ export async function loginWithCode(code: string, scope: WechatScope = 'snsapi_l
     )
   }
 
-  // 1. 已绑定 → 直接返回
   const existingAccount = await prisma.wechatAccount.findUnique({
     where: { unionId },
     select: { id: true, userId: true },
@@ -189,11 +214,9 @@ export async function loginWithCode(code: string, scope: WechatScope = 'snsapi_l
     return { userId: existingAccount.userId, isNewUser: false, wechatAccountId: existingAccount.id }
   }
 
-  // 2. 没绑过 → 新建 User + WechatAccount（事务保证原子）
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
-        // 微信用户暂无 email，用伪邮箱占位（用户后续可绑定真邮箱）
         email: `wx_${unionId.slice(0, 12).toLowerCase()}@wechat.forgely.cn`,
         name: profile?.nickname ?? '微信用户',
         avatarUrl: profile?.headimgurl ?? null,
@@ -225,5 +248,56 @@ export async function loginWithCode(code: string, scope: WechatScope = 'snsapi_l
     return { userId: user.id, wechatAccountId: account.id }
   })
 
+  return { ...result, isNewUser: true }
+}
+
+/**
+ * **dev mock**：没配微信开放平台时，用一个稳定的假 UnionId 模拟登录。
+ *
+ * 复用同一个 mock UnionId → 同一个 User，便于重复开发测试。
+ */
+export async function loginWithMock(state: string): Promise<WechatLoginResult> {
+  if (isWechatConfigured()) {
+    throw new ForgelyError('WECHAT_MOCK_DISALLOWED', '生产环境不允许使用 mock 登录', 500)
+  }
+  const unionId = `mock_unionid_${(state.slice(0, 8) || 'dev').toLowerCase()}`
+  const openId = `mock_openid_${(state.slice(0, 12) || 'dev').toLowerCase()}`
+
+  const existing = await prisma.wechatAccount.findUnique({
+    where: { unionId },
+    select: { id: true, userId: true },
+  })
+  if (existing) {
+    return { userId: existing.userId, isNewUser: false, wechatAccountId: existing.id }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: `mock_${unionId}@wechat.forgely.dev`,
+        name: '微信测试用户',
+        avatarUrl: null,
+        region: 'cn',
+        locale: 'zh-CN',
+        wechatUnionId: unionId,
+        emailVerifiedAt: null,
+      },
+      select: { id: true },
+    })
+    const account = await tx.wechatAccount.create({
+      data: {
+        userId: user.id,
+        openId,
+        unionId,
+        scope: 'snsapi_login',
+        nickname: '微信测试用户',
+        country: 'CN',
+        province: 'Shanghai',
+        city: 'Shanghai',
+      },
+      select: { id: true },
+    })
+    return { userId: user.id, wechatAccountId: account.id }
+  })
   return { ...result, isNewUser: true }
 }

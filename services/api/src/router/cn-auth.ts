@@ -2,12 +2,20 @@
  * tRPC router — 中国市场登录入口（微信扫码 + 手机 OTP）。
  * 海外站继续走 W3 已有的 `router/auth.ts` (email + password + Google OAuth)。
  *
- * @owner W1 — CN pivot (docs/PIVOT-CN.md §2)
+ * 注意：实际签发 session cookie 的工作发生在 Next.js Route Handler
+ * (`apps/app/app/api/auth/**`) —— tRPC 层只负责返回 userId + 元数据。
+ *
+ * @owner W1 — CN pivot (docs/PIVOT-CN.md §2) + W6 扩展
  */
 import { z } from 'zod'
 
 import { router, publicProcedure } from './trpc.js'
-import { buildAuthorizeUrl, loginWithCode, refreshAccessToken } from '../auth/wechat.js'
+import {
+  buildAuthorizeUrl,
+  isWechatConfigured,
+  loginWithCode,
+  refreshAccessToken,
+} from '../auth/wechat.js'
 import {
   bindPhoneToUser,
   loginWithPhoneOtp,
@@ -26,11 +34,19 @@ export const cnAuthRouter = router({
         redirectUri: z.string().url().optional(),
       }),
     )
-    .query(({ input }) => ({ url: buildAuthorizeUrl(input) })),
+    .query(({ input }) => {
+      const { url, mock } = buildAuthorizeUrl(input)
+      return { url, mock, configured: isWechatConfigured() }
+    }),
 
   /** 微信回调 — code 换 token 换 user，返回 userId 给调用方签 session。 */
   wechatCallback: publicProcedure
-    .input(z.object({ code: z.string().min(8), scope: z.enum(['snsapi_login', 'snsapi_userinfo', 'snsapi_base']).optional() }))
+    .input(
+      z.object({
+        code: z.string().min(8),
+        scope: z.enum(['snsapi_login', 'snsapi_userinfo', 'snsapi_base']).optional(),
+      }),
+    )
     .mutation(({ input }) => loginWithCode(input.code, input.scope)),
 
   /** 刷新微信 access_token（一般不直接给前端，给后台脚本用）。 */

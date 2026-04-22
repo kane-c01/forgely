@@ -98,3 +98,54 @@ export {
   disableTotp,
 } from './totp.js'
 export type { BeginTotpEnrollmentResult } from './totp.js'
+
+// ── CN pivot (W6) ───────────────────────────────────────────────────
+export {
+  buildAuthorizeUrl,
+  isWechatConfigured,
+  loginWithCode,
+  loginWithMock,
+  refreshAccessToken,
+  exchangeCodeForToken,
+  fetchUserInfo,
+} from './wechat.js'
+export type { WechatLoginResult, WechatScope } from './wechat.js'
+
+export {
+  registerLogin as registerWechatLogin,
+  markSuccess as markWechatLoginSuccess,
+  markError as markWechatLoginError,
+  pollLogin as pollWechatLogin,
+  consume as consumeWechatLogin,
+} from './wechat-login-queue.js'
+export type { WechatLoginRecord, WechatLoginStatus } from './wechat-login-queue.js'
+
+export {
+  requestOtp,
+  verifyOtp,
+  loginWithPhoneOtp,
+  bindPhoneToUser,
+  normalisePhone,
+  getSmsSender,
+  setSmsSender,
+} from './sms-otp.js'
+export type {
+  OtpPurpose,
+  SmsSender,
+  RequestOtpOptions,
+  RequestOtpResult,
+  VerifyOtpOptions,
+  VerifyOtpResult,
+  PhoneLoginResult,
+} from './sms-otp.js'
+
+export { completeLogin, completeOnboarding, ONBOARDING_GIFT_CREDITS } from './cn-login-complete.js'
+export type {
+  CnLoginProvider,
+  CompleteLoginOptions,
+  CompleteLoginResult,
+  CompleteOnboardingInput,
+  CompleteOnboardingResult,
+} from './cn-login-complete.js'
+
+export { SESSION_COOKIE_NAME } from '../router/context.js'
