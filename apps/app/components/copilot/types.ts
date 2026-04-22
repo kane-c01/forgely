@@ -13,6 +13,9 @@
  * latency so the UX is honest without any external API key.
  */
 
+/** Locale supported by the Copilot reply engine. Default is `zh-CN`. */
+export type CopilotLocale = 'zh-CN' | 'en'
+
 export type CopilotPageContext =
   | { kind: 'dashboard' }
   | { kind: 'product'; productId: string; productTitle: string }
@@ -24,6 +27,24 @@ export type CopilotPageContext =
   | { kind: 'media'; siteId: string }
   | { kind: 'brand-kit'; brandKitId: string }
   | { kind: 'editor'; siteId: string; selectedBlockId?: string; selectedBlockType?: string }
+  | { kind: 'compliance'; siteId: string }
+  | { kind: 'seo'; siteId: string }
+  // Super-admin surfaces
+  | { kind: 'super-overview' }
+  | { kind: 'super-users' }
+  | { kind: 'super-user'; userId: string; userEmail: string }
+  | { kind: 'super-finance' }
+  | { kind: 'super-audit' }
+  | { kind: 'super-team' }
+  | { kind: 'super-marketing' }
+  | { kind: 'super-plugins' }
+  | { kind: 'super-health' }
+  | { kind: 'super-ai-ops' }
+  | { kind: 'super-sites' }
+  | { kind: 'super-content' }
+  | { kind: 'super-analytics' }
+  | { kind: 'super-support' }
+  | { kind: 'super-settings' }
   | { kind: 'global' }
 
 export type ToolName =
@@ -92,6 +113,11 @@ export type ToolName =
   // super admin — marketing
   | 'super_send_announcement'
   | 'launch_email_campaign'
+  // super admin — metrics / audit (read-only query tools)
+  | 'super_query_mrr'
+  | 'super_query_dau'
+  | 'super_query_ai_cost'
+  | 'super_query_audit'
 
 export interface ToolCall {
   id: string

@@ -17,9 +17,19 @@
  */
 import { CronJob } from 'cron'
 
-import type * as ApiJobsModule from '@forgely/api/jobs'
+/**
+ * Loose-typed handle for the `@forgely/api/jobs` module. We avoid a
+ * hard `import type` so worker's package.json doesn't declare
+ * `@forgely/api` as a dep — that would create a cycle with the API
+ * package (which imports worker's queue). At runtime pnpm's workspace
+ * resolver still finds the module via the monorepo root node_modules.
+ */
+interface JobsModule {
+  monthlyCreditReset: () => Promise<unknown>
+  purgeExpiredOtps: () => Promise<unknown>
+  releaseStaleReservations: () => Promise<unknown>
+}
 
-type JobsModule = typeof ApiJobsModule
 type ScheduledJob = { name: string; schedule: string; job: CronJob }
 
 const TZ = 'Asia/Shanghai'
@@ -27,9 +37,13 @@ const TZ = 'Asia/Shanghai'
 let SCHEDULED: ScheduledJob[] = []
 
 const loadJobs = async (): Promise<JobsModule> => {
-  // Dynamic import — evaluated only when cron actually starts, keeping the
-  // worker package's module graph acyclic at top level.
-  return (await import('@forgely/api/jobs')) as JobsModule
+  // Dynamic import via a runtime-computed specifier — TypeScript
+  // cannot resolve it statically, so no type-time edge to
+  // `@forgely/api` is recorded (keeping the package graph acyclic).
+  const specifier = '@forgely/api/jobs'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mod = (await import(/* @vite-ignore */ specifier)) as any
+  return mod as JobsModule
 }
 
 const wrapSafe =

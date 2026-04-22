@@ -247,16 +247,18 @@ export const superUsersRouter = router({
       assertCan(ctx.user?.role, 'users.login_as.request')
       // Real impl: insert into LoginAsTicket table + push websocket message
       // to the target user. For MVP the client polls and the user clicks
-      // Allow / Deny in apps/app.
+      // Allow / Deny in apps/app. The ticketId is minted here — the request
+      // schema only requires userId + reason.
+      const ticketId = `login_as_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       await recordAudit(ctx, {
         action: SUPER_ACTIONS.LOGIN_AS_REQUEST,
         targetType: 'user',
         targetId: input.userId,
         reason: input.reason,
-        after: { ticketId: input.ticketId, ttlMinutes: 30 },
+        after: { ticketId, ttlMinutes: 30 },
       })
       return {
-        ticketId: input.ticketId,
+        ticketId,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: 'awaiting_user' as const,
       }

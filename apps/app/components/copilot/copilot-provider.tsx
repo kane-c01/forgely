@@ -244,7 +244,13 @@ export function CopilotProvider({
           id: id('m'),
           role: 'assistant',
           text: reply.text,
-          toolCalls: reply.toolCalls?.map((c) => ({
+          toolCalls: reply.toolCalls?.map((c: {
+            id?: string
+            name: string
+            arguments: Record<string, unknown>
+            destructive: boolean
+            estimatedCredits?: number
+          }) => ({
             id: c.id || id('tc'),
             name: c.name as ToolName,
             arguments: c.arguments,

@@ -473,9 +473,10 @@ export function SuperUsersCopilotBridge() {
       const userId = String(args.userId ?? '')
       if (!userId) return '缺少 userId。'
       const reason = pad(String(args.reason ?? ''), 'Copilot 请求 login-as')
-      const ticketId = String(args.ticketId ?? `login_as_${Date.now()}`)
-      await requestLoginAs.mutateAsync({ userId, ticketId, reason })
-      return `🎭 已提交 login-as 请求（等待用户批准，ticket=${ticketId}）。`
+      // The server mints the ticketId; requestLoginAs returns it in the
+      // response so the UI can track allow/deny polling.
+      const res = await requestLoginAs.mutateAsync({ userId, reason })
+      return `🎭 已提交 login-as 请求（等待用户批准，ticket=${res.ticketId}）。`
     },
     auditTarget: (args) => ({ type: 'user', id: String(args.userId ?? 'unknown') }),
   })

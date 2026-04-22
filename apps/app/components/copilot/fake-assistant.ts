@@ -81,7 +81,7 @@ const ZH_CTX: Partial<Record<CopilotPageContext['kind'], (ctx: CopilotPageContex
   global: () => '',
   'super-overview': () => '🛡 超级管理员视角 · 平台总览。',
   'super-users': () => '🛡 超级管理员视角 · 用户管理。',
-  'super-user': (c) => {
+  'super-user': (c: CopilotPageContext) => {
     const u = c as { userEmail: string; userId: string }
     return `🛡 超管视角 · 用户:**${u.userEmail}** (id ${u.userId})。`
   },
