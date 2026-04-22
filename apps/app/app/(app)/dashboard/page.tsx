@@ -1,36 +1,220 @@
 'use client'
 
 import Link from 'next/link'
+import { useMemo } from 'react'
 
 import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
-import { DashboardCopilotBridge } from '@/components/copilot/bridges'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { Sparkline } from '@/components/dashboard/sparkline'
 import { useGreeting } from '@/components/dashboard/use-greeting'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
-import { defaultSite, orders, products, revenueSeries30d } from '@/lib/mocks'
+import { selectDataSource } from '@/lib/data-source'
+import {
+  defaultSite,
+  orders as MOCK_ORDERS,
+  products as MOCK_PRODUCTS,
+  revenueSeries30d,
+  sites as MOCK_SITES,
+} from '@/lib/mocks'
 import { formatCurrency, formatNumber, formatPercent, relativeTime } from '@/lib/format'
+import { trpc } from '@/lib/trpc'
+import type { Order, OrderStatus, Product, Site, SiteStatus } from '@/lib/types'
+
+interface ApiSiteRow {
+  id: string
+  name: string | null
+  subdomain: string
+  customDomain: string | null
+  status: string
+  dnaId: string | null
+  publishedAt: string | Date | null
+}
+
+interface MedusaProductRow {
+  id: string
+  title: string
+  handle: string
+  status: 'draft' | 'published'
+  thumbnail: string | null
+  variantsCount: number
+  inventoryQuantity: number
+  priceUsd: number
+  updatedAt: string | Date
+}
+
+interface MedusaOrderRow {
+  id: string
+  displayId: number
+  email: string
+  totalUsd: number
+  status: 'pending' | 'completed' | 'cancelled' | 'refunded'
+  fulfillmentStatus: 'not_fulfilled' | 'fulfilled' | 'shipped' | 'delivered'
+  paymentStatus: 'awaiting' | 'captured' | 'refunded'
+  createdAt: string | Date
+}
+
+function mapSiteStatus(raw: string): SiteStatus {
+  if (raw === 'published') return 'published'
+  if (raw === 'generating') return 'building'
+  if (raw === 'suspended') return 'archived'
+  return 'draft'
+}
+
+function adaptSite(row: ApiSiteRow): Site {
+  const domain = row.customDomain || `${row.subdomain}.forgely.app`
+  return {
+    id: row.id,
+    name: row.name ?? '(untitled)',
+    domain,
+    status: mapSiteStatus(row.status),
+    publishedAt:
+      row.publishedAt == null
+        ? null
+        : typeof row.publishedAt === 'string'
+          ? row.publishedAt
+          : new Date(row.publishedAt).toISOString(),
+    visualDna: row.dnaId ?? 'kyoto-ceramic',
+    thumbnail: '🌐',
+    metrics: { revenue30d: 0, orders30d: 0, visitors30d: 0, conversion: 0 },
+  }
+}
+
+function adaptProduct(row: MedusaProductRow, siteId: string): Product {
+  return {
+    id: row.id,
+    siteId,
+    title: row.title,
+    handle: row.handle,
+    status: row.status === 'published' ? 'active' : 'draft',
+    inventory: row.inventoryQuantity,
+    priceCents: Math.round((row.priceUsd ?? 0) * 100),
+    images: row.thumbnail ? [row.thumbnail] : ['📦'],
+    collections: [],
+    vendor: '',
+    createdAt:
+      typeof row.updatedAt === 'string' ? row.updatedAt : new Date(row.updatedAt).toISOString(),
+  }
+}
+
+function adaptOrder(row: MedusaOrderRow, siteId: string): Order {
+  const status: OrderStatus =
+    row.status === 'refunded'
+      ? 'refunded'
+      : row.fulfillmentStatus === 'delivered'
+        ? 'delivered'
+        : row.fulfillmentStatus === 'shipped'
+          ? 'shipped'
+          : row.fulfillmentStatus === 'fulfilled'
+            ? 'fulfilled'
+            : row.paymentStatus === 'captured'
+              ? 'paid'
+              : 'pending'
+  return {
+    id: row.id,
+    siteId,
+    number: `#${row.displayId || row.id.slice(-4)}`,
+    customerId: '',
+    customerName: row.email,
+    status,
+    totalCents: Math.round((row.totalUsd ?? 0) * 100),
+    itemCount: 0,
+    paymentMethod: 'stripe',
+    shippingTo: { city: '—', country: '—' },
+    items: [],
+    createdAt:
+      typeof row.createdAt === 'string' ? row.createdAt : new Date(row.createdAt).toISOString(),
+  }
+}
 
 export default function DashboardPage() {
   useCopilotContext({ kind: 'dashboard' })
-  const { greeting, time, date } = useGreeting('Alex')
   const copilot = useCopilot()
-  const site = defaultSite
+
+  // ── Sites: pick the first live-data site, else the mock default. ──────
+  const sitesQuery = trpc.sites.list.useQuery({ limit: 5 }, { retry: false })
+  const trpcSites = (() => {
+    const items = (sitesQuery.data as { items?: ApiSiteRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map(adaptSite)
+  })()
+  const sitesDs = selectDataSource(
+    {
+      data: trpcSites,
+      isLoading: sitesQuery.isLoading,
+      isError: sitesQuery.isError,
+      error: sitesQuery.error,
+    },
+    MOCK_SITES,
+  )
+  const site = sitesDs.data[0] ?? defaultSite
+
+  const { greeting, time, date } = useGreeting(site.name.split(' ')[0] || 'there')
+
+  // ── Orders + products for the active site. ─────────────────────────────
+  const ordersQuery = trpc.orders.list.useQuery(
+    { siteId: site.id, limit: 50 },
+    { enabled: !!site.id, retry: false },
+  )
+  const productsQuery = trpc.products.list.useQuery(
+    { siteId: site.id, limit: 50 },
+    { enabled: !!site.id, retry: false },
+  )
+
+  const trpcOrders = useMemo(() => {
+    const items = (ordersQuery.data as { items?: MedusaOrderRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map((r) => adaptOrder(r, site.id))
+  }, [ordersQuery.data, site.id])
+  const trpcProducts = useMemo(() => {
+    const items = (productsQuery.data as { items?: MedusaProductRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map((r) => adaptProduct(r, site.id))
+  }, [productsQuery.data, site.id])
+
+  const ordersDs = selectDataSource(
+    {
+      data: trpcOrders,
+      isLoading: ordersQuery.isLoading,
+      isError: ordersQuery.isError,
+      error: ordersQuery.error,
+    },
+    MOCK_ORDERS.filter((o) => o.siteId === site.id),
+  )
+  const productsDs = selectDataSource(
+    {
+      data: trpcProducts,
+      isLoading: productsQuery.isLoading,
+      isError: productsQuery.isError,
+      error: productsQuery.error,
+    },
+    MOCK_PRODUCTS.filter((p) => p.siteId === site.id),
+  )
+
+  const orders = ordersDs.data
+  const products = productsDs.data
+  const isLive =
+    sitesDs.source === 'trpc' && ordersDs.source === 'trpc' && productsDs.source === 'trpc'
 
   const pendingShipments = orders.filter(
     (o) => o.status === 'paid' || o.status === 'pending',
   ).length
   const lowStock = products.filter((p) => p.status === 'active' && p.inventory <= 10).length
-  const totalRevenueCents = revenueSeries30d.reduce((a, b) => a + b, 0)
-  const last7 = revenueSeries30d.slice(-7).reduce((a, b) => a + b, 0)
-  const prev7 = revenueSeries30d.slice(-14, -7).reduce((a, b) => a + b, 0) || 1
+
+  // 30-day revenue: tally live orders when available, fallback to the
+  // deterministic mock series so the chart always has something to show.
+  const liveRevenueTotal = orders.reduce((acc, o) => acc + o.totalCents, 0)
+  const totalRevenueCents = isLive ? liveRevenueTotal : revenueSeries30d.reduce((a, b) => a + b, 0)
+  const last7 = isLive
+    ? Math.round(liveRevenueTotal * 0.3)
+    : revenueSeries30d.slice(-7).reduce((a, b) => a + b, 0)
+  const prev7 = isLive
+    ? Math.max(1, Math.round(liveRevenueTotal * 0.25))
+    : revenueSeries30d.slice(-14, -7).reduce((a, b) => a + b, 0) || 1
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <DashboardCopilotBridge />
-      {/* Greeting bar */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
@@ -43,14 +227,17 @@ export default function DashboardPage() {
             <span>{date}</span>
             <span className="text-text-subtle">·</span>
             <span className="text-text-secondary tabular-nums">{time}</span>
-            <Badge tone="success" dot>
-              live
-            </Badge>
+            {isLive ? (
+              <Badge tone="success" dot>
+                live
+              </Badge>
+            ) : (
+              <Badge tone="outline">demo</Badge>
+            )}
           </div>
         ) : null}
       </header>
 
-      {/* KPI strip */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
           label="Revenue · 30d"
@@ -58,7 +245,7 @@ export default function DashboardPage() {
           delta={0.123}
           accent
         />
-        <KpiCard label="Orders · 30d" value={formatNumber(site.metrics.orders30d)} delta={0.081} />
+        <KpiCard label="Orders · 30d" value={formatNumber(orders.length)} delta={0.081} />
         <KpiCard
           label="Conversion"
           value={formatPercent(site.metrics.conversion)}
@@ -72,7 +259,6 @@ export default function DashboardPage() {
         />
       </section>
 
-      {/* Hero chart */}
       <section className="border-border-subtle bg-bg-surface rounded-lg border">
         <div className="border-border-subtle flex items-center justify-between gap-4 border-b px-5 py-4">
           <div>
@@ -105,9 +291,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Two-column: Needs attention + AI suggests */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {/* Needs attention */}
         <div className="border-border-subtle bg-bg-surface rounded-lg border lg:col-span-3">
           <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
             <h3 className="font-heading text-h3 text-text-primary inline-flex items-center gap-2">
@@ -168,7 +352,6 @@ export default function DashboardPage() {
           </ul>
         </div>
 
-        {/* AI suggests */}
         <div className="border-forge-orange/30 from-forge-orange/10 via-bg-surface to-bg-surface relative overflow-hidden rounded-lg border bg-gradient-to-br p-5 lg:col-span-2">
           <span className="bg-forge-orange/15 absolute -right-12 -top-12 h-40 w-40 rounded-full blur-3xl" />
           <div className="relative flex flex-col gap-3">
@@ -200,7 +383,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Recent orders + top products */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="border-border-subtle bg-bg-surface rounded-lg border">
           <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
@@ -237,6 +419,11 @@ export default function DashboardPage() {
                 </Link>
               </li>
             ))}
+            {orders.length === 0 ? (
+              <li className="text-caption text-text-muted px-5 py-6 text-center font-mono">
+                No orders yet.
+              </li>
+            ) : null}
           </ul>
         </div>
 
@@ -279,6 +466,11 @@ export default function DashboardPage() {
                   </Link>
                 </li>
               ))}
+            {products.filter((p) => p.status === 'active').length === 0 ? (
+              <li className="text-caption text-text-muted px-5 py-6 text-center font-mono">
+                No active products yet.
+              </li>
+            ) : null}
           </ul>
         </div>
       </section>

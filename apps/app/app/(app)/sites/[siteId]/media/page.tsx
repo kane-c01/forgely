@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 
 import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
-import { MediaCopilotBridge } from '@/components/copilot/bridges'
 import { MediaCard } from '@/components/media/media-card'
 import { MediaDetailDrawer } from '@/components/media/media-detail-drawer'
 import { PageHeader } from '@/components/shell/page-header'
@@ -13,8 +12,10 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Icon } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { selectDataSource } from '@/lib/data-source'
 import { mediaAssets as ALL_ASSETS } from '@/lib/mocks'
-import type { MediaAsset, MediaKind } from '@/lib/types'
+import { trpc } from '@/lib/trpc'
+import type { MediaAsset, MediaKind, MediaSource } from '@/lib/types'
 
 const FILTERS: Array<{ value: 'all' | MediaKind; label: string; icon: 'Image' | 'Brand' | 'Box' }> =
   [
@@ -27,6 +28,64 @@ const FILTERS: Array<{ value: 'all' | MediaKind; label: string; icon: 'Image' | 
     { value: 'icon', label: 'Icons', icon: 'Image' },
   ]
 
+/** Prisma `MediaAsset` row (as returned by tRPC) → local UI `MediaAsset` type. */
+interface ApiMediaRow {
+  id: string
+  siteId: string | null
+  type: 'image' | 'video' | '3d_model' | 'icon' | 'audio'
+  url: string
+  thumbnailUrl: string | null
+  filename: string
+  size: number
+  dimensions: { width?: number; height?: number } | null
+  source: 'uploaded' | 'ai_generated' | 'library'
+  generator: string | null
+  prompt: string | null
+  tags: string[]
+  usedIn?: unknown[] | null
+  createdAt: string | Date
+}
+
+function apiKindToUi(type: ApiMediaRow['type']): MediaKind {
+  switch (type) {
+    case '3d_model':
+      return '3d'
+    case 'video':
+      return 'video'
+    case 'icon':
+      return 'icon'
+    default:
+      // Other images (logo / lifestyle / product-photo) aren't distinguished
+      // server-side yet — default to product-photo for now.
+      return 'product-photo'
+  }
+}
+
+function apiSourceToUi(source: ApiMediaRow['source']): MediaSource {
+  if (source === 'ai_generated') return 'ai-generated'
+  return source
+}
+
+function adaptTrpcMedia(row: ApiMediaRow): MediaAsset {
+  const dims = row.dimensions ?? {}
+  return {
+    id: row.id,
+    siteId: row.siteId ?? undefined,
+    kind: apiKindToUi(row.type),
+    source: apiSourceToUi(row.source),
+    generator: (row.generator as MediaAsset['generator']) ?? undefined,
+    prompt: row.prompt ?? undefined,
+    url: row.thumbnailUrl || row.url,
+    filename: row.filename,
+    sizeKb: Math.round((row.size ?? 0) / 1024),
+    width: dims.width ?? 0,
+    height: dims.height ?? 0,
+    uses: Array.isArray(row.usedIn) ? row.usedIn.length : 0,
+    createdAt:
+      typeof row.createdAt === 'string' ? row.createdAt : new Date(row.createdAt).toISOString(),
+  }
+}
+
 export default function MediaPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'media', siteId: params.siteId })
   const copilot = useCopilot()
@@ -34,21 +93,47 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<MediaAsset | null>(null)
 
+  const listQuery = trpc.media.list.useQuery(
+    { siteId: params.siteId, limit: 100 },
+    { retry: false },
+  )
+
+  const trpcRows = useMemo(() => {
+    const items = (listQuery.data as { items?: ApiMediaRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map(adaptTrpcMedia)
+  }, [listQuery.data])
+
+  const fallbackRows = useMemo(
+    () => ALL_ASSETS.filter((a) => (a.siteId ? a.siteId === params.siteId : true)),
+    [params.siteId],
+  )
+
+  const ds = selectDataSource(
+    {
+      data: trpcRows,
+      isLoading: listQuery.isLoading,
+      isError: listQuery.isError,
+      error: listQuery.error,
+    },
+    fallbackRows,
+  )
+
+  const all = ds.data
   const rows = useMemo(() => {
-    return ALL_ASSETS.filter((a) => (a.siteId ? a.siteId === params.siteId : true))
+    return all
       .filter((a) => (filter === 'all' ? true : a.kind === filter))
       .filter((a) =>
         query.trim().length === 0
           ? true
           : `${a.filename} ${a.prompt ?? ''}`.toLowerCase().includes(query.toLowerCase()),
       )
-  }, [filter, query, params.siteId])
+  }, [filter, query, all])
 
   const totalSize = useMemo(() => rows.reduce((s, a) => s + a.sizeKb, 0) / 1024, [rows])
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <MediaCopilotBridge siteId={params.siteId} />
       <PageHeader
         eyebrow="Brand"
         title="Media library"
@@ -73,6 +158,13 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
             <span>{rows.length} assets</span>
             <span>·</span>
             <span className="text-text-secondary tabular-nums">{totalSize.toFixed(1)} MB</span>
+            {ds.source === 'mock' ? (
+              <Badge tone="outline">demo data</Badge>
+            ) : (
+              <Badge tone="success" dot>
+                live data
+              </Badge>
+            )}
           </>
         }
       />

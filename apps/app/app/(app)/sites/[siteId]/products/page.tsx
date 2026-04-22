@@ -17,9 +17,41 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Icon } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { selectDataSource } from '@/lib/data-source'
 import { products as ALL_PRODUCTS } from '@/lib/mocks'
 import { relativeTime } from '@/lib/format'
+import { trpc } from '@/lib/trpc'
 import type { Product } from '@/lib/types'
+
+/** Medusa product summary → local UI `Product` type. */
+interface MedusaProductRow {
+  id: string
+  title: string
+  handle: string
+  status: 'draft' | 'published'
+  thumbnail: string | null
+  variantsCount: number
+  inventoryQuantity: number
+  priceUsd: number
+  updatedAt: string | Date
+}
+
+function adaptTrpcProduct(row: MedusaProductRow, siteId: string): Product {
+  return {
+    id: row.id,
+    siteId,
+    title: row.title,
+    handle: row.handle,
+    status: row.status === 'published' ? 'active' : 'draft',
+    inventory: row.inventoryQuantity,
+    priceCents: Math.round((row.priceUsd ?? 0) * 100),
+    images: row.thumbnail ? [row.thumbnail] : ['📦'],
+    collections: [],
+    vendor: '',
+    createdAt:
+      typeof row.updatedAt === 'string' ? row.updatedAt : new Date(row.updatedAt).toISOString(),
+  }
+}
 
 export default function ProductsPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'product-list', siteId: params.siteId })
@@ -27,25 +59,51 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
   const [filter, setFilter] = useState<'all' | 'active' | 'draft' | 'archived'>('all')
   const [query, setQuery] = useState('')
 
+  const listQuery = trpc.products.list.useQuery(
+    { siteId: params.siteId, limit: 100 },
+    { retry: false },
+  )
+
+  const trpcRows = useMemo(() => {
+    const items = (listQuery.data as { items?: MedusaProductRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map((r) => adaptTrpcProduct(r, params.siteId))
+  }, [listQuery.data, params.siteId])
+
+  const fallbackRows = useMemo(
+    () => ALL_PRODUCTS.filter((p) => p.siteId === params.siteId),
+    [params.siteId],
+  )
+
+  const ds = selectDataSource(
+    {
+      data: trpcRows,
+      isLoading: listQuery.isLoading,
+      isError: listQuery.isError,
+      error: listQuery.error,
+    },
+    fallbackRows,
+  )
+
+  const all = ds.data
   const rows = useMemo(() => {
-    return ALL_PRODUCTS.filter((p) => p.siteId === params.siteId)
+    return all
       .filter((p) => (filter === 'all' ? true : p.status === filter))
       .filter((p) =>
         query.trim().length === 0
           ? true
           : `${p.title} ${p.handle} ${p.vendor}`.toLowerCase().includes(query.toLowerCase()),
       )
-  }, [filter, query, params.siteId])
+  }, [filter, query, all])
 
   const counts = useMemo(() => {
-    const all = ALL_PRODUCTS.filter((p) => p.siteId === params.siteId)
     return {
       all: all.length,
       active: all.filter((p) => p.status === 'active').length,
       draft: all.filter((p) => p.status === 'draft').length,
       archived: all.filter((p) => p.status === 'archived').length,
     }
-  }, [params.siteId])
+  }, [all])
 
   const columns: DataTableColumn<Product>[] = [
     {
@@ -53,7 +111,12 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
       header: 'Product',
       render: (p) => <ProductTitleCell product={p} siteId={params.siteId} />,
     },
-    { key: 'status', header: 'Status', width: '120px', render: (p) => <ProductStatusCell product={p} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '120px',
+      render: (p) => <ProductStatusCell product={p} />,
+    },
     {
       key: 'inventory',
       header: 'Stock',
@@ -75,7 +138,7 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
       render: (p) => (
         <div className="flex flex-wrap gap-1">
           {p.collections.length === 0 ? (
-            <span className="font-mono text-caption text-text-muted">—</span>
+            <span className="text-caption text-text-muted font-mono">—</span>
           ) : (
             p.collections.map((c) => (
               <Badge key={c} tone="outline">
@@ -92,9 +155,7 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
       width: '120px',
       align: 'right',
       render: (p) => (
-        <span className="font-mono text-caption text-text-muted">
-          {relativeTime(p.createdAt)}
-        </span>
+        <span className="text-caption text-text-muted font-mono">{relativeTime(p.createdAt)}</span>
       ),
     },
   ]
@@ -105,6 +166,15 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
         eyebrow="Catalog"
         title="Products"
         description="Manage your catalog. Use Copilot to bulk-rewrite copy, regenerate hero images, or suggest pricing."
+        meta={
+          ds.source === 'mock' ? (
+            <Badge tone="outline">demo data — connect Medusa to see real catalog</Badge>
+          ) : (
+            <Badge tone="success" dot>
+              live data
+            </Badge>
+          )
+        }
         actions={
           <>
             <Button variant="secondary">
@@ -129,7 +199,10 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Icon.Search
+              size={14}
+              className="text-text-muted absolute left-3 top-1/2 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -152,7 +225,7 @@ export default function ProductsPage({ params }: { params: { siteId: string } })
         rowKey={(p) => p.id}
         onRowClick={(p) => router.push(`/sites/${params.siteId}/products/${p.id}`)}
         empty={
-          <div className="flex flex-col items-center gap-2 text-text-muted">
+          <div className="text-text-muted flex flex-col items-center gap-2">
             <Icon.Box size={28} />
             <p>No products match these filters.</p>
           </div>

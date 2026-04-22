@@ -12,8 +12,10 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Icon } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { selectDataSource } from '@/lib/data-source'
 import { customers as ALL_CUSTOMERS } from '@/lib/mocks'
 import { formatCurrency, relativeTime } from '@/lib/format'
+import { trpc } from '@/lib/trpc'
 import type { Customer } from '@/lib/types'
 
 type Filter = 'all' | 'vip' | 'subscriber' | 'new'
@@ -25,21 +27,78 @@ function matchesFilter(c: Customer, f: Filter): boolean {
   return c.tags.includes('New')
 }
 
+/** Medusa customer summary → local UI `Customer` type. */
+interface MedusaCustomerRow {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  ordersCount: number
+  lifetimeValueUsd: number
+  createdAt: string | Date
+}
+
+function adaptTrpcCustomer(row: MedusaCustomerRow, siteId: string): Customer {
+  const name =
+    [row.firstName, row.lastName].filter(Boolean).join(' ').trim() ||
+    row.email.split('@')[0] ||
+    row.email
+  return {
+    id: row.id,
+    siteId,
+    name,
+    email: row.email,
+    totalSpentCents: Math.round((row.lifetimeValueUsd ?? 0) * 100),
+    orderCount: row.ordersCount,
+    lastOrderAt: null,
+    tags: [],
+    joinedAt:
+      typeof row.createdAt === 'string' ? row.createdAt : new Date(row.createdAt).toISOString(),
+  }
+}
+
 export default function CustomersPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'customer-list', siteId: params.siteId })
   const router = useRouter()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
 
+  const listQuery = trpc.customers.list.useQuery(
+    { siteId: params.siteId, limit: 100 },
+    { retry: false },
+  )
+
+  const trpcRows = useMemo(() => {
+    const items = (listQuery.data as { items?: MedusaCustomerRow[] } | undefined)?.items
+    if (!items) return undefined
+    return items.map((r) => adaptTrpcCustomer(r, params.siteId))
+  }, [listQuery.data, params.siteId])
+
+  const fallbackRows = useMemo(
+    () => ALL_CUSTOMERS.filter((c) => c.siteId === params.siteId),
+    [params.siteId],
+  )
+
+  const ds = selectDataSource(
+    {
+      data: trpcRows,
+      isLoading: listQuery.isLoading,
+      isError: listQuery.isError,
+      error: listQuery.error,
+    },
+    fallbackRows,
+  )
+
+  const all = ds.data
   const rows = useMemo(() => {
-    return ALL_CUSTOMERS.filter((c) => c.siteId === params.siteId)
+    return all
       .filter((c) => matchesFilter(c, filter))
       .filter((c) =>
         query.trim().length === 0
           ? true
           : `${c.name} ${c.email} ${c.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()),
       )
-  }, [filter, query, params.siteId])
+  }, [filter, query, all])
 
   const columns: DataTableColumn<Customer>[] = [
     {
@@ -49,8 +108,8 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
         <div className="flex items-center gap-3">
           <Avatar name={c.name} size="sm" />
           <div className="flex flex-col">
-            <span className="font-medium text-text-primary">{c.name}</span>
-            <span className="font-mono text-caption text-text-muted">{c.email}</span>
+            <span className="text-text-primary font-medium">{c.name}</span>
+            <span className="text-caption text-text-muted font-mono">{c.email}</span>
           </div>
         </div>
       ),
@@ -62,11 +121,11 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
       render: (c) => (
         <div className="flex flex-wrap gap-1">
           {c.tags.length === 0 ? (
-            <span className="font-mono text-caption text-text-muted">—</span>
+            <span className="text-caption text-text-muted font-mono">—</span>
           ) : (
-            c.tags.map((t) => (
-              <Badge key={t} tone={t === 'VIP' ? 'forge' : 'outline'}>
-                {t}
+            c.tags.map((tag) => (
+              <Badge key={tag} tone={tag === 'VIP' ? 'forge' : 'outline'}>
+                {tag}
               </Badge>
             ))
           )}
@@ -79,7 +138,7 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
       width: '90px',
       align: 'right',
       render: (c) => (
-        <span className="font-mono tabular-nums text-text-secondary">{c.orderCount}</span>
+        <span className="text-text-secondary font-mono tabular-nums">{c.orderCount}</span>
       ),
     },
     {
@@ -88,7 +147,7 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
       width: '160px',
       align: 'right',
       render: (c) => (
-        <span className="font-mono tabular-nums text-text-primary">
+        <span className="text-text-primary font-mono tabular-nums">
           {formatCurrency(c.totalSpentCents)}
         </span>
       ),
@@ -99,7 +158,7 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
       width: '140px',
       align: 'right',
       render: (c) => (
-        <span className="font-mono text-caption text-text-muted">
+        <span className="text-caption text-text-muted font-mono">
           {c.lastOrderAt ? relativeTime(c.lastOrderAt) : '—'}
         </span>
       ),
@@ -112,6 +171,15 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
         eyebrow="Audience"
         title="Customers"
         description="Build relationships. Ask Copilot to forecast LTV, find lapsed buyers, or batch-send a thank-you email."
+        meta={
+          ds.source === 'mock' ? (
+            <Badge tone="outline">demo data — connect Medusa to see real customers</Badge>
+          ) : (
+            <Badge tone="success" dot>
+              live data
+            </Badge>
+          )
+        }
         actions={
           <>
             <Button variant="ghost">
@@ -127,7 +195,7 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={filter} onChange={(v) => setFilter(v as Filter)}>
           <TabsList>
-            <TabsTrigger value="all">All · {ALL_CUSTOMERS.length}</TabsTrigger>
+            <TabsTrigger value="all">All · {all.length}</TabsTrigger>
             <TabsTrigger value="vip">VIP</TabsTrigger>
             <TabsTrigger value="subscriber">Subscribers</TabsTrigger>
             <TabsTrigger value="new">New</TabsTrigger>
@@ -136,7 +204,10 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Icon.Search
+              size={14}
+              className="text-text-muted absolute left-3 top-1/2 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -153,7 +224,7 @@ export default function CustomersPage({ params }: { params: { siteId: string } }
         rowKey={(c) => c.id}
         onRowClick={(c) => router.push(`/sites/${params.siteId}/customers/${c.id}`)}
         empty={
-          <div className="flex flex-col items-center gap-2 text-text-muted">
+          <div className="text-text-muted flex flex-col items-center gap-2">
             <Icon.Users size={28} />
             <p>No customers match these filters.</p>
           </div>

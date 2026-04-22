@@ -60,6 +60,7 @@ export const appRouter = router({
   generation: generationRouter,
   copilot: copilotRouter,
   copilotOps: copilotOpsRouter,
+  // Super-admin / platform ops — RBAC re-enforced per procedure.
   super: superRouter,
 })
 

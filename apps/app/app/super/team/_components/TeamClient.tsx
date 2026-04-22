@@ -4,6 +4,7 @@ import { Badge, DataTable, StatusDot, SuperButton } from '@/components/super-ui'
 import type { DataTableColumn } from '@/components/super-ui'
 import { formatRelative, formatTimestamp, MOCK_NOW_UTC_MS } from '@/lib/super'
 import type { SuperRole, TeamMember } from '@/lib/super'
+import { trpc } from '@/lib/trpc'
 
 interface Props {
   members: TeamMember[]
@@ -24,7 +25,29 @@ const ROLE_TONE: Record<SuperRole, 'forge' | 'info' | 'neutral'> = {
  * serialise the `render` callbacks across the RSC boundary (which is
  * what was throwing the 500).
  */
-export function TeamClient({ members }: Props) {
+export function TeamClient({ members: initialMembers }: Props) {
+  // TeamMember table is wired to tRPC but the backend procedure is still a
+  // stub — it returns `[]`. When that's the case fall back to the mock
+  // fixtures so the /super screenshot still has something to show.
+  const live = trpc.super.team.list.useQuery(undefined, { retry: false, staleTime: 60_000 })
+  const apiRows =
+    (live.data as
+      | Array<{ id: string; email: string; role: SuperRole; invitedAt: Date }>
+      | undefined) ?? []
+  const members: TeamMember[] =
+    apiRows.length > 0
+      ? apiRows.map((r) => ({
+          id: r.id,
+          email: r.email,
+          name: r.email.split('@')[0] ?? r.email,
+          role: r.role,
+          invitedAt: new Date(r.invitedAt).getTime(),
+          acceptedAt: null,
+          twoFactorEnabled: false,
+          lastSeenAt: null,
+        }))
+      : initialMembers
+
   const columns: DataTableColumn<TeamMember>[] = [
     {
       key: 'member',

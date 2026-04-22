@@ -1,23 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import {
-  Badge,
-  DataTable,
-  SectionCard,
-  SuperButton,
-} from '@/components/super-ui'
+import { Badge, DataTable, SectionCard, SuperButton } from '@/components/super-ui'
 import type { DataTableColumn } from '@/components/super-ui'
-import {
-  formatRelative,
-  formatTimestamp,
-  MOCK_NOW_UTC_MS,
-} from '@/lib/super'
-import type {
-  AuditActorType,
-  AuditLogEntry,
-  AuditQueryResult,
-} from '@/lib/super'
+import { formatRelative, formatTimestamp, MOCK_NOW_UTC_MS } from '@/lib/super'
+import type { AuditActorType, AuditLogEntry, AuditQueryResult } from '@/lib/super'
+import { trpc } from '@/lib/trpc'
 
 const ACTOR_TYPE_TONE: Record<AuditActorType, 'forge' | 'info' | 'neutral'> = {
   super_admin: 'forge',
@@ -33,7 +21,7 @@ export interface AuditClientProps {
   actors: ReadonlyArray<{ id: string; label: string }>
 }
 
-export function AuditClient({ result, actions, actors }: AuditClientProps) {
+export function AuditClient({ result: initialResult, actions, actors }: AuditClientProps) {
   const [search, setSearch] = useState('')
   const [actor, setActor] = useState<string>('all')
   const [actorType, setActorType] = useState<'all' | AuditActorType>('all')
@@ -42,6 +30,19 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
   const [toDate, setToDate] = useState('')
   const [pageSize, setPageSize] = useState<number>(50)
   const [page, setPage] = useState(1)
+
+  const liveQuery = trpc.super.audit.list.useQuery(
+    { page: 1, pageSize: 500 },
+    { retry: false, staleTime: 30_000 },
+  )
+  const result: AuditQueryResult = liveQuery.data
+    ? {
+        rows: liveQuery.data.rows as AuditLogEntry[],
+        totalRows: liveQuery.data.total,
+        page: liveQuery.data.page,
+        pageSize: liveQuery.data.pageSize,
+      }
+    : initialResult
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -54,7 +55,8 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
       if (fromTs && row.occurredAt < fromTs) return false
       if (toTs && row.occurredAt >= toTs) return false
       if (needle) {
-        const hay = `${row.action} ${row.actorLabel} ${row.targetLabel ?? ''} ${row.reason ?? ''} ${row.targetId}`.toLowerCase()
+        const hay =
+          `${row.action} ${row.actorLabel} ${row.targetLabel ?? ''} ${row.reason ?? ''} ${row.targetId}`.toLowerCase()
         if (!hay.includes(needle)) return false
       }
       return true
@@ -71,10 +73,10 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
       header: 'When',
       render: (r) => (
         <div>
-          <div className="font-mono text-caption tabular-nums text-text-secondary">
+          <div className="text-caption text-text-secondary font-mono tabular-nums">
             {formatTimestamp(r.occurredAt)}
           </div>
-          <div className="font-mono text-caption tabular-nums text-text-muted">
+          <div className="text-caption text-text-muted font-mono tabular-nums">
             {formatRelative(r.occurredAt, MOCK_NOW_UTC_MS)}
           </div>
         </div>
@@ -95,9 +97,7 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
     {
       key: 'action',
       header: 'Action',
-      render: (r) => (
-        <span className="font-mono text-small text-forge-amber">{r.action}</span>
-      ),
+      render: (r) => <span className="text-small text-forge-amber font-mono">{r.action}</span>,
       sortAccessor: (r) => r.action,
     },
     {
@@ -105,26 +105,22 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
       header: 'Target',
       render: (r) => (
         <div>
-          <div className="font-mono text-caption uppercase tracking-[0.16em] text-text-muted">
+          <div className="text-caption text-text-muted font-mono uppercase tracking-[0.16em]">
             {r.targetType}
           </div>
-          <div className="text-small text-text-primary">
-            {r.targetLabel ?? r.targetId}
-          </div>
+          <div className="text-small text-text-primary">{r.targetLabel ?? r.targetId}</div>
         </div>
       ),
     },
     {
       key: 'reason',
       header: 'Reason',
-      render: (r) => (
-        <span className="text-small text-text-secondary">{r.reason ?? '—'}</span>
-      ),
+      render: (r) => <span className="text-small text-text-secondary">{r.reason ?? '—'}</span>,
     },
     {
       key: 'ip',
       header: 'IP',
-      render: (r) => <span className="font-mono text-caption text-text-muted">{r.ipAddress}</span>,
+      render: (r) => <span className="text-caption text-text-muted font-mono">{r.ipAddress}</span>,
     },
   ]
 
@@ -194,8 +190,17 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
     <div className="flex flex-col gap-4">
       <SectionCard title="Filters">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <Input label="Search" value={search} onChange={setSearch} placeholder="action / target / reason" />
-          <Select label="Actor type" value={actorType} onChange={(v) => setActorType(v as 'all' | AuditActorType)}>
+          <Input
+            label="Search"
+            value={search}
+            onChange={setSearch}
+            placeholder="action / target / reason"
+          />
+          <Select
+            label="Actor type"
+            value={actorType}
+            onChange={(v) => setActorType(v as 'all' | AuditActorType)}
+          >
             <option value="all">all</option>
             <option value="super_admin">super_admin</option>
             <option value="user">user</option>
@@ -221,7 +226,7 @@ export function AuditClient({ result, actions, actors }: AuditClientProps) {
           <Input label="To" type="date" value={toDate} onChange={setToDate} />
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <span className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+          <span className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
             {filtered.length} match{filtered.length === 1 ? '' : 'es'} of{' '}
             {result.totalRows.toLocaleString()} total
           </span>
@@ -267,7 +272,7 @@ function Input({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-mono text-caption uppercase tracking-[0.16em] text-text-muted">
+      <span className="text-caption text-text-muted font-mono uppercase tracking-[0.16em]">
         {label}
       </span>
       <input
@@ -275,7 +280,7 @@ function Input({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 border border-border-subtle bg-bg-deep px-3 text-small text-text-primary placeholder:text-text-subtle focus:border-forge-amber focus:outline-none"
+        className="border-border-subtle bg-bg-deep text-small text-text-primary placeholder:text-text-subtle focus:border-forge-amber h-8 border px-3 focus:outline-none"
       />
     </label>
   )
@@ -294,13 +299,13 @@ function Select({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-mono text-caption uppercase tracking-[0.16em] text-text-muted">
+      <span className="text-caption text-text-muted font-mono uppercase tracking-[0.16em]">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 border border-border-subtle bg-bg-deep px-2 text-small text-text-primary focus:border-forge-amber focus:outline-none"
+        className="border-border-subtle bg-bg-deep text-small text-text-primary focus:border-forge-amber h-8 border px-2 focus:outline-none"
       >
         {children}
       </select>
@@ -322,13 +327,13 @@ function Pagination({
   onPageSize: (s: number) => void
 }) {
   return (
-    <div className="flex items-center justify-between border border-border-subtle bg-bg-deep px-4 py-2">
-      <div className="flex items-center gap-2 font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+    <div className="border-border-subtle bg-bg-deep flex items-center justify-between border px-4 py-2">
+      <div className="text-caption text-text-muted flex items-center gap-2 font-mono uppercase tracking-[0.18em]">
         Rows
         <select
           value={pageSize}
           onChange={(e) => onPageSize(Number(e.target.value))}
-          className="h-7 border border-border-subtle bg-bg-deep px-2 text-small text-text-primary focus:border-forge-amber focus:outline-none"
+          className="border-border-subtle bg-bg-deep text-small text-text-primary focus:border-forge-amber h-7 border px-2 focus:outline-none"
         >
           {PAGE_SIZES.map((s) => (
             <option key={s} value={s}>
@@ -338,10 +343,15 @@ function Pagination({
         </select>
       </div>
       <div className="flex items-center gap-3">
-        <SuperButton size="sm" variant="ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        <SuperButton
+          size="sm"
+          variant="ghost"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+        >
           Prev
         </SuperButton>
-        <span className="font-mono text-caption tabular-nums text-text-secondary">
+        <span className="text-caption text-text-secondary font-mono tabular-nums">
           {page} / {pageCount}
         </span>
         <SuperButton
