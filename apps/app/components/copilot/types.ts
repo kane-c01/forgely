@@ -63,6 +63,19 @@ export type ToolName =
   | 'compare_periods'
   | 'forecast_revenue'
   | 'identify_trends'
+  // compliance
+  | 'run_compliance_check'
+  | 'apply_compliance_fix'
+  // seo
+  | 'run_seo_audit'
+  | 'submit_sitemap'
+  // super-admin
+  | 'super_ban_user'
+  | 'super_unban_user'
+  | 'freeze_site'
+  | 'unfreeze_site'
+  | 'approve_refund'
+  | 'deny_refund'
 
 export interface ToolCall {
   id: string

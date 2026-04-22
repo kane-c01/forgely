@@ -23,8 +23,36 @@ import { fakeAssistant } from './fake-assistant'
  * `modify_theme_block` / `change_colors` so AI prompts genuinely change
  * the DSL). When no runner is registered for a tool, the call simulates
  * a generic success.
+ *
+ * Two reserved keys are always injected into `args` by the provider
+ * right before the runner fires:
+ *
+ *   - `_userConfirmed: true`  — the user clicked Confirm on the card.
+ *     Runners MUST check this for destructive operations (use
+ *     `requireConfirmed(args, name)` as a one-liner guard) — this is the
+ *     last-mile gate between the chat UI and real DB writes.
+ *   - `_destructive: boolean` — mirrors the ToolCall's own flag so the
+ *     runner can short-circuit without consulting other state.
+ *
+ * Programmatic callers who invoke a runner outside of `confirmTool`
+ * (unusual — nothing in tree does this today) bypass both flags and get
+ * the default simulated behavior, which is the safe fallback.
  */
 export type ToolRunner = (args: Record<string, unknown>) => Promise<string | void> | string | void
+
+/**
+ * Belt-and-suspenders guard. The UI layer already requires Confirm for
+ * destructive tool calls, but we still force every write-path runner to
+ * opt in so a future refactor that accidentally invokes runners
+ * programmatically cannot silently hit the database.
+ *
+ * Returns a string when confirmation is missing (caller should `return`
+ * it as the tool result) or `null` when the call may proceed.
+ */
+export function requireConfirmed(args: Record<string, unknown>, toolName: string): string | null {
+  if (args._userConfirmed === true) return null
+  return `Refused to run ${toolName}: needs explicit Confirm from a user.`
+}
 
 interface CopilotState {
   open: boolean
@@ -224,7 +252,16 @@ export function CopilotProvider({ children }: ProviderProps) {
 
       const runner = runnersRef.current.get(call.name)
       if (runner) {
-        Promise.resolve(runner(call.arguments))
+        // Inject the confirmation markers so runners can lean on
+        // `requireConfirmed(args, name)` without the page having to know
+        // about the provider's internals. The args object coming off the
+        // wire is cloned so we don't mutate message history.
+        const confirmedArgs: Record<string, unknown> = {
+          ...call.arguments,
+          _userConfirmed: true,
+          _destructive: call.destructive,
+        }
+        Promise.resolve(runner(confirmedArgs))
           .then((res) => {
             updateTool(messageId, toolId, {
               status: 'done',

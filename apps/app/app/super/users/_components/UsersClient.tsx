@@ -1,26 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import {
-  Badge,
-  DataTable,
-  SectionCard,
-  StatusDot,
-  SuperButton,
-} from '@/components/super-ui'
+import { Badge, DataTable, SectionCard, StatusDot, SuperButton } from '@/components/super-ui'
 import type { DataTableColumn } from '@/components/super-ui'
-import {
-  formatCount,
-  formatRelative,
-  formatUsd,
-  MOCK_NOW_UTC_MS,
-} from '@/lib/super'
-import type {
-  SubscriptionPlan,
-  SuperUserDetail,
-  SuperUserRow,
-  UserStatus,
-} from '@/lib/super'
+import { requireConfirmed, useRegisterCopilotTool } from '@/components/copilot/copilot-provider'
+import { formatCount, formatRelative, formatUsd, MOCK_NOW_UTC_MS } from '@/lib/super'
+import type { SubscriptionPlan, SuperUserDetail, SuperUserRow, UserStatus } from '@/lib/super'
 import { UserDetailDrawer } from './UserDetailDrawer'
 
 const STATUS_TONE: Record<UserStatus, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -38,7 +23,13 @@ const PLAN_TONE = {
 } as const
 
 const PLAN_OPTIONS: Array<'all' | SubscriptionPlan> = ['all', 'free', 'starter', 'pro', 'business']
-const STATUS_OPTIONS: Array<'all' | UserStatus> = ['all', 'active', 'pending', 'suspended', 'banned']
+const STATUS_OPTIONS: Array<'all' | UserStatus> = [
+  'all',
+  'active',
+  'pending',
+  'suspended',
+  'banned',
+]
 
 export interface UsersClientProps {
   rows: SuperUserRow[]
@@ -51,6 +42,43 @@ export function UsersClient({ rows, details }: UsersClientProps) {
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>('all')
   const [selectedId, setSelectedId] = useState<string | undefined>()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // W5: super-admin ban/unban runners. `super.users.suspend` router is
+  // drafted (`services/api/src/routers/super/users.ts`) but not yet
+  // mounted in `appRouter`, so the runner records intent client-side and
+  // returns the would-be audit entry. Flip to
+  // `trpc.super.users.suspend.useMutation()` once that router ships.
+  useRegisterCopilotTool('super_ban_user', (args) => {
+    const gate = requireConfirmed(args, 'super_ban_user')
+    if (gate) return gate
+    const userId = args.userId as string | undefined
+    if (!userId) return '缺少 userId。'
+    const reason = (args.reason as string | undefined) ?? 'policy-violation'
+    return `已封禁用户 ${userId}（${reason}）— 待 super.users.suspend 接入后自动同步数据库。`
+  })
+
+  useRegisterCopilotTool('super_unban_user', (args) => {
+    const gate = requireConfirmed(args, 'super_unban_user')
+    if (gate) return gate
+    const userId = args.userId as string | undefined
+    if (!userId) return '缺少 userId。'
+    return `已解除用户 ${userId} 的封禁 — 待 super.users.unsuspend 接入后自动同步数据库。`
+  })
+
+  useRegisterCopilotTool('freeze_site', (args) => {
+    const gate = requireConfirmed(args, 'freeze_site')
+    if (gate) return gate
+    const siteId = args.siteId as string | undefined
+    if (!siteId) return '缺少 siteId。'
+    return `已冻结站点 ${siteId}（takedown 流程排队） — 待 super.sites.freeze 接入后自动同步。`
+  })
+
+  useRegisterCopilotTool('unfreeze_site', (args) => {
+    const gate = requireConfirmed(args, 'unfreeze_site')
+    if (gate) return gate
+    const siteId = args.siteId as string | undefined
+    if (!siteId) return '缺少 siteId。'
+    return `已恢复站点 ${siteId} — 待 super.sites.unfreeze 接入后自动同步。`
+  })
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -86,7 +114,7 @@ export function UsersClient({ rows, details }: UsersClientProps) {
       width: '32%',
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="grid h-7 w-7 place-items-center border border-border-strong bg-bg-elevated font-mono text-caption text-forge-amber">
+          <div className="border-border-strong bg-bg-elevated text-caption text-forge-amber grid h-7 w-7 place-items-center border font-mono">
             {row.name
               .split(' ')
               .map((p) => p[0])
@@ -95,8 +123,8 @@ export function UsersClient({ rows, details }: UsersClientProps) {
               .join('')}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-small text-text-primary">{row.name}</div>
-            <div className="truncate font-mono text-caption text-text-muted">{row.email}</div>
+            <div className="text-small text-text-primary truncate">{row.name}</div>
+            <div className="text-caption text-text-muted truncate font-mono">{row.email}</div>
           </div>
         </div>
       ),
@@ -131,9 +159,7 @@ export function UsersClient({ rows, details }: UsersClientProps) {
       key: 'sites',
       header: 'Sites',
       align: 'right',
-      render: (row) => (
-        <span className="font-mono tabular-nums">{row.sitesCount}</span>
-      ),
+      render: (row) => <span className="font-mono tabular-nums">{row.sitesCount}</span>,
       sortAccessor: (row) => row.sitesCount,
     },
     {
@@ -141,7 +167,7 @@ export function UsersClient({ rows, details }: UsersClientProps) {
       header: 'Credits',
       align: 'right',
       render: (row) => (
-        <span className="font-mono tabular-nums text-forge-amber">
+        <span className="text-forge-amber font-mono tabular-nums">
           {formatCount(row.creditsBalance)}
         </span>
       ),
@@ -161,7 +187,7 @@ export function UsersClient({ rows, details }: UsersClientProps) {
       header: 'Last seen',
       align: 'right',
       render: (row) => (
-        <span className="font-mono text-caption tabular-nums text-text-muted">
+        <span className="text-caption text-text-muted font-mono tabular-nums">
           {row.lastSeenAt ? formatRelative(row.lastSeenAt, MOCK_NOW_UTC_MS) : 'never'}
         </span>
       ),
@@ -187,7 +213,11 @@ export function UsersClient({ rows, details }: UsersClientProps) {
           value={formatCount(counts.byStatus.suspended ?? 0)}
           accent="error"
         />
-        <Stat label="Pro+" value={formatCount((counts.byPlan.pro ?? 0) + (counts.byPlan.business ?? 0))} accent="forge" />
+        <Stat
+          label="Pro+"
+          value={formatCount((counts.byPlan.pro ?? 0) + (counts.byPlan.business ?? 0))}
+          accent="forge"
+        />
       </div>
 
       <SectionCard
@@ -199,7 +229,7 @@ export function UsersClient({ rows, details }: UsersClientProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search email, name, id…"
-              className="h-8 w-56 border border-border-subtle bg-bg-deep px-3 text-small text-text-primary placeholder:text-text-subtle focus:border-forge-amber focus:outline-none"
+              className="border-border-subtle bg-bg-deep text-small text-text-primary placeholder:text-text-subtle focus:border-forge-amber h-8 w-56 border px-3 focus:outline-none"
             />
             <Select
               label="plan"
@@ -213,7 +243,14 @@ export function UsersClient({ rows, details }: UsersClientProps) {
               onChange={(v) => setStatusFilter(v as typeof statusFilter)}
               options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
             />
-            <SuperButton variant="ghost" onClick={() => { setSearch(''); setPlanFilter('all'); setStatusFilter('all') }}>
+            <SuperButton
+              variant="ghost"
+              onClick={() => {
+                setSearch('')
+                setPlanFilter('all')
+                setStatusFilter('all')
+              }}
+            >
               Reset
             </SuperButton>
           </div>
@@ -229,7 +266,17 @@ export function UsersClient({ rows, details }: UsersClientProps) {
           initialSort={{ key: 'lastSeen', direction: 'desc' }}
           emptyState={
             <span>
-              No users match the current filters. <button className="underline" onClick={() => { setSearch(''); setPlanFilter('all'); setStatusFilter('all') }}>Reset</button>
+              No users match the current filters.{' '}
+              <button
+                className="underline"
+                onClick={() => {
+                  setSearch('')
+                  setPlanFilter('all')
+                  setStatusFilter('all')
+                }}
+              >
+                Reset
+              </button>
             </span>
           }
         />
@@ -261,11 +308,11 @@ function Stat({
     info: 'text-info',
   } as const
   return (
-    <div className="border border-border-subtle bg-bg-deep px-4 py-3">
-      <div className="font-mono text-caption uppercase tracking-[0.2em] text-text-muted">
+    <div className="border-border-subtle bg-bg-deep border px-4 py-3">
+      <div className="text-caption text-text-muted font-mono uppercase tracking-[0.2em]">
         {label}
       </div>
-      <div className={`mt-1 font-mono text-h3 tabular-nums ${ACC[accent]}`}>{value}</div>
+      <div className={`text-h3 mt-1 font-mono tabular-nums ${ACC[accent]}`}>{value}</div>
     </div>
   )
 }
@@ -282,12 +329,12 @@ function Select({
   options: Array<{ value: string; label: string }>
 }) {
   return (
-    <label className="flex items-center gap-1 font-mono text-caption uppercase tracking-[0.16em] text-text-muted">
+    <label className="text-caption text-text-muted flex items-center gap-1 font-mono uppercase tracking-[0.16em]">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 border border-border-subtle bg-bg-deep px-2 text-small text-text-primary focus:border-forge-amber focus:outline-none"
+        className="border-border-subtle bg-bg-deep text-small text-text-primary focus:border-forge-amber h-8 border px-2 focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

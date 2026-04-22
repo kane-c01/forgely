@@ -60,6 +60,14 @@ const TODO_PRODUCT: MedusaProductSummary = {
   updatedAt: new Date(),
 }
 
+/**
+ * In-memory overrides keyed by product id so that `updateProduct` — invoked
+ * by the Copilot `update_product` runner — can be observed by subsequent
+ * `getProduct` calls in the same server process. Keeps the demo-loop honest
+ * without a real Medusa backend.
+ */
+const productOverrides = new Map<string, Partial<MedusaProductSummary>>()
+
 const TODO_ORDER: MedusaOrderSummary = {
   id: 'order_pending_medusa',
   displayId: 0,
@@ -122,8 +130,10 @@ export const medusa = {
     }
   },
 
-  async getProduct(_id: string): Promise<MedusaProductSummary | null> {
-    return TODO_PRODUCT
+  async getProduct(id: string): Promise<MedusaProductSummary | null> {
+    const base = { ...TODO_PRODUCT, id }
+    const override = productOverrides.get(id)
+    return override ? { ...base, ...override, updatedAt: new Date() } : base
   },
 
   async getOrder(_id: string): Promise<MedusaOrderSummary | null> {
@@ -139,5 +149,23 @@ export const medusa = {
     amountUsd: number,
   ): Promise<{ orderId: string; refundedUsd: number }> {
     return { orderId, refundedUsd: amountUsd }
+  },
+
+  /**
+   * Merge `patch` into the in-memory override for `id`. Returns the
+   * effective product snapshot so callers can echo it back to the UI.
+   *
+   * This is a stub of the Medusa v2 `product.update` workflow; when the
+   * real Medusa adapter lands the body of this method swaps for a
+   * `sdk.admin.product.update(id, patch)` call.
+   */
+  async updateProduct(
+    id: string,
+    patch: Partial<MedusaProductSummary>,
+  ): Promise<MedusaProductSummary> {
+    const prev = productOverrides.get(id) ?? {}
+    const next = { ...prev, ...patch }
+    productOverrides.set(id, next)
+    return { ...TODO_PRODUCT, id, ...next, updatedAt: new Date() }
   },
 }

@@ -43,6 +43,16 @@ const TOOL_LABEL: Record<string, string> = {
   compare_periods: 'Compare periods',
   forecast_revenue: 'Forecast revenue',
   identify_trends: 'Identify trends',
+  run_compliance_check: 'Run compliance check',
+  apply_compliance_fix: 'Apply compliance fix',
+  run_seo_audit: 'Run SEO audit',
+  submit_sitemap: 'Submit sitemap',
+  super_ban_user: 'Ban user',
+  super_unban_user: 'Unban user',
+  freeze_site: 'Freeze site',
+  unfreeze_site: 'Unfreeze site',
+  approve_refund: 'Approve refund',
+  deny_refund: 'Deny refund',
 }
 
 export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
@@ -60,16 +70,16 @@ export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
   return (
     <div
       className={cn(
-        'rounded-lg border bg-bg-deep p-3 text-small',
+        'bg-bg-deep text-small rounded-lg border p-3',
         call.destructive ? 'border-forge-orange/30' : 'border-border-strong',
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-text-primary">
-          <span className="grid h-6 w-6 place-items-center rounded bg-bg-elevated text-forge-amber">
+        <div className="text-text-primary flex items-center gap-2">
+          <span className="bg-bg-elevated text-forge-amber grid h-6 w-6 place-items-center rounded">
             <Icon.Robot size={12} />
           </span>
-          <span className="font-mono text-caption uppercase tracking-[0.12em]">
+          <span className="text-caption font-mono uppercase tracking-[0.12em]">
             {TOOL_LABEL[call.name] ?? call.name}
           </span>
           {call.destructive ? (
@@ -87,18 +97,18 @@ export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
         </Badge>
       </div>
 
-      <pre className="mt-2 overflow-x-auto rounded bg-bg-void/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-text-secondary">
-{JSON.stringify(call.arguments, null, 2)}
+      <pre className="bg-bg-void/60 text-text-secondary mt-2 overflow-x-auto rounded px-2 py-1.5 font-mono text-[11px] leading-relaxed">
+        {JSON.stringify(call.arguments, null, 2)}
       </pre>
 
       {call.estimatedCredits ? (
-        <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-caption text-forge-amber">
+        <p className="text-caption text-forge-amber mt-2 inline-flex items-center gap-1.5 font-mono">
           <Icon.Sparkle size={12} /> ~{call.estimatedCredits} credits
         </p>
       ) : null}
 
       {call.result ? (
-        <p className="mt-2 rounded bg-success/10 px-2 py-1.5 text-caption text-success">
+        <p className="bg-success/10 text-caption text-success mt-2 rounded px-2 py-1.5">
           {call.result}
         </p>
       ) : null}

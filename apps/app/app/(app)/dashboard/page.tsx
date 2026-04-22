@@ -2,7 +2,11 @@
 
 import Link from 'next/link'
 
-import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
+import {
+  useCopilot,
+  useCopilotContext,
+  useRegisterCopilotTool,
+} from '@/components/copilot/copilot-provider'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { Sparkline } from '@/components/dashboard/sparkline'
 import { useGreeting } from '@/components/dashboard/use-greeting'
@@ -18,27 +22,69 @@ export default function DashboardPage() {
   const copilot = useCopilot()
   const site = defaultSite
 
-  const pendingShipments = orders.filter((o) => o.status === 'paid' || o.status === 'pending').length
+  const pendingShipments = orders.filter(
+    (o) => o.status === 'paid' || o.status === 'pending',
+  ).length
   const lowStock = products.filter((p) => p.status === 'active' && p.inventory <= 10).length
   const totalRevenueCents = revenueSeries30d.reduce((a, b) => a + b, 0)
   const last7 = revenueSeries30d.slice(-7).reduce((a, b) => a + b, 0)
   const prev7 = revenueSeries30d.slice(-14, -7).reduce((a, b) => a + b, 0) || 1
+
+  // W5: read-only query runners. They're non-destructive so the card UI
+  // already shows "Run" rather than Confirm/Cancel — we return a JSON
+  // string that the Copilot renders as a Markdown-safe payload.
+  useRegisterCopilotTool('query_sales', (args) => {
+    const range =
+      args.range === '7d'
+        ? { totalCents: last7, windowDays: 7 }
+        : args.range === '24h'
+          ? { totalCents: Math.round(last7 / 7), windowDays: 1 }
+          : { totalCents: totalRevenueCents, windowDays: 30 }
+    return JSON.stringify({
+      range: args.range ?? '30d',
+      totalUsd: (range.totalCents / 100).toFixed(2),
+      windowDays: range.windowDays,
+      orders: orders.filter((o) => o.status !== 'cancelled').length,
+    })
+  })
+
+  useRegisterCopilotTool('query_orders', (args) => {
+    const status = typeof args.status === 'string' ? args.status : undefined
+    const rows = status ? orders.filter((o) => o.status === status) : orders
+    return JSON.stringify({
+      status: status ?? 'all',
+      count: rows.length,
+      totalUsd: (rows.reduce((s, o) => s + o.totalCents, 0) / 100).toFixed(2),
+      ids: rows.slice(0, 10).map((o) => o.id),
+    })
+  })
+
+  useRegisterCopilotTool('compare_periods', () => {
+    const delta = last7 - prev7
+    const pct = (delta / prev7) * 100
+    return JSON.stringify({
+      currentUsd: (last7 / 100).toFixed(2),
+      baselineUsd: (prev7 / 100).toFixed(2),
+      deltaUsd: (delta / 100).toFixed(2),
+      pctChange: pct.toFixed(1),
+    })
+  })
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       {/* Greeting bar */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+          <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
             {site.name} · {site.domain}
           </p>
-          <h1 className="mt-1 font-display text-h1 text-text-primary">{greeting}.</h1>
+          <h1 className="font-display text-h1 text-text-primary mt-1">{greeting}.</h1>
         </div>
         {time && date ? (
-          <div className="flex items-center gap-3 font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+          <div className="text-caption text-text-muted flex items-center gap-3 font-mono uppercase tracking-[0.18em]">
             <span>{date}</span>
             <span className="text-text-subtle">·</span>
-            <span className="tabular-nums text-text-secondary">{time}</span>
+            <span className="text-text-secondary tabular-nums">{time}</span>
             <Badge tone="success" dot>
               live
             </Badge>
@@ -54,11 +100,7 @@ export default function DashboardPage() {
           delta={0.123}
           accent
         />
-        <KpiCard
-          label="Orders · 30d"
-          value={formatNumber(site.metrics.orders30d)}
-          delta={0.081}
-        />
+        <KpiCard label="Orders · 30d" value={formatNumber(site.metrics.orders30d)} delta={0.081} />
         <KpiCard
           label="Conversion"
           value={formatPercent(site.metrics.conversion)}
@@ -73,26 +115,26 @@ export default function DashboardPage() {
       </section>
 
       {/* Hero chart */}
-      <section className="rounded-lg border border-border-subtle bg-bg-surface">
-        <div className="flex items-center justify-between gap-4 border-b border-border-subtle px-5 py-4">
+      <section className="border-border-subtle bg-bg-surface rounded-lg border">
+        <div className="border-border-subtle flex items-center justify-between gap-4 border-b px-5 py-4">
           <div>
-            <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+            <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
               Revenue · last 30 days
             </p>
-            <p className="mt-1 font-display text-h2 text-text-primary tabular-nums">
+            <p className="font-display text-h2 text-text-primary mt-1 tabular-nums">
               {formatCurrency(totalRevenueCents)}
             </p>
           </div>
-          <div className="flex items-center gap-3 font-mono text-caption text-text-muted">
+          <div className="text-caption text-text-muted flex items-center gap-3 font-mono">
             <span>last 7d</span>
-            <span className="rounded bg-bg-elevated px-2 py-0.5 tabular-nums text-forge-amber">
+            <span className="bg-bg-elevated text-forge-amber rounded px-2 py-0.5 tabular-nums">
               {formatCurrency(last7)}
             </span>
             <span
               className={
                 last7 >= prev7
-                  ? 'inline-flex items-center gap-1 rounded bg-success/15 px-2 py-0.5 text-success'
-                  : 'inline-flex items-center gap-1 rounded bg-error/15 px-2 py-0.5 text-error'
+                  ? 'bg-success/15 text-success inline-flex items-center gap-1 rounded px-2 py-0.5'
+                  : 'bg-error/15 text-error inline-flex items-center gap-1 rounded px-2 py-0.5'
               }
             >
               {last7 >= prev7 ? <Icon.ArrowUp size={10} /> : <Icon.ArrowDown size={10} />}
@@ -108,35 +150,34 @@ export default function DashboardPage() {
       {/* Two-column: Needs attention + AI suggests */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Needs attention */}
-        <div className="rounded-lg border border-border-subtle bg-bg-surface lg:col-span-3">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-            <h3 className="inline-flex items-center gap-2 font-heading text-h3 text-text-primary">
+        <div className="border-border-subtle bg-bg-surface rounded-lg border lg:col-span-3">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
+            <h3 className="font-heading text-h3 text-text-primary inline-flex items-center gap-2">
               <Icon.Bell size={16} className="text-forge-amber" /> Needs attention
             </h3>
-            <Badge tone="warning">
-              {pendingShipments + lowStock} items
-            </Badge>
+            <Badge tone="warning">{pendingShipments + lowStock} items</Badge>
           </div>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="divide-border-subtle divide-y">
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-forge-orange/15 text-forge-amber">
+                <span className="bg-forge-orange/15 text-forge-amber grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Cart size={16} />
                 </span>
                 <span className="text-small text-text-primary">
-                  <strong className="font-medium">{pendingShipments}</strong> orders pending shipment
+                  <strong className="font-medium">{pendingShipments}</strong> orders pending
+                  shipment
                 </span>
               </span>
               <Link
                 href={`/sites/${site.id}/orders`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
                 Open orders →
               </Link>
             </li>
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-warning/15 text-warning">
+                <span className="bg-warning/15 text-warning grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Box size={16} />
                 </span>
                 <span className="text-small text-text-primary">
@@ -145,14 +186,14 @@ export default function DashboardPage() {
               </span>
               <Link
                 href={`/sites/${site.id}/products`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
                 Restock →
               </Link>
             </li>
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-info/15 text-info">
+                <span className="bg-info/15 text-info grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Sparkle size={16} />
                 </span>
                 <span className="text-small text-text-primary">
@@ -161,7 +202,7 @@ export default function DashboardPage() {
               </span>
               <Link
                 href={`/sites/${site.id}/editor`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
                 Review →
               </Link>
@@ -170,21 +211,25 @@ export default function DashboardPage() {
         </div>
 
         {/* AI suggests */}
-        <div className="relative overflow-hidden rounded-lg border border-forge-orange/30 bg-gradient-to-br from-forge-orange/10 via-bg-surface to-bg-surface p-5 lg:col-span-2">
-          <span className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-forge-orange/15 blur-3xl" />
+        <div className="border-forge-orange/30 from-forge-orange/10 via-bg-surface to-bg-surface relative overflow-hidden rounded-lg border bg-gradient-to-br p-5 lg:col-span-2">
+          <span className="bg-forge-orange/15 absolute -right-12 -top-12 h-40 w-40 rounded-full blur-3xl" />
           <div className="relative flex flex-col gap-3">
-            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-forge-orange/15 px-2 py-0.5 font-mono text-caption uppercase tracking-[0.18em] text-forge-amber">
+            <span className="bg-forge-orange/15 text-caption text-forge-amber inline-flex items-center gap-1.5 self-start rounded-full px-2 py-0.5 font-mono uppercase tracking-[0.18em]">
               <Icon.Sparkle size={12} /> Copilot suggests
             </span>
             <p className="text-body text-text-primary">
-              Your <strong className="text-forge-amber">Primary Essentials Blend</strong> converts <strong className="text-forge-amber">23% above</strong> catalog average. Want me to bump its ad budget and pin it to your Hero block?
+              Your <strong className="text-forge-amber">Primary Essentials Blend</strong> converts{' '}
+              <strong className="text-forge-amber">23% above</strong> catalog average. Want me to
+              bump its ad budget and pin it to your Hero block?
             </p>
             <div className="mt-1 flex items-center gap-2">
               <Button
                 size="sm"
                 onClick={() => {
                   copilot.setOpen(true)
-                  void copilot.send('Bump Primary Essentials ad budget and pin it to the Hero block.')
+                  void copilot.send(
+                    'Bump Primary Essentials ad budget and pin it to the Hero block.',
+                  )
                 }}
               >
                 <Icon.Sparkle size={12} /> Yes, plan it
@@ -199,35 +244,35 @@ export default function DashboardPage() {
 
       {/* Recent orders + top products */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-border-subtle bg-bg-surface">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+        <div className="border-border-subtle bg-bg-surface rounded-lg border">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
             <h3 className="font-heading text-h3 text-text-primary">Recent orders</h3>
             <Link
               href={`/sites/${site.id}/orders`}
-              className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+              className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
             >
               View all →
             </Link>
           </div>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="divide-border-subtle divide-y">
             {orders.slice(0, 5).map((o) => (
               <li key={o.id}>
                 <Link
                   href={`/sites/${site.id}/orders/${o.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg-elevated/60"
+                  className="hover:bg-bg-elevated/60 flex items-center justify-between gap-3 px-5 py-3 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-caption text-text-muted">{o.number}</span>
+                    <span className="text-caption text-text-muted font-mono">{o.number}</span>
                     <span className="text-small text-text-primary">{o.customerName}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={statusToneFor(o.status)} dot>
                       {o.status}
                     </Badge>
-                    <span className="font-mono text-caption tabular-nums text-text-secondary">
+                    <span className="text-caption text-text-secondary font-mono tabular-nums">
                       {formatCurrency(o.totalCents)}
                     </span>
-                    <span className="font-mono text-caption text-text-muted">
+                    <span className="text-caption text-text-muted font-mono">
                       {relativeTime(o.createdAt)}
                     </span>
                   </div>
@@ -237,36 +282,45 @@ export default function DashboardPage() {
           </ul>
         </div>
 
-        <div className="rounded-lg border border-border-subtle bg-bg-surface">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+        <div className="border-border-subtle bg-bg-surface rounded-lg border">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
             <h3 className="font-heading text-h3 text-text-primary">Top products</h3>
             <Link
               href={`/sites/${site.id}/products`}
-              className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+              className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
             >
               View all →
             </Link>
           </div>
-          <ul className="divide-y divide-border-subtle">
-            {products.filter((p) => p.status === 'active').slice(0, 5).map((p, i) => (
-              <li key={p.id}>
-                <Link
-                  href={`/sites/${site.id}/products/${p.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg-elevated/60"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-9 w-9 place-items-center rounded bg-bg-deep text-h3">{p.images[0]}</span>
-                    <div className="flex flex-col">
-                      <span className="text-small text-text-primary">{p.title}</span>
-                      <span className="font-mono text-caption text-text-muted">
-                        rank #{i + 1} · {formatCurrency(p.priceCents)}
+          <ul className="divide-border-subtle divide-y">
+            {products
+              .filter((p) => p.status === 'active')
+              .slice(0, 5)
+              .map((p, i) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/sites/${site.id}/products/${p.id}`}
+                    className="hover:bg-bg-elevated/60 flex items-center justify-between gap-3 px-5 py-3 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="bg-bg-deep text-h3 grid h-9 w-9 place-items-center rounded">
+                        {p.images[0]}
                       </span>
+                      <div className="flex flex-col">
+                        <span className="text-small text-text-primary">{p.title}</span>
+                        <span className="text-caption text-text-muted font-mono">
+                          rank #{i + 1} · {formatCurrency(p.priceCents)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  {p.hot ? <Badge tone="forge" dot>hot</Badge> : null}
-                </Link>
-              </li>
-            ))}
+                    {p.hot ? (
+                      <Badge tone="forge" dot>
+                        hot
+                      </Badge>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
           </ul>
         </div>
       </section>
@@ -274,7 +328,9 @@ export default function DashboardPage() {
   )
 }
 
-function statusToneFor(status: string): 'success' | 'forge' | 'warning' | 'info' | 'neutral' | 'error' {
+function statusToneFor(
+  status: string,
+): 'success' | 'forge' | 'warning' | 'info' | 'neutral' | 'error' {
   switch (status) {
     case 'paid':
     case 'fulfilled':

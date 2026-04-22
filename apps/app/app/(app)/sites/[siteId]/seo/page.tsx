@@ -25,6 +25,7 @@ import {
   type SiteMeta,
 } from '@forgely/seo'
 
+import { requireConfirmed, useRegisterCopilotTool } from '@/components/copilot/copilot-provider'
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -133,6 +134,35 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
     () => pages.map((page) => ({ page, score: scorePage(site, page) })),
     [pages, site],
   )
+
+  // W5: Copilot runners for the SEO surface. `run_seo_audit` is a
+  // no-side-effect re-run of the scorer; `submit_sitemap` is destructive
+  // (pings the host — still stub until W6) so we gate on Confirm and
+  // return the canonical XML body as a preview.
+  useRegisterCopilotTool('run_seo_audit', () => {
+    const scoredNow = pages.map((p) => scorePage(site, p))
+    const avg = scoredNow.reduce((s, x) => s + x.score, 0) / Math.max(scoredNow.length, 1)
+    return JSON.stringify({
+      pages: scoredNow.length,
+      averageScore: Math.round(avg),
+      critical: scoredNow.reduce(
+        (n, s) => n + s.checks.filter((c) => c.level === 'critical').length,
+        0,
+      ),
+      byGrade: scoredNow.reduce<Record<string, number>>((acc, s) => {
+        acc[s.grade] = (acc[s.grade] ?? 0) + 1
+        return acc
+      }, {}),
+    })
+  })
+
+  useRegisterCopilotTool('submit_sitemap', (args) => {
+    const gate = requireConfirmed(args, 'submit_sitemap')
+    if (gate) return gate
+    const files = buildSitemap(site, pages)
+    const totalLines = files.reduce((n, f) => n + f.content.split('\n').length, 0)
+    return `已构建并排队提交 sitemap（${files.length} 个分片 / ${totalLines} 行 / ${pages.length} 个 URL）到 Google / Bing。`
+  })
 
   const aggregate = useMemo(() => {
     const total = scored.reduce((s, p) => s + p.score.score, 0)

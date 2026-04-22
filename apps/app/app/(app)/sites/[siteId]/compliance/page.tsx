@@ -24,6 +24,7 @@ import {
   type Severity,
 } from '@forgely/compliance'
 
+import { requireConfirmed, useRegisterCopilotTool } from '@/components/copilot/copilot-provider'
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -130,6 +131,49 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
       setResolvedRules((prev) => new Set(prev).add(f.rule + '@' + f.location))
     }
   }
+
+  // W5: wire Copilot tool calls on this page to the live compliance
+  // helpers. `runRules` is pure so the re-run is free; we return the
+  // verdict breakdown as a compact JSON string so the Copilot drawer
+  // can echo it back to the user.
+  useRegisterCopilotTool('run_compliance_check', (args) => {
+    const subset =
+      typeof args.region === 'string' && args.region !== 'all'
+        ? {
+            ...content,
+            regions: [args.region] as ComplianceContent['regions'],
+          }
+        : content
+    const fresh = runRules(subset)
+    return JSON.stringify({
+      verdict: fresh.overall,
+      total: fresh.findings.length,
+      critical: fresh.findings.filter((f) => f.severity === 'critical').length,
+      warning: fresh.findings.filter((f) => f.severity === 'warning').length,
+      info: fresh.findings.filter((f) => f.severity === 'info').length,
+    })
+  })
+
+  useRegisterCopilotTool('apply_compliance_fix', (args) => {
+    const gate = requireConfirmed(args, 'apply_compliance_fix')
+    if (gate) return gate
+    const location = args.location as string | undefined
+    const candidates = location
+      ? report.findings.filter((f) => f.location === location && f.autoFixable)
+      : report.findings.filter((f) => f.autoFixable)
+    if (candidates.length === 0) return '没有可一键修复的项。'
+    let patched = 0
+    for (const f of candidates) {
+      const item = content.items.find((i) => i.path === f.location)
+      if (!item) continue
+      const sub = applyAutoFix([item], { ...report, findings: [f] })
+      if (sub.patches.length > 0) {
+        patched += 1
+        setResolvedRules((prev) => new Set(prev).add(f.rule + '@' + f.location))
+      }
+    }
+    return `已自动修复 ${patched} 条发现，剩 ${report.findings.length - patched} 条需要人工复核。`
+  })
 
   const columns: DataTableColumn<ComplianceFinding>[] = [
     {

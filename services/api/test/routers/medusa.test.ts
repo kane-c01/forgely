@@ -33,4 +33,18 @@ describe('routers/_medusa stub', () => {
     const result = await medusa.refundOrder('o1', 5_000)
     expect(result).toEqual({ orderId: 'o1', refundedUsd: 5_000 })
   })
+
+  it('updateProduct stamps the patch and subsequent getProduct reflects it', async () => {
+    const id = `prod_${Math.random().toString(36).slice(2, 8)}`
+    const before = await medusa.getProduct(id)
+    expect(before?.title).toMatch(/Medusa/)
+
+    const after = await medusa.updateProduct(id, { title: 'Warm Roast', priceUsd: 26 })
+    expect(after.title).toBe('Warm Roast')
+    expect(after.priceUsd).toBe(26)
+
+    const reread = await medusa.getProduct(id)
+    expect(reread?.title).toBe('Warm Roast')
+    expect(reread?.priceUsd).toBe(26)
+  })
 })

@@ -3,18 +3,18 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { useCopilotContext } from '@/components/copilot/copilot-provider'
+import {
+  requireConfirmed,
+  useCopilotContext,
+  useRegisterCopilotTool,
+} from '@/components/copilot/copilot-provider'
 import { AIQuickActions } from '@/components/products/ai-quick-actions'
 import { ProductInventoryBar, ProductStatusCell } from '@/components/products/product-row'
 import { PageHeader } from '@/components/shell/page-header'
+import { trpc } from '@/lib/trpc'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, Input, Textarea } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icons'
 import { getProduct } from '@/lib/mocks'
@@ -31,11 +31,66 @@ export default function ProductDetailPage({
       ? { kind: 'product', productId: product.id, productTitle: product.title }
       : { kind: 'global' },
   )
+
+  // W5: wire Copilot tool calls for this page to real tRPC mutations.
+  // The runners are always registered (unconditional hook order); if
+  // `product` is missing the notFound below prevents the page from ever
+  // rendering a tool card anyway.
+  const updateProduct = trpc.products.update.useMutation()
+
+  useRegisterCopilotTool('update_product', async (args) => {
+    const gate = requireConfirmed(args, 'update_product')
+    if (gate) return gate
+    const targetId = (args.productId as string | undefined) ?? params.productId
+    // Accept both `{ patch: { … } }` and flat shapes like `{ priceCents }`
+    // that the fake-assistant emits.
+    const rawPatch =
+      (args.patch as Record<string, unknown> | undefined) ??
+      Object.fromEntries(
+        Object.entries(args).filter(
+          ([k]) => !['productId', '_userConfirmed', '_destructive'].includes(k),
+        ),
+      )
+    await updateProduct.mutateAsync({
+      siteId: params.siteId,
+      productId: targetId,
+      patch: rawPatch,
+      reason: 'copilot.tool.update_product',
+    })
+    return `已更新商品 ${targetId}`
+  })
+
+  useRegisterCopilotTool('suggest_pricing', (args) => {
+    // Non-destructive — returns advice as a message, does not write.
+    const target = typeof args.target === 'number' ? args.target : undefined
+    const basis = typeof args.basis === 'string' ? args.basis : 'competitor-median+AOV'
+    return target !== undefined
+      ? `建议价 ${formatCurrency(target)}（依据 ${basis}），可再发 update_product 应用。`
+      : `已分析同类 SKU 与 AOV，建议保持当前定价（依据 ${basis}）。`
+  })
+
+  useRegisterCopilotTool('rewrite_copy', async (args) => {
+    const gate = requireConfirmed(args, 'rewrite_copy')
+    if (gate) return gate
+    const options = (args.options as string[] | undefined) ?? []
+    const next = options[0]
+    if (!next) return '未提供候选文案。'
+    // Persist the chosen headline as a product title patch so the
+    // draft updates end-to-end (audit log will show a copy change).
+    await updateProduct.mutateAsync({
+      siteId: params.siteId,
+      productId: params.productId,
+      patch: { title: next },
+      reason: 'copilot.tool.rewrite_copy',
+    })
+    return `已把文案换成 "${next}" 并写入草稿。`
+  })
+
   if (!product) return notFound()
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <div className="flex items-center gap-2 font-mono text-caption text-text-muted">
+      <div className="text-caption text-text-muted flex items-center gap-2 font-mono">
         <Link href={`/sites/${params.siteId}/products`} className="hover:text-text-primary">
           Products
         </Link>
@@ -54,7 +109,7 @@ export default function ProductDetailPage({
             <span>Stock</span>
             <ProductInventoryBar inventory={product.inventory} />
             <span>·</span>
-            <span className="tabular-nums text-text-secondary">
+            <span className="text-text-secondary tabular-nums">
               {formatCurrency(product.priceCents)}
             </span>
           </>
@@ -73,11 +128,32 @@ export default function ProductDetailPage({
 
       <AIQuickActions
         actions={[
-          { emoji: '✍️', label: 'Rewrite copy', prompt: 'Rewrite the title and description for SEO and emotional appeal.' },
-          { emoji: '💵', label: 'Suggest pricing', prompt: 'Suggest pricing based on competitor median + AOV.' },
-          { emoji: '📸', label: 'Generate lifestyle photos', prompt: 'Generate 3 lifestyle photos for this product, warm tones, kinari linen background.' },
-          { emoji: '🎬', label: 'Generate hero video', prompt: 'Generate a 4s hero loop video for this product, golden hour lighting.' },
-          { emoji: '🏷️', label: 'Suggest a discount', prompt: 'Suggest a launch discount with a code I can copy.' },
+          {
+            emoji: '✍️',
+            label: 'Rewrite copy',
+            prompt: 'Rewrite the title and description for SEO and emotional appeal.',
+          },
+          {
+            emoji: '💵',
+            label: 'Suggest pricing',
+            prompt: 'Suggest pricing based on competitor median + AOV.',
+          },
+          {
+            emoji: '📸',
+            label: 'Generate lifestyle photos',
+            prompt:
+              'Generate 3 lifestyle photos for this product, warm tones, kinari linen background.',
+          },
+          {
+            emoji: '🎬',
+            label: 'Generate hero video',
+            prompt: 'Generate a 4s hero loop video for this product, golden hour lighting.',
+          },
+          {
+            emoji: '🏷️',
+            label: 'Suggest a discount',
+            prompt: 'Suggest a launch discount with a code I can copy.',
+          },
         ]}
       />
 
@@ -116,7 +192,7 @@ export default function ProductDetailPage({
                 {product.images.map((img, i) => (
                   <div
                     key={i}
-                    className="group relative flex aspect-square items-center justify-center rounded-md border border-border-subtle bg-bg-deep text-[44px]"
+                    className="border-border-subtle bg-bg-deep group relative flex aspect-square items-center justify-center rounded-md border text-[44px]"
                   >
                     <span aria-hidden>{img}</span>
                     {i === 0 ? (
@@ -126,7 +202,7 @@ export default function ProductDetailPage({
                     ) : null}
                     <button
                       aria-label="Remove image"
-                      className="absolute right-2 top-2 hidden grid h-6 w-6 place-items-center rounded-md bg-bg-void/80 text-text-secondary backdrop-blur group-hover:grid hover:text-error"
+                      className="bg-bg-void/80 text-text-secondary hover:text-error absolute right-2 top-2 grid hidden h-6 w-6 place-items-center rounded-md backdrop-blur group-hover:grid"
                     >
                       <Icon.Trash size={12} />
                     </button>
@@ -134,10 +210,10 @@ export default function ProductDetailPage({
                 ))}
                 <button
                   type="button"
-                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border-strong bg-bg-deep text-text-muted transition-colors hover:border-forge-orange/50 hover:text-forge-amber"
+                  className="border-border-strong bg-bg-deep text-text-muted hover:border-forge-orange/50 hover:text-forge-amber flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed transition-colors"
                 >
                   <Icon.Sparkle size={20} />
-                  <span className="font-mono text-caption uppercase tracking-[0.18em]">AI</span>
+                  <span className="text-caption font-mono uppercase tracking-[0.18em]">AI</span>
                 </button>
               </div>
             </CardContent>
@@ -146,7 +222,9 @@ export default function ProductDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>SEO</CardTitle>
-              <Badge tone="info" className="!text-[10px]">auto</Badge>
+              <Badge tone="info" className="!text-[10px]">
+                auto
+              </Badge>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="Meta title">
@@ -194,7 +272,7 @@ export default function ProductDetailPage({
                 <Input defaultValue={`SKU-${product.id.toUpperCase()}`} />
               </Field>
               <Field label="Track quantity">
-                <select className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none">
+                <select className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none">
                   <option>Track manually</option>
                   <option>Don&apos;t track</option>
                   <option>Sync with Medusa stock</option>
@@ -217,7 +295,7 @@ export default function ProductDetailPage({
               <Field label="Status">
                 <select
                   defaultValue={product.status}
-                  className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none"
+                  className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none"
                 >
                   <option value="active">Active</option>
                   <option value="draft">Draft</option>
