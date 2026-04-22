@@ -24,10 +24,29 @@ export {
   enqueueGeneration,
   getQueue,
   startGenerationWorker,
+  signalQueued,
   readRecentEvents,
   tailEvents,
   shutdownQueue,
 } from './queue'
+
+export {
+  STEP_NAMES,
+  STEP_STATUSES,
+  streamKey,
+  GLOBAL_STREAM,
+  emitStep,
+  seedSteps,
+  readStepHistory,
+  readStepsAfter,
+  tailSteps,
+  shutdownEvents,
+  type StepName,
+  type StepStatus,
+  type StepEvent,
+} from './events'
+
+export { runPipelineWithEvents } from './pipeline-wrapper'
 
 import { resolveProvider } from '@forgely/ai-agents'
 

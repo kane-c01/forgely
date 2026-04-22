@@ -721,6 +721,9 @@ importers:
       '@forgely/scraper':
         specifier: workspace:*
         version: link:../../packages/scraper
+      '@prisma/client':
+        specifier: ^5.22.0
+        version: 5.22.0(prisma@5.22.0)
       '@sentry/node':
         specifier: ^8.42.0
         version: 8.55.1

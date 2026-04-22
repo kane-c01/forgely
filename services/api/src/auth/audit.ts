@@ -48,6 +48,7 @@ export const AUDIT_ACTIONS = [
   'generation.start',
   'generation.cancel',
   'generation.fail',
+  'generation.retry',
   'billing.subscription_created',
   'billing.subscription_updated',
   'billing.subscription_canceled',

@@ -60,6 +60,103 @@ export const generationRouter = router({
   }),
 
   /**
+   * Full snapshot (generation + all GenerationStep rows) for the
+   * generating page polling fallback. Also returns the generationId
+   * matched by `siteId` for the UI to wire SSE after `conversation.commit`.
+   */
+  status: protectedProcedure.input(z.object({ id: IdSchema })).query(async ({ ctx, input }) => {
+    const row = await ctx.prisma.generation.findUnique({
+      where: { id: input.id },
+      include: { stepRows: { orderBy: { ordinal: 'asc' } } },
+    })
+    const gen = assertFoundAndOwned(ctx, row, 'Generation')
+    return {
+      id: gen.id,
+      siteId: gen.siteId,
+      status: gen.status,
+      startedAt: gen.startedAt,
+      completedAt: gen.completedAt,
+      errorMessage: gen.errorMessage,
+      steps: gen.stepRows.map((s) => ({
+        stepName: s.stepName,
+        status: s.status,
+        ordinal: s.ordinal,
+        startedAt: s.startedAt,
+        completedAt: s.completedAt,
+        durationMs: s.durationMs,
+        errorMessage: s.errorMessage,
+        payload: s.payload,
+      })),
+    }
+  }),
+
+  /**
+   * Find the most recent generation for a site so the UI can fetch the
+   * real `generationId` after `conversation.commit` redirects to
+   * `/sites/[siteId]/generating`.
+   */
+  latestForSite: protectedProcedure
+    .input(z.object({ siteId: IdSchema }))
+    .query(async ({ ctx, input }) => {
+      const row = await ctx.prisma.generation.findFirst({
+        where: { siteId: input.siteId, ...ownedScopeWhere(ctx) },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true, siteId: true, createdAt: true },
+      })
+      return row
+    }),
+
+  /**
+   * Re-enqueue a failed generation — preserves the `Generation` row and
+   * resets all `GenerationStep` rows to `queued` so the UI restarts from
+   * the top. The caller is responsible for deducting fresh credits if
+   * business rules demand it (handled via `credits.reserve` from the UI).
+   */
+  retry: protectedProcedure.input(z.object({ id: IdSchema })).mutation(async ({ ctx, input }) => {
+    const row = await ctx.prisma.generation.findUnique({
+      where: { id: input.id },
+      include: { site: { select: { id: true, subdomain: true } } },
+    })
+    const gen = assertFoundAndOwned(ctx, row, 'Generation')
+    if (gen.status === 'running') {
+      throw errors.validation('Generation is already running.')
+    }
+    await ctx.prisma.$transaction([
+      ctx.prisma.generation.update({
+        where: { id: gen.id },
+        data: {
+          status: 'pending',
+          errorMessage: null,
+          retryCount: { increment: 1 },
+          completedAt: null,
+        },
+      }),
+      ctx.prisma.generationStep.updateMany({
+        where: { generationId: gen.id },
+        data: {
+          status: 'queued',
+          errorMessage: null,
+          startedAt: null,
+          completedAt: null,
+          durationMs: null,
+        },
+      }),
+    ])
+    await recordAudit({
+      actorId: ctx.user.id,
+      action: 'generation.retry',
+      targetType: 'generation',
+      targetId: gen.id,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+    })
+    // The worker layer (services/worker) listens for re-queue via
+    // `dispatchGeneration`; we return to let the caller invoke
+    // `conversation.commit`-style dispatch again from the UI if desired.
+    return { id: gen.id, status: 'pending' as const }
+  }),
+
+  /**
    * Kick off a new generation.
    *
    * 1. Reserves the credit cost (idempotent rejection if balance / cap hit).

@@ -16,6 +16,11 @@
       "types": "./src/queue.ts",
       "import": "./src/queue.ts",
       "default": "./src/queue.ts"
+    },
+    "./events": {
+      "types": "./src/events.ts",
+      "import": "./src/events.ts",
+      "default": "./src/events.ts"
     }
   },
   "scripts": {
@@ -30,6 +35,7 @@
     "@forgely/deploy": "workspace:*",
     "@forgely/dsl": "workspace:*",
     "@forgely/scraper": "workspace:*",
+    "@prisma/client": "^5.22.0",
     "@sentry/node": "^8.42.0",
     "bullmq": "^5.21.2",
     "ioredis": "^5.4.1"
