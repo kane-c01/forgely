@@ -31,7 +31,11 @@ export {
 
 import { resolveProvider } from '@forgely/ai-agents'
 
+import { startCronJobs, stopCronJobs } from './cron'
 import { startGenerationWorker } from './queue'
+
+export { startCronJobs, stopCronJobs, fireCronJobOnce } from './cron'
+export type { CronDescriptor, StartCronOptions } from './cron'
 
 /** One-shot bootstrap: start the worker with sane defaults. */
 export function boot(): void {
@@ -59,6 +63,12 @@ export function boot(): void {
   console.info(
     `[worker] generation worker started · concurrency=${process.env.FORGELY_WORKER_CONCURRENCY ?? '2'}`,
   )
+
+  if (process.env.FORGELY_CRON_AUTOBOOT !== '0') {
+    startCronJobs().catch((err) => {
+      console.error('[worker] cron bootstrap failed', err)
+    })
+  }
 }
 
 if (process.env.FORGELY_WORKER_AUTOBOOT === '1') {
@@ -67,6 +77,7 @@ if (process.env.FORGELY_WORKER_AUTOBOOT === '1') {
 
 const flushAndExit = async (signal: NodeJS.Signals) => {
   console.info(`[worker] received ${signal}, flushing Sentry…`)
+  stopCronJobs()
   await flushSentry(2000)
   process.exit(0)
 }

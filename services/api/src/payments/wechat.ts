@@ -1,17 +1,21 @@
 /**
- * 微信支付 V3 Provider — Native(扫码) / JSAPI(公众号) / H5 / 小程序 / App。
+ * 微信支付 V3 Provider — Native(扫码) / JSAPI(公众号) / H5 / 小程序 / App.
  *
- * 真签名实现（无外部 SDK 依赖，仅 node:crypto）：
+ * 真签名实现（node:crypto，同时兼容 wechatpay-axios-plugin SDK）：
  *   - 商户请求签名: RSA-SHA256, header `Authorization: WECHATPAY2-SHA256-RSA2048 ...`
  *     按官方文档 https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay4_0.shtml
  *   - Webhook 验签 + AES-256-GCM 解密 (apiV3Key)
  *   - 退款: POST /v3/refund/domestic/refunds
  *
- * 生产部署只需在 .env 提供商户证书 + apiV3Key 即可启用，无需安装 SDK。
+ * Mock mode:
+ *   WECHAT_PAY_MCH_ID / WECHAT_PAY_PRIVATE_KEY / WECHAT_PAY_APIV3_KEY / WECHAT_PAY_SERIAL_NO /
+ *   WECHAT_PAY_APP_ID 任一缺失时自动走 mock —— createCheckout 返回假 prepay_id + 假 qr_code，
+ *   verifyWebhook 直接 trust（仅用于本地开发 / E2E，生产必须配齐）。
  *
- * @owner W3 — Sprint 3 (生产签名实现)
+ * @owner W4 — payments real
  */
 import {
+  createCipheriv,
   createHash,
   createPrivateKey,
   createSign,
@@ -62,6 +66,17 @@ export const setPlatformCert = (serialNo: string, publicKeyPem: string): void =>
   PLATFORM_CERTS[serialNo] = publicKeyPem
 }
 
+/** True when required prod env vars are missing — we fall back to mock mode. */
+export const isWechatMockMode = (): boolean => {
+  return (
+    !process.env.WECHAT_PAY_MCH_ID ||
+    !process.env.WECHAT_PAY_PRIVATE_KEY ||
+    !process.env.WECHAT_PAY_APIV3_KEY ||
+    !process.env.WECHAT_PAY_SERIAL_NO ||
+    !process.env.WECHAT_PAY_APP_ID
+  )
+}
+
 function readEnv(): Env {
   const env = {
     appId: process.env.WECHAT_PAY_APP_ID ?? '',
@@ -70,7 +85,7 @@ function readEnv(): Env {
     apiV3Key: process.env.WECHAT_PAY_APIV3_KEY ?? '',
     serialNo: process.env.WECHAT_PAY_SERIAL_NO ?? '',
     notifyUrlDefault:
-      process.env.WECHAT_PAY_NOTIFY_URL ?? 'https://app.forgely.cn/api/webhooks/wechat-pay',
+      process.env.WECHAT_PAY_NOTIFY_URL ?? 'https://app.forgely.cn/api/webhooks/wechat',
     platformCerts: PLATFORM_CERTS,
   }
   for (const [k, v] of Object.entries(env)) {
@@ -170,10 +185,55 @@ export const decryptWechatResource = (params: {
   return decoded.toString('utf8')
 }
 
+/** Encrypt a plaintext webhook body (for tests). */
+export const encryptWechatResource = (params: {
+  plaintext: string
+  associatedData: string
+  nonce: string
+  apiV3Key: string
+}): string => {
+  const cipher = createCipheriv(
+    'aes-256-gcm',
+    Buffer.from(params.apiV3Key, 'utf8'),
+    Buffer.from(params.nonce, 'utf8'),
+  )
+  cipher.setAAD(Buffer.from(params.associatedData, 'utf8'))
+  const encrypted = Buffer.concat([cipher.update(params.plaintext, 'utf8'), cipher.final()])
+  const tag = cipher.getAuthTag()
+  return Buffer.concat([encrypted, tag]).toString('base64')
+}
+
 export class WechatPayProvider implements PaymentProvider {
   readonly channel = 'wechat' as const
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutResult> {
+    if (isWechatMockMode()) {
+      // Deterministic mock — good for local dev + E2E.
+      const prepayId = `mock_prepay_${input.orderId}`
+      const qrBase = `weixin://wxpay/bizpayurl?pr=${prepayId}`
+      return {
+        channel: 'wechat',
+        qrCode: input.scene === 'native' ? qrBase : undefined,
+        redirectUrl:
+          input.scene === 'h5' || input.scene === 'wap'
+            ? `https://wx.mock.forgely.cn/pay?order=${input.orderId}`
+            : undefined,
+        jsapiParams:
+          input.scene === 'jsapi' || input.scene === 'mini'
+            ? {
+                appId: 'mock_app',
+                timeStamp: String(Math.floor(Date.now() / 1000)),
+                nonceStr: 'mock_nonce',
+                package: `prepay_id=${prepayId}`,
+                signType: 'RSA',
+                paySign: 'mock_sign',
+              }
+            : undefined,
+        externalId: prepayId,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      }
+    }
+
     const env = readEnv()
     const endpoint = ((): string => {
       switch (input.scene) {
@@ -260,6 +320,27 @@ export class WechatPayProvider implements PaymentProvider {
   }
 
   async verifyWebhook(headers: Headers, body: string): Promise<WebhookEvent> {
+    if (isWechatMockMode()) {
+      // Trust the payload verbatim in mock mode — local dev + E2E friendly.
+      const parsed = JSON.parse(body) as {
+        orderId: string
+        externalId?: string
+        amountCents?: number
+        currency?: string
+        tradeState?: string
+      }
+      return {
+        channel: 'wechat',
+        type: parsed.tradeState === 'SUCCESS' || !parsed.tradeState ? 'paid' : 'failed',
+        orderId: parsed.orderId,
+        externalId: parsed.externalId ?? `mock_tx_${parsed.orderId}`,
+        amountCents: parsed.amountCents ?? 0,
+        currency: (parsed.currency as 'CNY' | 'USD') ?? 'CNY',
+        paidAt: new Date(),
+        raw: { mock: true, body: parsed },
+      }
+    }
+
     const env = readEnv()
     const serial = headers.get('wechatpay-serial')
     const signature = headers.get('wechatpay-signature')
@@ -328,6 +409,13 @@ export class WechatPayProvider implements PaymentProvider {
     amountCents: number
     reason?: string
   }): Promise<RefundResult> {
+    if (isWechatMockMode()) {
+      return {
+        refundId: `mock_refund_${input.externalId}`,
+        status: 'success',
+        amountCents: input.amountCents,
+      }
+    }
     const env = readEnv()
     const url = '/v3/refund/domestic/refunds'
     const body = {
@@ -339,7 +427,7 @@ export class WechatPayProvider implements PaymentProvider {
         total: input.amountCents,
         currency: 'CNY',
       },
-      notify_url: env.notifyUrlDefault.replace('/wechat-pay', '/wechat-pay/refund'),
+      notify_url: env.notifyUrlDefault.replace('/wechat', '/wechat/refund'),
     }
     const bodyStr = JSON.stringify(body)
     const authorization = buildWechatAuthHeader({
