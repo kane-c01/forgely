@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 import {
   firstTurn,
@@ -32,6 +33,7 @@ const id = (prefix = 'm') => `${prefix}_${nextId++}`
 
 export default function GeneratePage() {
   useCopilotContext({ kind: 'global' })
+  const t = useT()
   const router = useRouter()
 
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -202,7 +204,12 @@ export default function GeneratePage() {
           subdomain,
           brandName: 'My Brand',
         })
-        router.push(`/sites/${(res as { siteId?: string }).siteId ?? subdomain}/generating`)
+        const resolvedSite = (res as { siteId?: string }).siteId ?? subdomain
+        const generationId = (res as { generationId?: string }).generationId
+        // Carry the generationId through the URL so /generating can
+        // subscribe to the SSE stream at /api/generation/{genId}/stream.
+        const qs = generationId ? `?gen=${encodeURIComponent(generationId)}` : ''
+        router.push(`/sites/${resolvedSite}/generating${qs}`)
       } else {
         // Mock — pretend we kicked off, jump to generating page on the
         // default mock site so the user can see the next step.
@@ -229,19 +236,23 @@ export default function GeneratePage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader
-        eyebrow="Forge"
-        title="Forge a new site"
-        description="Tell me about your brand. I'll ask a handful of questions, then dispatch the 12-step pipeline."
+        eyebrow={t.generate.eyebrow}
+        title={t.generate.title}
+        description={t.generate.description}
         meta={
           <>
             <Badge
               tone={source === 'trpc' ? 'success' : source === 'mock' ? 'outline' : 'neutral'}
               dot
             >
-              {source === 'trpc' ? 'live' : source === 'mock' ? 'demo mode' : 'starting…'}
+              {source === 'trpc'
+                ? t.generate.live
+                : source === 'mock'
+                  ? t.generate.demoMode
+                  : t.generate.starting}
             </Badge>
             <span>·</span>
-            <span>stage</span>
+            <span>{t.generate.stage}</span>
             <span className="text-text-secondary">{stage}</span>
           </>
         }
@@ -270,15 +281,15 @@ export default function GeneratePage() {
 
       <div className="border-border-subtle bg-bg-deep rounded-lg border p-5">
         <p className="text-caption text-text-muted mb-3 inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.18em]">
-          <Icon.ChevronRight size={12} /> Your reply
+          <Icon.ChevronRight size={12} /> {t.generate.yourReply}
         </p>
         {isReady && turn.expects.kind === 'confirm' ? (
           <div className="flex flex-wrap items-center gap-3">
             <Button size="lg" disabled={pending} onClick={onCommit}>
-              <Icon.Sparkle size={14} /> Confirm and forge
+              <Icon.Sparkle size={14} /> {t.generate.confirmAndForge}
             </Button>
             <Button size="lg" variant="ghost" disabled={pending}>
-              Tweak something first
+              {t.generate.tweakFirst}
             </Button>
           </div>
         ) : (
@@ -290,6 +301,7 @@ export default function GeneratePage() {
 }
 
 function Message({ message }: { message: ChatMessage }) {
+  const t = useT()
   const [showReasoning, setShowReasoning] = useState(false)
   const isUser = message.role === 'user'
   return (
@@ -319,7 +331,7 @@ function Message({ message }: { message: ChatMessage }) {
               className="text-caption text-text-muted hover:text-text-primary mt-2 inline-flex items-center gap-1 font-mono uppercase tracking-[0.12em]"
             >
               {showReasoning ? <Icon.ChevronDown size={10} /> : <Icon.ChevronRight size={10} />}
-              {showReasoning ? 'Hide reasoning' : 'Show reasoning'}
+              {showReasoning ? t.generate.hideReasoning : t.generate.showReasoning}
             </button>
           ) : null}
           {showReasoning && message.reasoning ? (

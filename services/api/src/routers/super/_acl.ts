@@ -21,8 +21,13 @@ export const SUPER_ROLES = ['OWNER', 'ADMIN', 'SUPPORT'] as const
 /**
  * `OWNER` is the only one allowed for these prefixes.
  * (docs/MASTER.md §20.2)
+ *
+ * - `finance.*` — revenue, refunds, Stripe payouts
+ * - `team.*`    — internal team / role changes
+ * - `platform.*` — ICP filing, tenant-wide kill switches
+ * - `settings.*` — Platform Settings incl. API-key rotations
  */
-const OWNER_ONLY_PREFIXES = ['finance.', 'team.', 'platform.']
+const OWNER_ONLY_PREFIXES = ['finance.', 'team.', 'platform.', 'settings.']
 
 /**
  * `SUPPORT` is read-only on these prefixes; mutations require ADMIN+.

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { brandKits } from '@/lib/mocks'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
@@ -19,28 +20,29 @@ export default function BrandKitsPage() {
   const active = brandKits.find((b) => b.id === activeId) ?? brandKits[0]!
   useCopilotContext({ kind: 'brand-kit', brandKitId: active.id })
   const copilot = useCopilot()
+  const t = useT()
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       <PageHeader
-        eyebrow="Brand"
-        title="Brand kits"
-        description="The single source of truth for your visual & verbal identity. Forge auto-applies your kit to every page on every site."
+        eyebrow={t.brandKits.eyebrow}
+        title={t.brandKits.title}
+        description={t.brandKits.description}
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Upload size={14} /> Upload logo
+              <Icon.Upload size={14} /> {t.brandKits.uploadLogo}
             </Button>
             <Button>
-              <Icon.Plus size={14} /> New brand kit
+              <Icon.Plus size={14} /> {t.brandKits.newBrandKit}
             </Button>
           </>
         }
         meta={
           <>
-            <span>kits</span>
-            <span className="tabular-nums text-text-secondary">{brandKits.length}</span>
+            <span>{t.brandKits.kits}</span>
+            <span className="text-text-secondary tabular-nums">{brandKits.length}</span>
             <span>·</span>
-            <span>last updated</span>
+            <span>{t.brandKits.lastUpdated}</span>
             <span className="text-text-secondary">{formatDateTime(active.updatedAt)}</span>
           </>
         }
@@ -55,14 +57,14 @@ export default function BrandKitsPage() {
               type="button"
               onClick={() => setActiveId(kit.id)}
               className={cn(
-                'flex items-center gap-3 rounded-lg border bg-bg-surface p-3 text-left transition-colors',
+                'bg-bg-surface flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
                 kit.id === activeId
                   ? 'border-forge-orange/50 shadow-[0_0_24px_rgba(255,107,26,0.12)]'
                   : 'border-border-subtle hover:border-border-strong',
               )}
             >
               <span
-                className="grid h-12 w-12 place-items-center rounded-md text-h2"
+                className="text-h2 grid h-12 w-12 place-items-center rounded-md"
                 style={{ backgroundColor: kit.colors.primary, color: kit.colors.bg }}
                 aria-hidden
               >
@@ -70,7 +72,7 @@ export default function BrandKitsPage() {
               </span>
               <span className="flex flex-1 flex-col">
                 <span className="font-heading text-body text-text-primary">{kit.name}</span>
-                <span className="font-mono text-caption text-text-muted">
+                <span className="text-caption text-text-muted font-mono">
                   {kit.fonts.heading.family.split(',')[0]} · {kit.colors.primary}
                 </span>
               </span>
@@ -80,34 +82,76 @@ export default function BrandKitsPage() {
         </aside>
 
         <div className="flex flex-col gap-4">
-          <KitDetail kit={active} onAskCopilot={(prompt) => {
-            copilot.setOpen(true)
-            void copilot.send(prompt)
-          }} />
+          <KitDetail
+            kit={active}
+            t={t}
+            onAskCopilot={(prompt) => {
+              copilot.setOpen(true)
+              void copilot.send(prompt)
+            }}
+          />
         </div>
       </div>
     </div>
   )
 }
 
-function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt: string) => void }) {
+function KitDetail({
+  kit,
+  t,
+  onAskCopilot,
+}: {
+  kit: BrandKit
+  t: ReturnType<typeof useT>
+  onAskCopilot: (prompt: string) => void
+}) {
   return (
     <>
       {/* Logo + variants */}
       <Card>
         <CardHeader>
-          <CardTitle>Logo</CardTitle>
-          <Button size="xs" variant="ghost" onClick={() => onAskCopilot('Generate 3 logo variants in a different style.')}>
-            <Icon.Sparkle size={12} /> Generate variants
+          <CardTitle>{t.brandKits.logo}</CardTitle>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => onAskCopilot('Generate 3 logo variants in a different style.')}
+          >
+            <Icon.Sparkle size={12} /> {t.brandKits.generateVariants}
           </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <LogoTile label="Primary" emoji={kit.logo.primary} bg={kit.colors.bg} fg={kit.colors.fg} />
-            <LogoTile label="Light bg" emoji={kit.logo.variants.light} bg="#FFFFFF" fg={kit.colors.fg} />
-            <LogoTile label="Dark bg" emoji={kit.logo.variants.dark} bg="#08080A" fg="#F4F4F7" />
-            <LogoTile label="Favicon" emoji={kit.logo.variants.favicon} bg={kit.colors.primary} fg={kit.colors.bg} small />
-            <LogoTile label="OG image" emoji={kit.logo.variants.ogImage} bg={kit.colors.secondary} fg={kit.colors.bg} />
+            <LogoTile
+              label={t.brandKits.primary}
+              emoji={kit.logo.primary}
+              bg={kit.colors.bg}
+              fg={kit.colors.fg}
+            />
+            <LogoTile
+              label={t.brandKits.lightBg}
+              emoji={kit.logo.variants.light}
+              bg="#FFFFFF"
+              fg={kit.colors.fg}
+            />
+            <LogoTile
+              label={t.brandKits.darkBg}
+              emoji={kit.logo.variants.dark}
+              bg="#08080A"
+              fg="#F4F4F7"
+            />
+            <LogoTile
+              label={t.brandKits.favicon}
+              emoji={kit.logo.variants.favicon}
+              bg={kit.colors.primary}
+              fg={kit.colors.bg}
+              small
+            />
+            <LogoTile
+              label={t.brandKits.ogImage}
+              emoji={kit.logo.variants.ogImage}
+              bg={kit.colors.secondary}
+              fg={kit.colors.bg}
+            />
           </div>
         </CardContent>
       </Card>
@@ -115,21 +159,25 @@ function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt
       {/* Colors */}
       <Card>
         <CardHeader>
-          <CardTitle>Colors</CardTitle>
-          <Button size="xs" variant="ghost" onClick={() => onAskCopilot('Make the palette warmer.')}>
-            <Icon.Sparkle size={12} /> Suggest a shift
+          <CardTitle>{t.brandKits.colors}</CardTitle>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => onAskCopilot('Make the palette warmer.')}
+          >
+            <Icon.Sparkle size={12} /> {t.brandKits.suggestShift}
           </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Swatch label="Primary" color={kit.colors.primary} large />
-            <Swatch label="Secondary" color={kit.colors.secondary} />
-            <Swatch label="Accent" color={kit.colors.accent} />
-            <Swatch label="Background" color={kit.colors.bg} />
-            <Swatch label="Foreground" color={kit.colors.fg} />
-            <Swatch label="Muted" color={kit.colors.muted} />
-            <Swatch label="Success" color={kit.colors.semantic.success} />
-            <Swatch label="Error" color={kit.colors.semantic.error} />
+            <Swatch label={t.brandKits.primary} color={kit.colors.primary} large />
+            <Swatch label={t.brandKits.secondary} color={kit.colors.secondary} />
+            <Swatch label={t.brandKits.accent} color={kit.colors.accent} />
+            <Swatch label={t.brandKits.background} color={kit.colors.bg} />
+            <Swatch label={t.brandKits.foreground} color={kit.colors.fg} />
+            <Swatch label={t.brandKits.muted} color={kit.colors.muted} />
+            <Swatch label={t.brandKits.success} color={kit.colors.semantic.success} />
+            <Swatch label={t.brandKits.error} color={kit.colors.semantic.error} />
           </div>
         </CardContent>
       </Card>
@@ -137,14 +185,26 @@ function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt
       {/* Fonts */}
       <Card>
         <CardHeader>
-          <CardTitle>Typography</CardTitle>
-          <Button size="xs" variant="ghost" onClick={() => onAskCopilot('Suggest a body font that pairs with the heading.')}>
-            <Icon.Sparkle size={12} /> Suggest pairings
+          <CardTitle>{t.brandKits.typography}</CardTitle>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => onAskCopilot('Suggest a body font that pairs with the heading.')}
+          >
+            <Icon.Sparkle size={12} /> {t.brandKits.suggestPairings}
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FontSpec role="Heading" font={kit.fonts.heading} sample="A morning worth waking up for." />
-          <FontSpec role="Body" font={kit.fonts.body} sample="Single-origin beans, pulled at dawn, shipped within 7 days of roast." />
+          <FontSpec
+            role="Heading"
+            font={kit.fonts.heading}
+            sample="A morning worth waking up for."
+          />
+          <FontSpec
+            role="Body"
+            font={kit.fonts.body}
+            sample="Single-origin beans, pulled at dawn, shipped within 7 days of roast."
+          />
           {kit.fonts.display ? (
             <FontSpec role="Display" font={kit.fonts.display} sample="FORGED." />
           ) : null}
@@ -154,27 +214,31 @@ function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt
       {/* Voice */}
       <Card>
         <CardHeader>
-          <CardTitle>Voice</CardTitle>
-          <Button size="xs" variant="ghost" onClick={() => onAskCopilot('Generate 3 sample taglines in this voice.')}>
-            <Icon.Sparkle size={12} /> Generate samples
+          <CardTitle>{t.brandKits.voice}</CardTitle>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => onAskCopilot('Generate 3 sample taglines in this voice.')}
+          >
+            <Icon.Sparkle size={12} /> {t.brandKits.generateSamples}
           </Button>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 text-small">
-          <Row label="Tone">
-            {kit.voice.tone.map((t) => (
-              <Badge key={t} tone="forge">
-                {t}
+        <CardContent className="text-small flex flex-col gap-3">
+          <Row label={t.brandKits.tone}>
+            {kit.voice.tone.map((v) => (
+              <Badge key={v} tone="forge">
+                {v}
               </Badge>
             ))}
           </Row>
-          <Row label="Keywords">
+          <Row label={t.brandKits.keywords}>
             {kit.voice.keywords.map((k) => (
               <Badge key={k} tone="outline">
                 {k}
               </Badge>
             ))}
           </Row>
-          <Row label="Avoid">
+          <Row label={t.brandKits.avoid}>
             {kit.voice.avoidWords.map((k) => (
               <Badge key={k} tone="error">
                 {k}
@@ -182,12 +246,12 @@ function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt
             ))}
           </Row>
           <div>
-            <p className="mb-2 font-mono text-caption uppercase tracking-[0.12em] text-text-muted">
-              Sample phrases
+            <p className="text-caption text-text-muted mb-2 font-mono uppercase tracking-[0.12em]">
+              {t.brandKits.samplePhrases}
             </p>
-            <ul className="flex flex-col gap-1.5 text-small text-text-primary">
+            <ul className="text-small text-text-primary flex flex-col gap-1.5">
               {kit.voice.samplePhrases.map((p) => (
-                <li key={p} className="rounded-md border border-border-subtle bg-bg-deep px-3 py-2">
+                <li key={p} className="border-border-subtle bg-bg-deep rounded-md border px-3 py-2">
                   &ldquo;{p}&rdquo;
                 </li>
               ))}
@@ -198,21 +262,21 @@ function KitDetail({ kit, onAskCopilot }: { kit: BrandKit; onAskCopilot: (prompt
 
       <Card>
         <CardHeader>
-          <CardTitle>Image style</CardTitle>
+          <CardTitle>{t.brandKits.imageStyle}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3 text-small">
-          <Stat label="Mood">
+        <CardContent className="text-small grid grid-cols-3 gap-3">
+          <Stat label={t.brandKits.mood}>
             {kit.imageStyle.mood.map((m) => (
               <Badge key={m} tone="outline">
                 {m}
               </Badge>
             ))}
           </Stat>
-          <Stat label="Color grading">
-            <span className="font-mono text-text-secondary">{kit.imageStyle.colorGrading}</span>
+          <Stat label={t.brandKits.colorGrading}>
+            <span className="text-text-secondary font-mono">{kit.imageStyle.colorGrading}</span>
           </Stat>
-          <Stat label="Composition">
-            <span className="font-mono text-text-secondary">{kit.imageStyle.composition}</span>
+          <Stat label={t.brandKits.composition}>
+            <span className="text-text-secondary font-mono">{kit.imageStyle.composition}</span>
           </Stat>
         </CardContent>
       </Card>
@@ -236,14 +300,14 @@ function LogoTile({
   return (
     <div className="flex flex-col gap-1.5">
       <span
-        className="grid aspect-square place-items-center rounded-md border border-border-subtle"
+        className="border-border-subtle grid aspect-square place-items-center rounded-md border"
         style={{ backgroundColor: bg, color: fg }}
       >
         <span aria-hidden style={{ fontSize: small ? 28 : 56 }}>
           {emoji}
         </span>
       </span>
-      <span className="font-mono text-caption uppercase tracking-[0.12em] text-text-muted">
+      <span className="text-caption text-text-muted font-mono uppercase tracking-[0.12em]">
         {label}
       </span>
     </div>
@@ -260,14 +324,16 @@ function FontSpec({
   sample: string
 }) {
   return (
-    <div className="rounded-md border border-border-subtle bg-bg-deep p-4">
+    <div className="border-border-subtle bg-bg-deep rounded-md border p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-mono text-caption uppercase tracking-[0.12em] text-text-muted">{role}</span>
-        <span className="font-mono text-caption text-text-secondary">
+        <span className="text-caption text-text-muted font-mono uppercase tracking-[0.12em]">
+          {role}
+        </span>
+        <span className="text-caption text-text-secondary font-mono">
           {font.family} · {font.source} · {font.weights.join('/')}
         </span>
       </div>
-      <p className="font-display text-h2 leading-tight text-text-primary">{sample}</p>
+      <p className="font-display text-h2 text-text-primary leading-tight">{sample}</p>
     </div>
   )
 }
@@ -275,7 +341,7 @@ function FontSpec({
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-20 font-mono text-caption uppercase tracking-[0.12em] text-text-muted">
+      <span className="text-caption text-text-muted w-20 font-mono uppercase tracking-[0.12em]">
         {label}
       </span>
       <span className="flex flex-wrap gap-1.5">{children}</span>
@@ -286,7 +352,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="font-mono text-caption uppercase tracking-[0.12em] text-text-muted">{label}</p>
+      <p className="text-caption text-text-muted font-mono uppercase tracking-[0.12em]">{label}</p>
       <div className="mt-1 flex flex-wrap gap-1.5">{children}</div>
     </div>
   )

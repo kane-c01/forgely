@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import { isDemoFallbackEnabled } from '@/lib/demo-mode'
+
 import { SPELL_STEPS, STAGE_TO_INDEX, type SpellStatus } from './spell-steps'
 
 interface StreamEvent {
@@ -104,14 +106,22 @@ export function useGenerationStream(generationId: string): GenerationStreamState
         if (es && es.readyState === EventSource.CLOSED) {
           setConnected(false)
           if (!fakeMode) {
-            setFakeMode(true)
-            startFakeTimer()
+            if (isDemoFallbackEnabled()) {
+              setFakeMode(true)
+              startFakeTimer()
+            } else {
+              setError('无法连接生成进度流，请确认 Worker 与 /api/generation 路由可用。')
+            }
           }
         }
       })
     } else {
-      setFakeMode(true)
-      startFakeTimer()
+      if (isDemoFallbackEnabled()) {
+        setFakeMode(true)
+        startFakeTimer()
+      } else {
+        setError('无法打开生成进度流（EventSource 不可用）。')
+      }
     }
 
     function startFakeTimer() {

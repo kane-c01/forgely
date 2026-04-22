@@ -1,17 +1,21 @@
+'use client'
+
 import { ComingSoon } from '@/components/shell/coming-soon'
+import { useT } from '@/lib/i18n'
 
 export default function CollectionsPage() {
+  const t = useT()
   return (
     <ComingSoon
-      eyebrow="Catalog"
-      title="Collections"
-      description="Group products into themed sets to power navigation, hero blocks and Pinterest-style grids."
-      expected="Week 8"
+      eyebrow={t.collections.eyebrow}
+      title={t.collections.title}
+      description={t.collections.description}
+      expected={t.collections.expected}
       bullets={[
-        'Drag-and-drop ordering',
-        'Smart auto-collections by tag / vendor',
-        'Sync to storefront navigation',
-        'AI-generated SEO copy per collection',
+        t.collections.bullet1,
+        t.collections.bullet2,
+        t.collections.bullet3,
+        t.collections.bullet4,
       ]}
     />
   )

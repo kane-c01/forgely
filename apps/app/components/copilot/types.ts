@@ -24,7 +24,28 @@ export type CopilotPageContext =
   | { kind: 'media'; siteId: string }
   | { kind: 'brand-kit'; brandKitId: string }
   | { kind: 'editor'; siteId: string; selectedBlockId?: string; selectedBlockType?: string }
+  | { kind: 'compliance'; siteId: string }
+  | { kind: 'seo'; siteId: string }
+  // Super-admin contexts (W7 territory)
+  | { kind: 'super-overview' }
+  | { kind: 'super-users' }
+  | { kind: 'super-user'; userId: string; userEmail: string }
+  | { kind: 'super-finance' }
+  | { kind: 'super-audit' }
+  | { kind: 'super-team' }
+  | { kind: 'super-marketing' }
+  | { kind: 'super-plugins' }
+  | { kind: 'super-health' }
+  | { kind: 'super-ai-ops' }
+  | { kind: 'super-sites' }
+  | { kind: 'super-content' }
+  | { kind: 'super-analytics' }
+  | { kind: 'super-support' }
+  | { kind: 'super-settings' }
   | { kind: 'global' }
+
+/** Locale supported by the Copilot reply engine. Default is `zh-CN`. */
+export type CopilotLocale = 'zh-CN' | 'en'
 
 export type ToolName =
   // query
@@ -63,6 +84,26 @@ export type ToolName =
   | 'compare_periods'
   | 'forecast_revenue'
   | 'identify_trends'
+  // compliance + SEO (W8 additions)
+  | 'run_compliance_check'
+  | 'apply_compliance_fix'
+  | 'run_seo_audit'
+  | 'submit_sitemap'
+  | 'research_keyword'
+  // Super-admin tools (W7 territory)
+  | 'super_query_user'
+  | 'super_login_as_user'
+  | 'super_ban_user'
+  | 'super_unban_user'
+  | 'super_credit_adjustment'
+  | 'super_force_refund'
+  | 'super_query_audit'
+  | 'super_query_mrr'
+  | 'super_query_dau'
+  | 'super_query_ai_cost'
+  | 'super_export_finance'
+  | 'super_send_announcement'
+  | 'super_freeze_site'
 
 export interface ToolCall {
   id: string

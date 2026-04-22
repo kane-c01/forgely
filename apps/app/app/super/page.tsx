@@ -1,4 +1,5 @@
 import { getOverviewSnapshot, formatTimestamp } from '@/lib/super'
+import { I18nHeader } from './_components/I18nHeader'
 import { MetricsGrid } from './_components/MetricsGrid'
 import { RevenueCostChart } from './_components/RevenueCostChart'
 import { AlertsPanel } from './_components/AlertsPanel'
@@ -16,17 +17,14 @@ export default async function SuperOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="font-mono text-caption uppercase tracking-[0.22em] text-text-muted">
-            Command Center
-          </div>
-          <h1 className="font-display text-h2 text-text-primary">Overview</h1>
-        </div>
-        <div className="font-mono text-caption tabular-nums uppercase tracking-[0.18em] text-text-muted">
-          Snapshot · {formatTimestamp(snapshot.generatedAt)} UTC
-        </div>
-      </header>
+      <I18nHeader
+        section="overview"
+        meta={
+          <span className="text-caption text-text-muted font-mono uppercase tabular-nums tracking-[0.18em]">
+            {formatTimestamp(snapshot.generatedAt)} UTC
+          </span>
+        }
+      />
 
       <MetricsGrid metrics={snapshot.metrics} />
 

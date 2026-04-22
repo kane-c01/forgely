@@ -9,14 +9,10 @@ import { ProductInventoryBar, ProductStatusCell } from '@/components/products/pr
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, Input, Textarea } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { getProduct } from '@/lib/mocks'
 import { formatCurrency } from '@/lib/format'
 
@@ -25,6 +21,7 @@ export default function ProductDetailPage({
 }: {
   params: { siteId: string; productId: string }
 }) {
+  const t = useT()
   const product = getProduct(params.productId)
   useCopilotContext(
     product
@@ -35,9 +32,9 @@ export default function ProductDetailPage({
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <div className="flex items-center gap-2 font-mono text-caption text-text-muted">
+      <div className="text-caption text-text-muted flex items-center gap-2 font-mono">
         <Link href={`/sites/${params.siteId}/products`} className="hover:text-text-primary">
-          Products
+          {t.productDetail.breadcrumb}
         </Link>
         <Icon.ChevronRight size={12} />
         <span className="text-text-secondary">{product.title}</span>
@@ -46,15 +43,15 @@ export default function ProductDetailPage({
       <PageHeader
         eyebrow={`/${product.handle}`}
         title={product.title}
-        description={`Vendor: ${product.vendor}`}
+        description={`${t.productDetail.vendor}${product.vendor}`}
         meta={
           <>
             <ProductStatusCell product={product} />
             <span>·</span>
-            <span>Stock</span>
+            <span>{t.productDetail.stock}</span>
             <ProductInventoryBar inventory={product.inventory} />
             <span>·</span>
-            <span className="tabular-nums text-text-secondary">
+            <span className="text-text-secondary tabular-nums">
               {formatCurrency(product.priceCents)}
             </span>
           </>
@@ -62,10 +59,10 @@ export default function ProductDetailPage({
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Eye size={14} /> View on store
+              <Icon.Eye size={14} /> {t.productDetail.viewOnStore}
             </Button>
             <Button>
-              <Icon.Check size={14} /> Save changes
+              <Icon.Check size={14} /> {t.productDetail.saveChanges}
             </Button>
           </>
         }
@@ -73,11 +70,32 @@ export default function ProductDetailPage({
 
       <AIQuickActions
         actions={[
-          { emoji: '✍️', label: 'Rewrite copy', prompt: 'Rewrite the title and description for SEO and emotional appeal.' },
-          { emoji: '💵', label: 'Suggest pricing', prompt: 'Suggest pricing based on competitor median + AOV.' },
-          { emoji: '📸', label: 'Generate lifestyle photos', prompt: 'Generate 3 lifestyle photos for this product, warm tones, kinari linen background.' },
-          { emoji: '🎬', label: 'Generate hero video', prompt: 'Generate a 4s hero loop video for this product, golden hour lighting.' },
-          { emoji: '🏷️', label: 'Suggest a discount', prompt: 'Suggest a launch discount with a code I can copy.' },
+          {
+            emoji: '✍️',
+            label: t.productDetail.rewriteCopy,
+            prompt: 'Rewrite the title and description for SEO and emotional appeal.',
+          },
+          {
+            emoji: '💵',
+            label: t.productDetail.suggestPricing,
+            prompt: 'Suggest pricing based on competitor median + AOV.',
+          },
+          {
+            emoji: '📸',
+            label: t.productDetail.generatePhotos,
+            prompt:
+              'Generate 3 lifestyle photos for this product, warm tones, kinari linen background.',
+          },
+          {
+            emoji: '🎬',
+            label: t.productDetail.generateVideo,
+            prompt: 'Generate a 4s hero loop video for this product, golden hour lighting.',
+          },
+          {
+            emoji: '🏷️',
+            label: t.productDetail.suggestDiscount,
+            prompt: 'Suggest a launch discount with a code I can copy.',
+          },
         ]}
       />
 
@@ -86,16 +104,16 @@ export default function ProductDetailPage({
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>General</CardTitle>
+              <CardTitle>{t.productDetail.general}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Field label="Title" required>
+              <Field label={t.productDetail.titleLabel} required>
                 <Input defaultValue={product.title} />
               </Field>
-              <Field label="Handle" hint="Used in the URL: /products/this-handle">
+              <Field label={t.productDetail.handle} hint={t.productDetail.handleHint}>
                 <Input defaultValue={product.handle} />
               </Field>
-              <Field label="Description" hint="Markdown supported. Use Copilot to rewrite.">
+              <Field label={t.productDetail.description} hint={t.productDetail.descriptionHint}>
                 <Textarea
                   defaultValue={`A ${product.vendor} signature. Crafted with care.`}
                   className="min-h-32"
@@ -106,9 +124,9 @@ export default function ProductDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Media</CardTitle>
+              <CardTitle>{t.productDetail.media}</CardTitle>
               <Button size="sm" variant="ghost">
-                <Icon.Upload size={14} /> Upload
+                <Icon.Upload size={14} /> {t.productDetail.upload}
               </Button>
             </CardHeader>
             <CardContent>
@@ -116,17 +134,17 @@ export default function ProductDetailPage({
                 {product.images.map((img, i) => (
                   <div
                     key={i}
-                    className="group relative flex aspect-square items-center justify-center rounded-md border border-border-subtle bg-bg-deep text-[44px]"
+                    className="border-border-subtle bg-bg-deep group relative flex aspect-square items-center justify-center rounded-md border text-[44px]"
                   >
                     <span aria-hidden>{img}</span>
                     {i === 0 ? (
                       <Badge tone="forge" className="absolute left-2 top-2 !text-[10px]">
-                        cover
+                        {t.productDetail.cover}
                       </Badge>
                     ) : null}
                     <button
-                      aria-label="Remove image"
-                      className="absolute right-2 top-2 hidden grid h-6 w-6 place-items-center rounded-md bg-bg-void/80 text-text-secondary backdrop-blur group-hover:grid hover:text-error"
+                      aria-label={t.productDetail.removeImage}
+                      className="bg-bg-void/80 text-text-secondary hover:text-error absolute right-2 top-2 grid hidden h-6 w-6 place-items-center rounded-md backdrop-blur group-hover:grid"
                     >
                       <Icon.Trash size={12} />
                     </button>
@@ -134,10 +152,10 @@ export default function ProductDetailPage({
                 ))}
                 <button
                   type="button"
-                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border-strong bg-bg-deep text-text-muted transition-colors hover:border-forge-orange/50 hover:text-forge-amber"
+                  className="border-border-strong bg-bg-deep text-text-muted hover:border-forge-orange/50 hover:text-forge-amber flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed transition-colors"
                 >
                   <Icon.Sparkle size={20} />
-                  <span className="font-mono text-caption uppercase tracking-[0.18em]">AI</span>
+                  <span className="text-caption font-mono uppercase tracking-[0.18em]">AI</span>
                 </button>
               </div>
             </CardContent>
@@ -145,14 +163,16 @@ export default function ProductDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>SEO</CardTitle>
-              <Badge tone="info" className="!text-[10px]">auto</Badge>
+              <CardTitle>{t.productDetail.seo}</CardTitle>
+              <Badge tone="info" className="!text-[10px]">
+                {t.productDetail.auto}
+              </Badge>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Meta title">
+              <Field label={t.productDetail.metaTitle}>
                 <Input defaultValue={`${product.title} — ${product.vendor}`} />
               </Field>
-              <Field label="Meta description">
+              <Field label={t.productDetail.metaDescription}>
                 <Textarea
                   defaultValue={`Order ${product.title} from ${product.vendor}. Roasted weekly, shipped within 7 days.`}
                   className="min-h-20"
@@ -166,13 +186,13 @@ export default function ProductDetailPage({
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Pricing</CardTitle>
+              <CardTitle>{t.productDetail.pricing}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Field label="Price">
+              <Field label={t.productDetail.price}>
                 <Input defaultValue={(product.priceCents / 100).toFixed(2)} />
               </Field>
-              <Field label="Compare at price" hint="Strikethrough on storefront.">
+              <Field label={t.productDetail.compareAtPrice} hint={t.productDetail.compareHint}>
                 <Input
                   defaultValue={
                     product.compareAtCents ? (product.compareAtCents / 100).toFixed(2) : ''
@@ -184,20 +204,20 @@ export default function ProductDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Inventory</CardTitle>
+              <CardTitle>{t.productDetail.inventory}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Field label="On hand">
+              <Field label={t.productDetail.onHand}>
                 <Input defaultValue={String(product.inventory)} />
               </Field>
-              <Field label="SKU">
+              <Field label={t.productDetail.sku}>
                 <Input defaultValue={`SKU-${product.id.toUpperCase()}`} />
               </Field>
-              <Field label="Track quantity">
-                <select className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none">
-                  <option>Track manually</option>
-                  <option>Don&apos;t track</option>
-                  <option>Sync with Medusa stock</option>
+              <Field label={t.productDetail.trackQuantity}>
+                <select className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none">
+                  <option>{t.productDetail.trackManually}</option>
+                  <option>{t.productDetail.dontTrack}</option>
+                  <option>{t.productDetail.syncMedusa}</option>
                 </select>
               </Field>
             </CardContent>
@@ -205,23 +225,23 @@ export default function ProductDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Organization</CardTitle>
+              <CardTitle>{t.productDetail.organization}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <Field label="Vendor">
+              <Field label={t.productDetail.vendorLabel}>
                 <Input defaultValue={product.vendor} />
               </Field>
-              <Field label="Collections" hint="Press Enter to add.">
+              <Field label={t.productDetail.collections} hint={t.productDetail.collectionsHint}>
                 <Input defaultValue={product.collections.join(', ')} />
               </Field>
-              <Field label="Status">
+              <Field label={t.productDetail.status}>
                 <select
                   defaultValue={product.status}
-                  className="h-9 w-full rounded-md border border-border-strong bg-bg-deep px-3 text-small text-text-primary focus:border-forge-orange/60 focus:outline-none"
+                  className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none"
                 >
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
-                  <option value="archived">Archived</option>
+                  <option value="active">{t.productDetail.active}</option>
+                  <option value="draft">{t.productDetail.draft}</option>
+                  <option value="archived">{t.productDetail.archived}</option>
                 </select>
               </Field>
             </CardContent>

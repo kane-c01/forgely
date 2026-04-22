@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
+import { useT } from '@/lib/i18n'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { Sparkline } from '@/components/dashboard/sparkline'
 import { useGreeting } from '@/components/dashboard/use-greeting'
@@ -14,11 +15,14 @@ import { formatCurrency, formatNumber, formatPercent, relativeTime } from '@/lib
 
 export default function DashboardPage() {
   useCopilotContext({ kind: 'dashboard' })
+  const t = useT()
   const { greeting, time, date } = useGreeting('Alex')
   const copilot = useCopilot()
   const site = defaultSite
 
-  const pendingShipments = orders.filter((o) => o.status === 'paid' || o.status === 'pending').length
+  const pendingShipments = orders.filter(
+    (o) => o.status === 'paid' || o.status === 'pending',
+  ).length
   const lowStock = products.filter((p) => p.status === 'active' && p.inventory <= 10).length
   const totalRevenueCents = revenueSeries30d.reduce((a, b) => a + b, 0)
   const last7 = revenueSeries30d.slice(-7).reduce((a, b) => a + b, 0)
@@ -29,18 +33,18 @@ export default function DashboardPage() {
       {/* Greeting bar */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+          <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
             {site.name} · {site.domain}
           </p>
-          <h1 className="mt-1 font-display text-h1 text-text-primary">{greeting}.</h1>
+          <h1 className="font-display text-h1 text-text-primary mt-1">{greeting}.</h1>
         </div>
         {time && date ? (
-          <div className="flex items-center gap-3 font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
+          <div className="text-caption text-text-muted flex items-center gap-3 font-mono uppercase tracking-[0.18em]">
             <span>{date}</span>
             <span className="text-text-subtle">·</span>
-            <span className="tabular-nums text-text-secondary">{time}</span>
+            <span className="text-text-secondary tabular-nums">{time}</span>
             <Badge tone="success" dot>
-              live
+              {t.dashboard.live}
             </Badge>
           </div>
         ) : null}
@@ -49,54 +53,54 @@ export default function DashboardPage() {
       {/* KPI strip */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
-          label="Revenue · 30d"
+          label={t.dashboard.revenue30d}
           value={formatCurrency(totalRevenueCents)}
           delta={0.123}
           accent
         />
         <KpiCard
-          label="Orders · 30d"
+          label={t.dashboard.orders30d}
           value={formatNumber(site.metrics.orders30d)}
           delta={0.081}
         />
         <KpiCard
-          label="Conversion"
+          label={t.dashboard.conversion}
           value={formatPercent(site.metrics.conversion)}
           delta={-0.003}
           deltaInverted
         />
         <KpiCard
-          label="Visitors · 30d"
+          label={t.dashboard.visitors30d}
           value={formatNumber(site.metrics.visitors30d)}
           delta={0.152}
         />
       </section>
 
       {/* Hero chart */}
-      <section className="rounded-lg border border-border-subtle bg-bg-surface">
-        <div className="flex items-center justify-between gap-4 border-b border-border-subtle px-5 py-4">
+      <section className="border-border-subtle bg-bg-surface rounded-lg border">
+        <div className="border-border-subtle flex items-center justify-between gap-4 border-b px-5 py-4">
           <div>
-            <p className="font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
-              Revenue · last 30 days
+            <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
+              {t.dashboard.revenueLast30d}
             </p>
-            <p className="mt-1 font-display text-h2 text-text-primary tabular-nums">
+            <p className="font-display text-h2 text-text-primary mt-1 tabular-nums">
               {formatCurrency(totalRevenueCents)}
             </p>
           </div>
-          <div className="flex items-center gap-3 font-mono text-caption text-text-muted">
-            <span>last 7d</span>
-            <span className="rounded bg-bg-elevated px-2 py-0.5 tabular-nums text-forge-amber">
+          <div className="text-caption text-text-muted flex items-center gap-3 font-mono">
+            <span>{t.dashboard.last7d}</span>
+            <span className="bg-bg-elevated text-forge-amber rounded px-2 py-0.5 tabular-nums">
               {formatCurrency(last7)}
             </span>
             <span
               className={
                 last7 >= prev7
-                  ? 'inline-flex items-center gap-1 rounded bg-success/15 px-2 py-0.5 text-success'
-                  : 'inline-flex items-center gap-1 rounded bg-error/15 px-2 py-0.5 text-error'
+                  ? 'bg-success/15 text-success inline-flex items-center gap-1 rounded px-2 py-0.5'
+                  : 'bg-error/15 text-error inline-flex items-center gap-1 rounded px-2 py-0.5'
               }
             >
               {last7 >= prev7 ? <Icon.ArrowUp size={10} /> : <Icon.ArrowDown size={10} />}
-              {(((last7 - prev7) / prev7) * 100).toFixed(1)}% vs prior
+              {`${(((last7 - prev7) / prev7) * 100).toFixed(1)}% ${t.dashboard.vsPrior}`}
             </span>
           </div>
         </div>
@@ -108,89 +112,92 @@ export default function DashboardPage() {
       {/* Two-column: Needs attention + AI suggests */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Needs attention */}
-        <div className="rounded-lg border border-border-subtle bg-bg-surface lg:col-span-3">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-            <h3 className="inline-flex items-center gap-2 font-heading text-h3 text-text-primary">
-              <Icon.Bell size={16} className="text-forge-amber" /> Needs attention
+        <div className="border-border-subtle bg-bg-surface rounded-lg border lg:col-span-3">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
+            <h3 className="font-heading text-h3 text-text-primary inline-flex items-center gap-2">
+              <Icon.Bell size={16} className="text-forge-amber" /> {t.dashboard.needsAttention}
             </h3>
             <Badge tone="warning">
-              {pendingShipments + lowStock} items
+              {pendingShipments + lowStock} {t.dashboard.items}
             </Badge>
           </div>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="divide-border-subtle divide-y">
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-forge-orange/15 text-forge-amber">
+                <span className="bg-forge-orange/15 text-forge-amber grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Cart size={16} />
                 </span>
                 <span className="text-small text-text-primary">
-                  <strong className="font-medium">{pendingShipments}</strong> orders pending shipment
+                  <strong className="font-medium">{pendingShipments}</strong>{' '}
+                  {t.dashboard.ordersPendingShipment}
                 </span>
               </span>
               <Link
                 href={`/sites/${site.id}/orders`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
-                Open orders →
+                {t.dashboard.openOrders}
               </Link>
             </li>
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-warning/15 text-warning">
+                <span className="bg-warning/15 text-warning grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Box size={16} />
                 </span>
                 <span className="text-small text-text-primary">
-                  <strong className="font-medium">{lowStock}</strong> low-stock items
+                  <strong className="font-medium">{lowStock}</strong> {t.dashboard.lowStockItems}
                 </span>
               </span>
               <Link
                 href={`/sites/${site.id}/products`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
-                Restock →
+                {t.dashboard.restock}
               </Link>
             </li>
             <li className="flex items-center justify-between gap-4 px-5 py-3">
               <span className="flex items-center gap-3">
-                <span className="grid h-8 w-8 place-items-center rounded-md bg-info/15 text-info">
+                <span className="bg-info/15 text-info grid h-8 w-8 place-items-center rounded-md">
                   <Icon.Sparkle size={16} />
                 </span>
-                <span className="text-small text-text-primary">
-                  Hero video draft ready · awaiting your review
-                </span>
+                <span className="text-small text-text-primary">{t.dashboard.heroVideoDraft}</span>
               </span>
               <Link
                 href={`/sites/${site.id}/editor`}
-                className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
               >
-                Review →
+                {t.dashboard.review}
               </Link>
             </li>
           </ul>
         </div>
 
         {/* AI suggests */}
-        <div className="relative overflow-hidden rounded-lg border border-forge-orange/30 bg-gradient-to-br from-forge-orange/10 via-bg-surface to-bg-surface p-5 lg:col-span-2">
-          <span className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-forge-orange/15 blur-3xl" />
+        <div className="border-forge-orange/30 from-forge-orange/10 via-bg-surface to-bg-surface relative overflow-hidden rounded-lg border bg-gradient-to-br p-5 lg:col-span-2">
+          <span className="bg-forge-orange/15 absolute -right-12 -top-12 h-40 w-40 rounded-full blur-3xl" />
           <div className="relative flex flex-col gap-3">
-            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-forge-orange/15 px-2 py-0.5 font-mono text-caption uppercase tracking-[0.18em] text-forge-amber">
-              <Icon.Sparkle size={12} /> Copilot suggests
+            <span className="bg-forge-orange/15 text-caption text-forge-amber inline-flex items-center gap-1.5 self-start rounded-full px-2 py-0.5 font-mono uppercase tracking-[0.18em]">
+              <Icon.Sparkle size={12} /> {t.dashboard.copilotSuggests}
             </span>
             <p className="text-body text-text-primary">
-              Your <strong className="text-forge-amber">Primary Essentials Blend</strong> converts <strong className="text-forge-amber">23% above</strong> catalog average. Want me to bump its ad budget and pin it to your Hero block?
+              Your <strong className="text-forge-amber">Primary Essentials Blend</strong> converts{' '}
+              <strong className="text-forge-amber">23% above</strong> catalog average. Want me to
+              bump its ad budget and pin it to your Hero block?
             </p>
             <div className="mt-1 flex items-center gap-2">
               <Button
                 size="sm"
                 onClick={() => {
                   copilot.setOpen(true)
-                  void copilot.send('Bump Primary Essentials ad budget and pin it to the Hero block.')
+                  void copilot.send(
+                    'Bump Primary Essentials ad budget and pin it to the Hero block.',
+                  )
                 }}
               >
-                <Icon.Sparkle size={12} /> Yes, plan it
+                <Icon.Sparkle size={12} /> {t.dashboard.yesPlanIt}
               </Button>
               <Button size="sm" variant="ghost">
-                Not now
+                {t.dashboard.notNow}
               </Button>
             </div>
           </div>
@@ -199,35 +206,35 @@ export default function DashboardPage() {
 
       {/* Recent orders + top products */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-border-subtle bg-bg-surface">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-            <h3 className="font-heading text-h3 text-text-primary">Recent orders</h3>
+        <div className="border-border-subtle bg-bg-surface rounded-lg border">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
+            <h3 className="font-heading text-h3 text-text-primary">{t.dashboard.recentOrders}</h3>
             <Link
               href={`/sites/${site.id}/orders`}
-              className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+              className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
             >
-              View all →
+              {t.dashboard.viewAll}
             </Link>
           </div>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="divide-border-subtle divide-y">
             {orders.slice(0, 5).map((o) => (
               <li key={o.id}>
                 <Link
                   href={`/sites/${site.id}/orders/${o.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg-elevated/60"
+                  className="hover:bg-bg-elevated/60 flex items-center justify-between gap-3 px-5 py-3 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-caption text-text-muted">{o.number}</span>
+                    <span className="text-caption text-text-muted font-mono">{o.number}</span>
                     <span className="text-small text-text-primary">{o.customerName}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={statusToneFor(o.status)} dot>
                       {o.status}
                     </Badge>
-                    <span className="font-mono text-caption tabular-nums text-text-secondary">
+                    <span className="text-caption text-text-secondary font-mono tabular-nums">
                       {formatCurrency(o.totalCents)}
                     </span>
-                    <span className="font-mono text-caption text-text-muted">
+                    <span className="text-caption text-text-muted font-mono">
                       {relativeTime(o.createdAt)}
                     </span>
                   </div>
@@ -237,36 +244,46 @@ export default function DashboardPage() {
           </ul>
         </div>
 
-        <div className="rounded-lg border border-border-subtle bg-bg-surface">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-            <h3 className="font-heading text-h3 text-text-primary">Top products</h3>
+        <div className="border-border-subtle bg-bg-surface rounded-lg border">
+          <div className="border-border-subtle flex items-center justify-between border-b px-5 py-4">
+            <h3 className="font-heading text-h3 text-text-primary">{t.dashboard.topProducts}</h3>
             <Link
               href={`/sites/${site.id}/products`}
-              className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+              className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
             >
-              View all →
+              {t.dashboard.viewAll}
             </Link>
           </div>
-          <ul className="divide-y divide-border-subtle">
-            {products.filter((p) => p.status === 'active').slice(0, 5).map((p, i) => (
-              <li key={p.id}>
-                <Link
-                  href={`/sites/${site.id}/products/${p.id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-bg-elevated/60"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-9 w-9 place-items-center rounded bg-bg-deep text-h3">{p.images[0]}</span>
-                    <div className="flex flex-col">
-                      <span className="text-small text-text-primary">{p.title}</span>
-                      <span className="font-mono text-caption text-text-muted">
-                        rank #{i + 1} · {formatCurrency(p.priceCents)}
+          <ul className="divide-border-subtle divide-y">
+            {products
+              .filter((p) => p.status === 'active')
+              .slice(0, 5)
+              .map((p, i) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/sites/${site.id}/products/${p.id}`}
+                    className="hover:bg-bg-elevated/60 flex items-center justify-between gap-3 px-5 py-3 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="bg-bg-deep text-h3 grid h-9 w-9 place-items-center rounded">
+                        {p.images[0]}
                       </span>
+                      <div className="flex flex-col">
+                        <span className="text-small text-text-primary">{p.title}</span>
+                        <span className="text-caption text-text-muted font-mono">
+                          {t.dashboard.rank}
+                          {i + 1} · {formatCurrency(p.priceCents)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  {p.hot ? <Badge tone="forge" dot>hot</Badge> : null}
-                </Link>
-              </li>
-            ))}
+                    {p.hot ? (
+                      <Badge tone="forge" dot>
+                        {t.dashboard.hot}
+                      </Badge>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
           </ul>
         </div>
       </section>
@@ -274,7 +291,9 @@ export default function DashboardPage() {
   )
 }
 
-function statusToneFor(status: string): 'success' | 'forge' | 'warning' | 'info' | 'neutral' | 'error' {
+function statusToneFor(
+  status: string,
+): 'success' | 'forge' | 'warning' | 'info' | 'neutral' | 'error' {
   switch (status) {
     case 'paid':
     case 'fulfilled':

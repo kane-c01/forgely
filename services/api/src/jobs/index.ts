@@ -21,16 +21,56 @@ export interface DispatchGenerationOptions {
   pipelineInput: Parameters<typeof enqueueGeneration>[0]
 }
 
-/** Push the pipeline job to BullMQ + flip Site to `generating`. */
-export async function dispatchGeneration(opts: DispatchGenerationOptions): Promise<{ jobId: string }> {
+/** 12 UI step ids — must stay in sync with services/worker/src/events.ts. */
+const SPELL_STEPS = [
+  'connecting',
+  'scraping',
+  'analyzing',
+  'planning',
+  'directing',
+  'copywriting',
+  'generating_assets',
+  'compositing',
+  'compiling',
+  'optimising',
+  'deploying',
+  'finished',
+] as const
+
+/**
+ * Push the pipeline job to BullMQ + flip Site to `generating` + pre-create
+ * 12 pending `GenerationStep` rows so the /generating UI has a skeleton
+ * to render against before any Redis Stream events arrive.
+ */
+export async function dispatchGeneration(
+  opts: DispatchGenerationOptions,
+): Promise<{ jobId: string }> {
   await prisma.site.update({
     where: { id: opts.siteId },
     data: { status: 'generating' },
   })
   await prisma.generation.update({
     where: { id: opts.generationId },
-    data: { status: 'running' },
+    data: { status: 'running', startedAt: new Date() },
   })
+
+  // Pre-populate 12 step rows so the /generating UI has something
+  // consistent to show while Redis events ramp up. Uses `createMany`
+  // with `skipDuplicates` so repeat dispatches (retries) are idempotent.
+  try {
+    await prisma.generationStep.createMany({
+      data: SPELL_STEPS.map((stepName, ordinal) => ({
+        generationId: opts.generationId,
+        stepName,
+        ordinal,
+        status: 'pending',
+      })),
+      skipDuplicates: true,
+    })
+  } catch {
+    /* skeleton is best-effort; Redis events remain the source of truth */
+  }
+
   try {
     const jobId = await enqueueGeneration(opts.pipelineInput, { generationId: opts.generationId })
     return { jobId }
@@ -39,11 +79,7 @@ export async function dispatchGeneration(opts: DispatchGenerationOptions): Promi
       where: { id: opts.generationId },
       data: { status: 'failed', errorMessage: (err as Error).message },
     })
-    throw new ForgelyError(
-      'INTERNAL_ERROR',
-      `生成排队失败：${(err as Error).message}`,
-      500,
-    )
+    throw new ForgelyError('INTERNAL_ERROR', `生成排队失败：${(err as Error).message}`, 500)
   }
 }
 
@@ -97,7 +133,9 @@ export async function purgeExpiredOtps(now: Date = new Date()): Promise<{ delete
 }
 
 /** Cron — release credit reservations that exceeded their TTL (30 min). */
-export async function releaseStaleReservations(now: Date = new Date()): Promise<{ released: number }> {
+export async function releaseStaleReservations(
+  now: Date = new Date(),
+): Promise<{ released: number }> {
   const cutoff = new Date(now.getTime() - 30 * 60 * 1000)
   const stale = await prisma.creditReservation.findMany({
     where: { state: 'reserved', createdAt: { lt: cutoff } },

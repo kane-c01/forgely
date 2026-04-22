@@ -1,18 +1,17 @@
+'use client'
+
 import { ComingSoon } from '@/components/shell/coming-soon'
+import { useT } from '@/lib/i18n'
 
 export default function DiscountsPage() {
+  const t = useT()
   return (
     <ComingSoon
-      eyebrow="Marketing"
-      title="Discounts"
-      description="Coupon codes, automatic discounts and bundle offers."
-      expected="V1.2"
-      bullets={[
-        'Percent / fixed / BOGO',
-        'Schedule by date & timezone',
-        'Limit per customer / per code',
-        'Copilot can mint and email codes',
-      ]}
+      eyebrow={t.discounts.eyebrow}
+      title={t.discounts.title}
+      description={t.discounts.description}
+      expected={t.discounts.expected}
+      bullets={[t.discounts.bullet1, t.discounts.bullet2, t.discounts.bullet3, t.discounts.bullet4]}
     />
   )
 }

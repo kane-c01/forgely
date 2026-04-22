@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { useCopilotContext } from '@/components/copilot/copilot-provider'
 import { SPELL_STEPS, type SpellStatus } from '@/components/generating/spell-steps'
@@ -10,15 +10,20 @@ import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 export default function GeneratingPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'global' })
+  const t = useT()
   const router = useRouter()
-  // We use the siteId as the generationId for now — the real worker
-  // job id lives in the URL once /generate.commit returns it. This
-  // works for both fake-mode and live SSE.
-  const stream = useGenerationStream(params.siteId)
+  const searchParams = useSearchParams()
+  // Prefer the explicit ?gen=… passed by /generate after commit; fall
+  // back to the siteId for demo / deep-linked flows (fake-mode still
+  // works since the hook degrades gracefully when there's no real
+  // worker stream).
+  const generationId = searchParams?.get('gen') ?? params.siteId
+  const stream = useGenerationStream(generationId)
 
   // Once everything is forged, give the user 1.5s to see the success
   // state then take them to the editor (where they can browse / tweak
@@ -36,19 +41,23 @@ export default function GeneratingPage({ params }: { params: { siteId: string } 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader
-        eyebrow="Forging"
-        title="Your site is being forged"
-        description={`${SPELL_STEPS.length}-step pipeline. Average run is ~4 minutes; assets stream in as they finish.`}
+        eyebrow={t.generating.eyebrow}
+        title={t.generating.title}
+        description={t.generating.description}
         meta={
           <>
             <Badge
               tone={stream.fakeMode ? 'outline' : stream.connected ? 'success' : 'neutral'}
               dot
             >
-              {stream.fakeMode ? 'demo mode' : stream.connected ? 'live' : 'connecting…'}
+              {stream.fakeMode
+                ? t.generating.demoMode
+                : stream.connected
+                  ? t.generating.live
+                  : t.generating.connecting}
             </Badge>
             <span>·</span>
-            <span>job</span>
+            <span>{t.generating.job}</span>
             <span className="text-text-secondary font-mono">{params.siteId}</span>
             <span>·</span>
             <span className="text-forge-amber tabular-nums">{overallPct}%</span>
@@ -57,7 +66,7 @@ export default function GeneratingPage({ params }: { params: { siteId: string } 
         actions={
           stream.finished ? (
             <Button onClick={() => router.push(`/sites/${params.siteId}/editor`)}>
-              <Icon.Sparkle size={14} /> Open editor
+              <Icon.Sparkle size={14} /> {t.generating.openEditor}
             </Button>
           ) : null
         }
@@ -101,10 +110,8 @@ export default function GeneratingPage({ params }: { params: { siteId: string } 
 
       {stream.finished ? (
         <div className="border-forge-orange/30 from-forge-orange/15 via-bg-surface to-bg-surface rounded-lg border bg-gradient-to-br p-5 text-center">
-          <p className="font-display text-h2 text-text-primary">FORGED.</p>
-          <p className="text-small text-text-secondary mt-2">
-            Taking you to the editor in a moment so you can review and publish.
-          </p>
+          <p className="font-display text-h2 text-text-primary">{t.generating.forged}</p>
+          <p className="text-small text-text-secondary mt-2">{t.generating.takingToEditor}</p>
         </div>
       ) : null}
     </div>

@@ -19,6 +19,7 @@ import {
   productsRouter,
   sitesRouter,
 } from '../routers/index.js'
+import { superRouter } from '../routers/super/index.js'
 import { authRouter } from './auth.js'
 import { billingRouter } from './billing.js'
 import { cnAuthRouter } from './cn-auth.js'
@@ -26,6 +27,8 @@ import { complianceRouter } from './compliance.js'
 import { conversationRouter } from './conversation.js'
 import { creditsRouter } from './credits.js'
 import { seoRouter } from './seo.js'
+import { settingsRouter } from './settings.js'
+import { pluginsRouter } from './plugins.js'
 import { router } from './trpc.js'
 
 /**
@@ -47,6 +50,8 @@ export const appRouter = router({
   billing: billingRouter,
   compliance: complianceRouter,
   seo: seoRouter,
+  settings: settingsRouter,
+  plugins: pluginsRouter,
   // Tenant-scoped (W3 routers/*)
   sites: sitesRouter,
   products: productsRouter,
@@ -57,6 +62,8 @@ export const appRouter = router({
   cms: cmsRouter,
   generation: generationRouter,
   copilot: copilotRouter,
+  // Super-admin (W7 Sprint 3)
+  super: superRouter,
 })
 
 export { appRouter as default }

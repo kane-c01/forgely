@@ -12,6 +12,11 @@ import { validateCouponForUser } from '../billing/coupons.js'
 import type { CouponContextKind } from '../billing/coupons.js'
 import { prisma } from '../db.js'
 import {
+  createCnCreditPackCheckout,
+  createCnSubscriptionCheckout,
+  getCnPaymentStatus,
+} from '../payments/cn-billing.js'
+import {
   createBillingPortalSession,
   createCreditPackCheckout,
   createSubscriptionCheckout,
@@ -42,6 +47,37 @@ const CreditPackCheckoutInput = z.object({
 
 const PortalInput = z.object({
   returnUrl: z.string().url().optional(),
+})
+
+// ─── CN-channel billing (微信 / 支付宝) ─────────────────────────────────
+//
+// For Forgely's *own* subscription / credit-pack billing only — i.e. the
+// Chinese boss paying Forgely's monthly fee. The user storefront's payment
+// rail is independent (Stripe Connect / PayPal — see `settings.ts`).
+//
+// Scenes default to `native` (QR code) for the /billing UI's modal; other
+// scenes (`h5` / `jsapi` / `app`) are reserved for embedded mobile flows.
+
+const CnChannel = z.enum(['wechat', 'alipay'])
+const CnScene = z.enum(['native', 'h5', 'wap', 'pc', 'jsapi', 'app'])
+
+const StartCnSubscriptionInput = z.object({
+  planSlug: z.enum(['starter', 'pro', 'agency']),
+  cadence: z.enum(['monthly', 'yearly']),
+  channel: CnChannel,
+  scene: CnScene.optional(),
+  returnUrl: z.string().url().optional(),
+})
+
+const StartCnCreditPackInput = z.object({
+  packageSlug: z.string().min(1),
+  channel: CnChannel,
+  scene: CnScene.optional(),
+  returnUrl: z.string().url().optional(),
+})
+
+const CnPaymentIdInput = z.object({
+  paymentId: z.string().min(1),
 })
 
 export const billingRouter = router({
@@ -122,5 +158,43 @@ export const billingRouter = router({
       discountUsd: preview.discountUsd,
       netUsd: preview.netUsd,
     }
+  }),
+
+  // ─── CN payment channels (微信支付 / 支付宝) ─────────────────────────
+  /**
+   * Returns the list of payment channels available to the calling user
+   * for Forgely's own billing. CN users get all three; everyone else
+   * sees only Stripe.
+   */
+  channels: protectedProcedure.query(async ({ ctx }) => {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: ctx.user.id },
+      select: { region: true },
+    })
+    const cn = user.region === 'cn'
+    return {
+      stripe: { available: true, recommended: !cn, currency: 'USD' as const },
+      wechat: { available: cn, recommended: cn, currency: 'CNY' as const },
+      alipay: { available: cn, recommended: false, currency: 'CNY' as const },
+    }
+  }),
+
+  /** Start a WeChat-Pay or Alipay subscription checkout. Returns QR or redirect. */
+  startCnSubscriptionCheckout: protectedProcedure
+    .input(StartCnSubscriptionInput)
+    .mutation(async ({ ctx, input }) => {
+      return createCnSubscriptionCheckout({ userId: ctx.user.id, ...input })
+    }),
+
+  /** Start a WeChat-Pay or Alipay credit-pack checkout. */
+  startCnCreditPackCheckout: protectedProcedure
+    .input(StartCnCreditPackInput)
+    .mutation(async ({ ctx, input }) => {
+      return createCnCreditPackCheckout({ userId: ctx.user.id, ...input })
+    }),
+
+  /** Polled by the QR-code modal to confirm payment success. */
+  cnPaymentStatus: protectedProcedure.input(CnPaymentIdInput).query(async ({ ctx, input }) => {
+    return getCnPaymentStatus({ userId: ctx.user.id, paymentId: input.paymentId })
   }),
 })

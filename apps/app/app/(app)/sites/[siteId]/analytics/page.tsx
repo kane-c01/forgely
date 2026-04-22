@@ -1,18 +1,17 @@
+'use client'
+
 import { ComingSoon } from '@/components/shell/coming-soon'
+import { useT } from '@/lib/i18n'
 
 export default function AnalyticsPage() {
+  const t = useT()
   return (
     <ComingSoon
-      eyebrow="Insights"
-      title="Analytics"
-      description="Traffic, conversion funnel, SEO impressions and AI-suggested experiments."
-      expected="Week 14"
-      bullets={[
-        'Funnel by source & device',
-        'Cohort retention',
-        'SEO + GEO ranking',
-        'Copilot can compare any two periods',
-      ]}
+      eyebrow={t.analytics.eyebrow}
+      title={t.analytics.title}
+      description={t.analytics.description}
+      expected={t.analytics.expected}
+      bullets={[t.analytics.bullet1, t.analytics.bullet2, t.analytics.bullet3, t.analytics.bullet4]}
     />
   )
 }

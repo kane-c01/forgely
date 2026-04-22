@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 
 import { useCopilot, useCopilotContext } from '@/components/copilot/copilot-provider'
+import { useT } from '@/lib/i18n'
 import { MediaCard } from '@/components/media/media-card'
 import { MediaDetailDrawer } from '@/components/media/media-detail-drawer'
 import { PageHeader } from '@/components/shell/page-header'
@@ -15,19 +16,24 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { mediaAssets as ALL_ASSETS } from '@/lib/mocks'
 import type { MediaAsset, MediaKind } from '@/lib/types'
 
-const FILTERS: Array<{ value: 'all' | MediaKind; label: string; icon: 'Image' | 'Brand' | 'Box' }> = [
-  { value: 'all', label: 'All', icon: 'Image' },
-  { value: 'logo', label: 'Logos', icon: 'Brand' },
-  { value: 'product-photo', label: 'Product', icon: 'Box' },
-  { value: 'lifestyle', label: 'Lifestyle', icon: 'Image' },
-  { value: 'video', label: 'Video', icon: 'Image' },
-  { value: '3d', label: '3D', icon: 'Box' },
-  { value: 'icon', label: 'Icons', icon: 'Image' },
-]
-
 export default function MediaPage({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'media', siteId: params.siteId })
   const copilot = useCopilot()
+  const t = useT()
+
+  const FILTERS: Array<{
+    value: 'all' | MediaKind
+    label: string
+    icon: 'Image' | 'Brand' | 'Box'
+  }> = [
+    { value: 'all', label: t.media.all, icon: 'Image' },
+    { value: 'logo', label: t.media.logos, icon: 'Brand' },
+    { value: 'product-photo', label: t.media.product, icon: 'Box' },
+    { value: 'lifestyle', label: t.media.lifestyle, icon: 'Image' },
+    { value: 'video', label: t.media.video, icon: 'Image' },
+    { value: '3d', label: t.media.threeD, icon: 'Box' },
+    { value: 'icon', label: t.media.icons, icon: 'Image' },
+  ]
   const [filter, setFilter] = useState<'all' | MediaKind>('all')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<MediaAsset | null>(null)
@@ -47,13 +53,13 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       <PageHeader
-        eyebrow="Brand"
-        title="Media library"
-        description="Logos, product photos, hero videos and 3D models. Drag onto the editor or generate fresh variants with Copilot."
+        eyebrow={t.media.eyebrow}
+        title={t.media.title}
+        description={t.media.description}
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Upload size={14} /> Upload
+              <Icon.Upload size={14} /> {t.media.upload}
             </Button>
             <Button
               onClick={() => {
@@ -61,15 +67,17 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
                 void copilot.send('Generate 3 hero photos for the homepage in warm tones.')
               }}
             >
-              <Icon.Sparkle size={14} /> Generate w/ AI
+              <Icon.Sparkle size={14} /> {t.media.generateAi}
             </Button>
           </>
         }
         meta={
           <>
-            <span>{rows.length} assets</span>
+            <span>
+              {rows.length} {t.media.assets}
+            </span>
             <span>·</span>
-            <span className="tabular-nums text-text-secondary">{totalSize.toFixed(1)} MB</span>
+            <span className="text-text-secondary tabular-nums">{totalSize.toFixed(1)} MB</span>
           </>
         }
       />
@@ -87,29 +95,41 @@ export default function MediaPage({ params }: { params: { siteId: string } }) {
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Icon.Search
+              size={14}
+              className="text-text-muted absolute left-3 top-1/2 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search filename or prompt"
+              placeholder={t.media.searchMedia}
               className="w-72 pl-8"
             />
           </div>
-          <Badge tone="outline">grid</Badge>
+          <Badge tone="outline">{t.media.grid}</Badge>
         </div>
       </div>
 
       {rows.length === 0 ? (
         <EmptyState
           icon={<Icon.Image size={28} />}
-          title="No assets yet"
-          description="Drop files here, paste from clipboard, or ask Copilot to generate them."
-          action={<Button><Icon.Upload size={14} /> Upload first asset</Button>}
+          title={t.media.noAssets}
+          description={t.media.noAssetsDesc}
+          action={
+            <Button>
+              <Icon.Upload size={14} /> {t.media.uploadFirst}
+            </Button>
+          }
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {rows.map((a) => (
-            <MediaCard key={a.id} asset={a} selected={selected?.id === a.id} onClick={() => setSelected(a)} />
+            <MediaCard
+              key={a.id}
+              asset={a}
+              selected={selected?.id === a.id}
+              onClick={() => setSelected(a)}
+            />
           ))}
         </div>
       )}

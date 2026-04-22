@@ -27,6 +27,7 @@ import { errors } from '../errors.js'
 
 import { protectedProcedure, router } from '../router/trpc.js'
 
+import { buildCopilotChat } from '../copilot/chat.js'
 import { IdSchema, PaginationInput } from './_shared.js'
 
 const RoleSchema = z.enum(['user', 'assistant', 'system', 'tool'])
@@ -156,4 +157,58 @@ export const copilotRouter = router({
     })
     return { ok: true as const }
   }),
+
+  /**
+   * Streaming-less chat turn — sends the conversation so far + the new user
+   * message to the LLM (DeepSeek/Qwen/Anthropic/Mock per env), returns the
+   * assistant's reply plus any structured tool calls the model wants to make.
+   *
+   * Charges credits up-front (1-20 per turn, capped); on provider error
+   * we still return a graceful fallback message.
+   */
+  chat: protectedProcedure
+    .input(
+      z.object({
+        surface: z.enum(['user', 'super']).default('user'),
+        context: z.record(z.unknown()).default({}),
+        messages: z
+          .array(
+            z.object({
+              role: z.enum(['user', 'assistant', 'system']),
+              text: z.string().min(0).max(4000),
+            }),
+          )
+          .min(1),
+        locale: z.enum(['zh-CN', 'en']).default('zh-CN'),
+        prefer: z.enum(['deepseek', 'qwen', 'anthropic', 'mock', 'real']).optional(),
+        creditsCost: z.number().int().min(1).max(20).default(2),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Super surface requires super_admin; reject early.
+      if (input.surface === 'super' && ctx.user.role !== 'super_admin') {
+        throw errors.forbidden('Super surface requires super_admin role')
+      }
+
+      await consumeCreditsSafe({
+        userId: ctx.user.id,
+        amount: input.creditsCost,
+        description: `AI Copilot — ${input.surface} chat turn`,
+        metadata: {
+          surface: input.surface,
+          locale: input.locale,
+          messageCount: input.messages.length,
+        },
+      })
+
+      const reply = await buildCopilotChat({
+        surface: input.surface,
+        context: input.context as Parameters<typeof buildCopilotChat>[0]['context'],
+        messages: input.messages,
+        locale: input.locale,
+        prefer: input.prefer,
+      })
+
+      return reply
+    }),
 })

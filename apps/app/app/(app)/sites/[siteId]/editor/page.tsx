@@ -12,6 +12,7 @@ import { ShortcutsLegend } from '@/components/editor/shortcuts-legend'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 
 export default function EditorPage({ params }: { params: { siteId: string } }) {
   return (
@@ -22,6 +23,7 @@ export default function EditorPage({ params }: { params: { siteId: string } }) {
 }
 
 function EditorScaffold({ siteId }: { siteId: string }) {
+  const t = useT()
   const editor = useEditor()
   useCopilotContext({
     kind: 'editor',
@@ -49,10 +51,10 @@ function EditorScaffold({ siteId }: { siteId: string }) {
       <header className="border-border-subtle bg-bg-deep flex items-center justify-between gap-4 border-b px-4 py-2">
         <div className="flex items-center gap-3">
           <Button size="xs" variant="ghost">
-            <Icon.ChevronLeft size={12} /> Exit
+            <Icon.ChevronLeft size={12} /> {t.editor.exit}
           </Button>
           <div className="flex flex-col">
-            <p className="font-heading text-body text-text-primary">Theme Editor</p>
+            <p className="font-heading text-body text-text-primary">{t.editor.themeEditor}</p>
             <p className="text-caption text-text-muted font-mono">
               {siteId} · {editor.activePage.name}
             </p>
@@ -64,7 +66,7 @@ function EditorScaffold({ siteId }: { siteId: string }) {
             type="button"
             disabled={!editor.canUndo}
             onClick={() => editor.undo()}
-            aria-label="Undo (⌘Z)"
+            aria-label={t.editor.undoAria}
             className="border-border-subtle bg-bg-elevated text-text-secondary hover:border-forge-orange/40 hover:text-forge-amber grid h-8 w-8 place-items-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Icon.History size={14} />
@@ -73,7 +75,7 @@ function EditorScaffold({ siteId }: { siteId: string }) {
             type="button"
             disabled={!editor.canRedo}
             onClick={() => editor.redo()}
-            aria-label="Redo (⌘⇧Z)"
+            aria-label={t.editor.redoAria}
             className="border-border-subtle bg-bg-elevated text-text-secondary hover:border-forge-orange/40 hover:text-forge-amber grid h-8 w-8 place-items-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Icon.History size={14} className="-scale-x-100" />
@@ -82,18 +84,18 @@ function EditorScaffold({ siteId }: { siteId: string }) {
           <span className="bg-border-subtle mx-1 h-5 w-px" aria-hidden />
           {editor.unsaved ? (
             <Badge tone="warning" dot>
-              unsaved changes
+              {t.editor.unsavedChanges}
             </Badge>
           ) : (
             <Badge tone="success" dot>
-              saved
+              {t.editor.saved}
             </Badge>
           )}
           <Button size="sm" variant="secondary" onClick={() => editor.markSaved()}>
-            <Icon.Check size={14} /> Save draft
+            <Icon.Check size={14} /> {t.editor.saveDraft}
           </Button>
           <Button size="sm">
-            <Icon.Sparkle size={14} /> Publish
+            <Icon.Sparkle size={14} /> {t.editor.publish}
           </Button>
         </div>
       </header>

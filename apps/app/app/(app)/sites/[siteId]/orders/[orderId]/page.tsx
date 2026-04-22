@@ -9,13 +9,9 @@ import { AIQuickActions } from '@/components/products/ai-quick-actions'
 import { PageHeader } from '@/components/shell/page-header'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { getCustomer, getOrder } from '@/lib/mocks'
 import { formatCurrency, formatDateTime } from '@/lib/format'
 
@@ -24,6 +20,7 @@ export default function OrderDetailPage({
 }: {
   params: { siteId: string; orderId: string }
 }) {
+  const t = useT()
   const order = getOrder(params.orderId)
   useCopilotContext(
     order ? { kind: 'order', orderId: order.id, orderNumber: order.number } : { kind: 'global' },
@@ -36,37 +33,39 @@ export default function OrderDetailPage({
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
-      <div className="flex items-center gap-2 font-mono text-caption text-text-muted">
+      <div className="text-caption text-text-muted flex items-center gap-2 font-mono">
         <Link href={`/sites/${params.siteId}/orders`} className="hover:text-text-primary">
-          Orders
+          {t.orderDetail.breadcrumb}
         </Link>
         <Icon.ChevronRight size={12} />
         <span className="text-text-secondary">{order.number}</span>
       </div>
 
       <PageHeader
-        eyebrow={`Order ${order.number}`}
+        eyebrow={`${t.orderDetail.orderPrefix} ${order.number}`}
         title={`${formatCurrency(order.totalCents)} · ${order.customerName}`}
         meta={
           <>
             <OrderStatusBadge status={order.status} />
             <span>·</span>
-            <span>placed</span>
+            <span>{t.orderDetail.placed}</span>
             <span className="text-text-secondary">{formatDateTime(order.createdAt)}</span>
             <span>·</span>
-            <span>via {order.paymentMethod}</span>
+            <span>
+              {t.orderDetail.via} {order.paymentMethod}
+            </span>
           </>
         }
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Download size={14} /> Invoice PDF
+              <Icon.Download size={14} /> {t.orderDetail.invoicePdf}
             </Button>
             <Button variant="secondary">
-              <Icon.Send size={14} /> Send shipping update
+              <Icon.Send size={14} /> {t.orderDetail.sendShippingUpdate}
             </Button>
             <Button>
-              <Icon.Check size={14} /> Mark fulfilled
+              <Icon.Check size={14} /> {t.orderDetail.markFulfilled}
             </Button>
           </>
         }
@@ -74,10 +73,26 @@ export default function OrderDetailPage({
 
       <AIQuickActions
         actions={[
-          { emoji: '🪪', label: 'Issue refund', prompt: 'Issue a full refund for this order and tag the customer for follow-up.' },
-          { emoji: '✉️', label: 'Email shipping update', prompt: 'Draft an email letting the customer know their order ships within 24 h.' },
-          { emoji: '🔁', label: 'Re-order on customer behalf', prompt: 'Create a duplicate of this order for the same customer.' },
-          { emoji: '🏷️', label: 'Tag as priority', prompt: 'Tag this order and its customer as priority.' },
+          {
+            emoji: '🪪',
+            label: t.orderDetail.issueRefund,
+            prompt: 'Issue a full refund for this order and tag the customer for follow-up.',
+          },
+          {
+            emoji: '✉️',
+            label: t.orderDetail.emailShipping,
+            prompt: 'Draft an email letting the customer know their order ships within 24 h.',
+          },
+          {
+            emoji: '🔁',
+            label: t.orderDetail.reOrder,
+            prompt: 'Create a duplicate of this order for the same customer.',
+          },
+          {
+            emoji: '🏷️',
+            label: t.orderDetail.tagPriority,
+            prompt: 'Tag this order and its customer as priority.',
+          },
         ]}
       />
 
@@ -85,33 +100,32 @@ export default function OrderDetailPage({
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Items</CardTitle>
-              <span className="font-mono text-caption text-text-muted">
-                {order.itemCount} item{order.itemCount === 1 ? '' : 's'}
+              <CardTitle>{t.orderDetail.items}</CardTitle>
+              <span className="text-caption text-text-muted font-mono">
+                {order.itemCount}{' '}
+                {order.itemCount === 1 ? t.orderDetail.item : t.orderDetail.itemPlural}
               </span>
             </CardHeader>
             <CardContent className="p-0">
-              <ul className="divide-y divide-border-subtle">
+              <ul className="divide-border-subtle divide-y">
                 {order.items.map((it) => (
                   <li key={it.productId} className="flex items-center gap-4 px-5 py-3">
-                    <span className="grid h-12 w-12 place-items-center rounded-md bg-bg-deep text-h2">
+                    <span className="bg-bg-deep text-h2 grid h-12 w-12 place-items-center rounded-md">
                       📦
                     </span>
                     <div className="flex-1">
                       <Link
                         href={`/sites/${params.siteId}/products/${it.productId}`}
-                        className="text-small font-medium text-text-primary hover:text-forge-amber"
+                        className="text-small text-text-primary hover:text-forge-amber font-medium"
                       >
                         {it.title}
                       </Link>
-                      <p className="font-mono text-caption text-text-muted">
-                        ID {it.productId}
-                      </p>
+                      <p className="text-caption text-text-muted font-mono">ID {it.productId}</p>
                     </div>
-                    <span className="font-mono tabular-nums text-text-secondary">
+                    <span className="text-text-secondary font-mono tabular-nums">
                       ×{it.quantity}
                     </span>
-                    <span className="w-24 text-right font-mono tabular-nums text-text-primary">
+                    <span className="text-text-primary w-24 text-right font-mono tabular-nums">
                       {formatCurrency(it.priceCents * it.quantity)}
                     </span>
                   </li>
@@ -122,23 +136,23 @@ export default function OrderDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Payment</CardTitle>
+              <CardTitle>{t.orderDetail.payment}</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-y-2 text-small">
-              <span className="text-text-muted">Subtotal</span>
-              <span className="text-right font-mono tabular-nums text-text-primary">
+            <CardContent className="text-small grid grid-cols-2 gap-y-2">
+              <span className="text-text-muted">{t.orderDetail.subtotal}</span>
+              <span className="text-text-primary text-right font-mono tabular-nums">
                 {formatCurrency(subtotal)}
               </span>
-              <span className="text-text-muted">Shipping</span>
-              <span className="text-right font-mono tabular-nums text-text-primary">
+              <span className="text-text-muted">{t.orderDetail.shipping}</span>
+              <span className="text-text-primary text-right font-mono tabular-nums">
                 {formatCurrency(shipping)}
               </span>
-              <span className="text-text-muted">Tax</span>
-              <span className="text-right font-mono tabular-nums text-text-primary">$0.00</span>
-              <span className="border-t border-border-subtle pt-2 font-medium text-text-primary">
-                Total
+              <span className="text-text-muted">{t.orderDetail.tax}</span>
+              <span className="text-text-primary text-right font-mono tabular-nums">$0.00</span>
+              <span className="border-border-subtle text-text-primary border-t pt-2 font-medium">
+                {t.orderDetail.total}
               </span>
-              <span className="border-t border-border-subtle pt-2 text-right font-mono text-h3 tabular-nums text-forge-amber">
+              <span className="border-border-subtle text-h3 text-forge-amber border-t pt-2 text-right font-mono tabular-nums">
                 {formatCurrency(order.totalCents)}
               </span>
             </CardContent>
@@ -146,25 +160,55 @@ export default function OrderDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle>{t.orderDetail.timeline}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ol className="relative ml-2 border-l border-border-subtle pl-5">
-                <Step icon="•" tone="success" label="Payment received" time={order.createdAt} />
+              <ol className="border-border-subtle relative ml-2 border-l pl-5">
+                <Step
+                  icon="•"
+                  tone="success"
+                  label={t.orderDetail.paymentReceived}
+                  time={order.createdAt}
+                />
                 {order.status !== 'pending' ? (
-                  <Step icon="✓" tone="info" label="Order paid" time={order.createdAt} />
+                  <Step
+                    icon="✓"
+                    tone="info"
+                    label={t.orderDetail.orderPaid}
+                    time={order.createdAt}
+                  />
                 ) : null}
                 {['fulfilled', 'shipped', 'delivered'].includes(order.status) ? (
-                  <Step icon="🚚" tone="info" label="Marked fulfilled" time={order.createdAt} />
+                  <Step
+                    icon="🚚"
+                    tone="info"
+                    label={t.orderDetail.markedFulfilled}
+                    time={order.createdAt}
+                  />
                 ) : null}
                 {order.status === 'shipped' || order.status === 'delivered' ? (
-                  <Step icon="📦" tone="info" label={`Shipped to ${order.shippingTo.city}`} time={order.createdAt} />
+                  <Step
+                    icon="📦"
+                    tone="info"
+                    label={`${t.orderDetail.shippedTo} ${order.shippingTo.city}`}
+                    time={order.createdAt}
+                  />
                 ) : null}
                 {order.status === 'delivered' ? (
-                  <Step icon="✓" tone="success" label="Delivered" time={order.createdAt} />
+                  <Step
+                    icon="✓"
+                    tone="success"
+                    label={t.orderDetail.delivered}
+                    time={order.createdAt}
+                  />
                 ) : null}
                 {order.status === 'refunded' ? (
-                  <Step icon="↩︎" tone="error" label="Refunded" time={order.createdAt} />
+                  <Step
+                    icon="↩︎"
+                    tone="error"
+                    label={t.orderDetail.refunded}
+                    time={order.createdAt}
+                  />
                 ) : null}
               </ol>
             </CardContent>
@@ -174,13 +218,13 @@ export default function OrderDetailPage({
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Customer</CardTitle>
+              <CardTitle>{t.orderDetail.customer}</CardTitle>
               {customer ? (
                 <Link
                   href={`/sites/${params.siteId}/customers/${customer.id}`}
-                  className="font-mono text-caption uppercase tracking-[0.12em] text-forge-amber hover:underline"
+                  className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em] hover:underline"
                 >
-                  Profile →
+                  {t.orderDetail.profile}
                 </Link>
               ) : null}
             </CardHeader>
@@ -188,21 +232,21 @@ export default function OrderDetailPage({
               <div className="flex items-center gap-3">
                 <Avatar name={order.customerName} />
                 <div className="flex flex-col">
-                  <span className="text-small font-medium text-text-primary">
+                  <span className="text-small text-text-primary font-medium">
                     {order.customerName}
                   </span>
-                  <span className="font-mono text-caption text-text-muted">
+                  <span className="text-caption text-text-muted font-mono">
                     {customer?.email ?? '—'}
                   </span>
                 </div>
               </div>
               {customer ? (
                 <p className="text-small text-text-secondary">
-                  Lifetime value:{' '}
-                  <strong className="font-mono text-forge-amber">
+                  {t.orderDetail.lifetimeValue}
+                  <strong className="text-forge-amber font-mono">
                     {formatCurrency(customer.totalSpentCents)}
                   </strong>{' '}
-                  · {customer.orderCount} orders
+                  · {customer.orderCount} {t.orderDetail.ordersCount}
                 </p>
               ) : null}
             </CardContent>
@@ -210,15 +254,15 @@ export default function OrderDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Shipping address</CardTitle>
+              <CardTitle>{t.orderDetail.shippingAddress}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-small text-text-primary">{order.customerName}</p>
               <p className="text-small text-text-secondary">
                 {order.shippingTo.city}, {order.shippingTo.country}
               </p>
-              <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-caption text-text-muted">
-                <Icon.Globe size={12} /> Tracking added once shipped
+              <p className="text-caption text-text-muted mt-2 inline-flex items-center gap-1.5 font-mono">
+                <Icon.Globe size={12} /> {t.orderDetail.trackingNote}
               </p>
             </CardContent>
           </Card>
@@ -226,7 +270,7 @@ export default function OrderDetailPage({
           {order.notes ? (
             <Card>
               <CardHeader>
-                <CardTitle>Notes</CardTitle>
+                <CardTitle>{t.orderDetail.notes}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-small text-text-secondary">{order.notes}</p>
@@ -250,17 +294,14 @@ function Step({
   label: string
   time: string
 }) {
-  const dot =
-    tone === 'success'
-      ? 'bg-success'
-      : tone === 'error'
-        ? 'bg-error'
-        : 'bg-info'
+  const dot = tone === 'success' ? 'bg-success' : tone === 'error' ? 'bg-error' : 'bg-info'
   return (
     <li className="mb-4">
-      <span className={`absolute -left-[7px] grid h-3 w-3 place-items-center rounded-full ${dot} ring-4 ring-bg-surface`}></span>
+      <span
+        className={`absolute -left-[7px] grid h-3 w-3 place-items-center rounded-full ${dot} ring-bg-surface ring-4`}
+      ></span>
       <p className="text-small text-text-primary">{label}</p>
-      <p className="font-mono text-caption text-text-muted">
+      <p className="text-caption text-text-muted font-mono">
         <span className="mr-1">{icon}</span>
         {formatDateTime(time)}
       </p>

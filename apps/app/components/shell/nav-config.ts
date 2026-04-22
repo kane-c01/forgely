@@ -1,4 +1,5 @@
 import type { IconKey } from '@/components/ui/icons'
+import type { TranslationKeys } from '@/lib/i18n'
 
 /**
  * Single source of truth for the dashboard left sidebar.
@@ -6,57 +7,60 @@ import type { IconKey } from '@/components/ui/icons'
  * `siteId` placeholders get rewritten by `<SidebarNav>` once the user has
  * selected a site (or we fall back to the default mock site so links
  * never 404 in screenshot mode).
+ *
+ * `labelKey` is a dot-path into `TranslationKeys['nav']` so the sidebar
+ * renders in the user's chosen language.
  */
 
 export interface NavLeaf {
-  label: string
+  labelKey: keyof TranslationKeys['nav']
   href: string
   icon: IconKey
   scope: 'global' | 'site'
 }
 
 export interface NavGroup {
-  label: string
+  labelKey: keyof TranslationKeys['nav']
   items: NavLeaf[]
 }
 
 export const navGroups: NavGroup[] = [
   {
-    label: 'Workspace',
+    labelKey: 'workspace',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard', scope: 'global' },
-      { label: 'Sites', href: '/sites', icon: 'Sites', scope: 'global' },
+      { labelKey: 'dashboard', href: '/dashboard', icon: 'Dashboard', scope: 'global' },
+      { labelKey: 'sites', href: '/sites', icon: 'Sites', scope: 'global' },
     ],
   },
   {
-    label: 'Store',
+    labelKey: 'store',
     items: [
-      { label: 'Products', href: '/sites/{siteId}/products', icon: 'Box', scope: 'site' },
-      { label: 'Orders', href: '/sites/{siteId}/orders', icon: 'Cart', scope: 'site' },
-      { label: 'Customers', href: '/sites/{siteId}/customers', icon: 'Users', scope: 'site' },
+      { labelKey: 'products', href: '/sites/{siteId}/products', icon: 'Box', scope: 'site' },
+      { labelKey: 'orders', href: '/sites/{siteId}/orders', icon: 'Cart', scope: 'site' },
+      { labelKey: 'customers', href: '/sites/{siteId}/customers', icon: 'Users', scope: 'site' },
     ],
   },
   {
-    label: 'Brand',
+    labelKey: 'brand',
     items: [
-      { label: 'Theme Editor', href: '/sites/{siteId}/editor', icon: 'Editor', scope: 'site' },
-      { label: 'Media', href: '/sites/{siteId}/media', icon: 'Image', scope: 'site' },
-      { label: 'Brand Kits', href: '/brand-kits', icon: 'Brand', scope: 'global' },
+      { labelKey: 'themeEditor', href: '/sites/{siteId}/editor', icon: 'Editor', scope: 'site' },
+      { labelKey: 'media', href: '/sites/{siteId}/media', icon: 'Image', scope: 'site' },
+      { labelKey: 'brandKits', href: '/brand-kits', icon: 'Brand', scope: 'global' },
     ],
   },
   {
-    label: 'Growth',
+    labelKey: 'growth',
     items: [
-      { label: 'SEO + GEO', href: '/sites/{siteId}/seo', icon: 'Globe', scope: 'site' },
-      { label: 'Compliance', href: '/sites/{siteId}/compliance', icon: 'Check', scope: 'site' },
+      { labelKey: 'seoGeo', href: '/sites/{siteId}/seo', icon: 'Globe', scope: 'site' },
+      { labelKey: 'compliance', href: '/sites/{siteId}/compliance', icon: 'Check', scope: 'site' },
     ],
   },
   {
-    label: 'Account',
+    labelKey: 'account',
     items: [
-      { label: 'Billing', href: '/billing', icon: 'Wallet', scope: 'global' },
-      { label: 'Apps', href: '/apps-marketplace', icon: 'Apps', scope: 'global' },
-      { label: 'Settings', href: '/settings', icon: 'Settings', scope: 'global' },
+      { labelKey: 'billing', href: '/billing', icon: 'Wallet', scope: 'global' },
+      { labelKey: 'apps', href: '/apps-marketplace', icon: 'Apps', scope: 'global' },
+      { labelKey: 'settings', href: '/settings', icon: 'Settings', scope: 'global' },
     ],
   },
 ]

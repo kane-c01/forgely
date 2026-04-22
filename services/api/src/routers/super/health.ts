@@ -20,17 +20,17 @@ import { router, superAdminProcedure } from '../../router/trpc.js'
 import { assertCan } from './_acl.js'
 import { healthSourceInput } from './_schemas.js'
 
-interface SafeOk<T> {
+export interface SafeOk<T> {
   status: 'ok'
   value: T
   fetchedAt: number
 }
-interface SafeErr {
+export interface SafeErr {
   status: 'unavailable' | 'unconfigured' | 'error'
   error?: string
   fetchedAt: number
 }
-type SafeResult<T> = SafeOk<T> | SafeErr
+export type SafeResult<T> = SafeOk<T> | SafeErr
 
 async function safe<T>(envKey: string, fetcher: () => Promise<T>): Promise<SafeResult<T>> {
   if (!process.env[envKey]) {
@@ -48,31 +48,31 @@ async function safe<T>(envKey: string, fetcher: () => Promise<T>): Promise<SafeR
   }
 }
 
-interface SentryStats {
+export interface SentryStats {
   newIssues24h: number
   unresolvedIssues: number
   eventRatePerMin: number
 }
 
-interface PostHogStats {
+export interface PostHogStats {
   dau: number
   wau: number
   topEvents: Array<{ event: string; count: number }>
 }
 
-interface CloudflareStats {
+export interface CloudflareStats {
   r2Storage: { totalBytes: number; objectCount: number }
   workersCpuMsLast24h: number
 }
 
-interface PostgresStats {
+export interface PostgresStats {
   poolUsed: number
   poolMax: number
   longQueriesP95Ms: number
   deadTuplesPercent: number
 }
 
-interface AiSpendStats {
+export interface AiSpendStats {
   totalUsd24h: number
   byProvider: Record<string, number>
   topModels: Array<{ provider: string; model: string; usd: number }>
@@ -188,11 +188,11 @@ async function fetchPostgres(prisma: {
 }
 
 async function fetchAiSpend(
-  prisma: {
-    auditLog: {
-      findMany: (args: { where: unknown }) => Promise<Array<{ after: unknown }>>
-    }
-  },
+  // Loosened from the strict structural type to just `auditLog: { findMany }`
+  // so Prisma's generated client (with its big union for the `where` arg)
+  // assigns cleanly. We only need `findMany` returning rows with `after`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma generated types are too wide for a structural narrow.
+  prisma: { auditLog: { findMany: (args: any) => Promise<Array<{ after: unknown }>> } },
   windowHours: number = 24,
 ): Promise<SafeResult<AiSpendStats>> {
   try {

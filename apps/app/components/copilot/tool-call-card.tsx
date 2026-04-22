@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 import type { ToolCall } from './types'
 
@@ -13,39 +14,9 @@ interface ToolCallCardProps {
   onCancel: () => void
 }
 
-const TOOL_LABEL: Record<string, string> = {
-  query_sales: 'Query sales',
-  query_orders: 'Query orders',
-  query_customers: 'Query customers',
-  query_inventory: 'Query inventory',
-  query_analytics: 'Query analytics',
-  query_seo_performance: 'Query SEO',
-  update_product: 'Update product',
-  create_product: 'Create product',
-  rewrite_copy: 'Rewrite copy',
-  bulk_update_products: 'Bulk update products',
-  suggest_pricing: 'Suggest pricing',
-  modify_theme_block: 'Modify theme block',
-  add_theme_block: 'Add theme block',
-  remove_theme_block: 'Remove theme block',
-  change_colors: 'Change colors',
-  change_fonts: 'Change fonts',
-  generate_image: 'Generate image',
-  generate_video: 'Generate video',
-  generate_3d_model: 'Generate 3D model',
-  regenerate_hero_moment: 'Regenerate hero moment',
-  create_discount: 'Create discount',
-  send_campaign: 'Send campaign',
-  schedule_email: 'Schedule email',
-  send_customer_message: 'Message customer',
-  issue_refund: 'Issue refund',
-  tag_customer: 'Tag customer',
-  compare_periods: 'Compare periods',
-  forecast_revenue: 'Forecast revenue',
-  identify_trends: 'Identify trends',
-}
-
 export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
+  const t = useT()
+  const toolLabels = t.copilotUi.toolLabels as Record<string, string>
   const statusTone =
     call.status === 'done'
       ? 'success'
@@ -60,25 +31,25 @@ export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
   return (
     <div
       className={cn(
-        'rounded-lg border bg-bg-deep p-3 text-small',
+        'bg-bg-deep text-small rounded-lg border p-3',
         call.destructive ? 'border-forge-orange/30' : 'border-border-strong',
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-text-primary">
-          <span className="grid h-6 w-6 place-items-center rounded bg-bg-elevated text-forge-amber">
+        <div className="text-text-primary flex items-center gap-2">
+          <span className="bg-bg-elevated text-forge-amber grid h-6 w-6 place-items-center rounded">
             <Icon.Robot size={12} />
           </span>
-          <span className="font-mono text-caption uppercase tracking-[0.12em]">
-            {TOOL_LABEL[call.name] ?? call.name}
+          <span className="text-caption font-mono uppercase tracking-[0.12em]">
+            {toolLabels[call.name] ?? call.name}
           </span>
           {call.destructive ? (
             <Badge tone="warning" className="!text-[10px] tracking-[0.16em]">
-              writes
+              {t.copilotUi.writes}
             </Badge>
           ) : (
             <Badge tone="info" className="!text-[10px] tracking-[0.16em]">
-              read
+              {t.copilotUi.read}
             </Badge>
           )}
         </div>
@@ -87,18 +58,18 @@ export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
         </Badge>
       </div>
 
-      <pre className="mt-2 overflow-x-auto rounded bg-bg-void/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-text-secondary">
-{JSON.stringify(call.arguments, null, 2)}
+      <pre className="bg-bg-void/60 text-text-secondary mt-2 overflow-x-auto rounded px-2 py-1.5 font-mono text-[11px] leading-relaxed">
+        {JSON.stringify(call.arguments, null, 2)}
       </pre>
 
       {call.estimatedCredits ? (
-        <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-caption text-forge-amber">
-          <Icon.Sparkle size={12} /> ~{call.estimatedCredits} credits
+        <p className="text-caption text-forge-amber mt-2 inline-flex items-center gap-1.5 font-mono">
+          <Icon.Sparkle size={12} /> ~{call.estimatedCredits} {t.copilotUi.credits}
         </p>
       ) : null}
 
       {call.result ? (
-        <p className="mt-2 rounded bg-success/10 px-2 py-1.5 text-caption text-success">
+        <p className="bg-success/10 text-caption text-success mt-2 rounded px-2 py-1.5">
           {call.result}
         </p>
       ) : null}
@@ -108,15 +79,15 @@ export function ToolCallCard({ call, onConfirm, onCancel }: ToolCallCardProps) {
           {call.destructive ? (
             <>
               <Button size="xs" onClick={onConfirm}>
-                <Icon.Check size={12} /> Confirm
+                <Icon.Check size={12} /> {t.copilotUi.confirm}
               </Button>
               <Button size="xs" variant="ghost" onClick={onCancel}>
-                Cancel
+                {t.copilotUi.cancel}
               </Button>
             </>
           ) : (
             <Button size="xs" variant="secondary" onClick={onConfirm}>
-              Run
+              {t.copilotUi.run}
             </Button>
           )}
         </div>
