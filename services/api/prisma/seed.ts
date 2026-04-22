@@ -320,13 +320,132 @@ async function seedSuperAdmin(): Promise<void> {
   console.info(`✓ Seeded super_admin user — ${email} / ${password}`)
 }
 
+// ─── 3 Demo Users + Sites + BrandKits (W2 — docs/SPRINT-3-DISPATCH.md) ─────
+const DEMO_USERS = [
+  {
+    email: 'demo+apparel@forgely.dev',
+    name: 'Sarah Chen',
+    companyName: '青衣 Sen Apparel',
+    category: 'apparel',
+    markets: ['US', 'JP', 'DE'],
+    site: {
+      subdomain: 'sen-apparel',
+      dnaId: 'editorial_fashion',
+    },
+  },
+  {
+    email: 'demo+coffee@forgely.dev',
+    name: '王老板',
+    companyName: '青果咖啡 Qiao Coffee',
+    category: 'food',
+    markets: ['US', 'GB', 'AU'],
+    site: {
+      subdomain: 'qiao-coffee',
+      dnaId: 'kyoto_ceramic',
+    },
+  },
+  {
+    email: 'demo+beauty@forgely.dev',
+    name: 'Linda Wu',
+    companyName: 'Lumen Skincare',
+    category: 'beauty',
+    markets: ['US', 'SG', 'AE'],
+    site: {
+      subdomain: 'lumen-skincare',
+      dnaId: 'clinical_wellness',
+    },
+  },
+] as const
+
+async function seedDemoUsers(): Promise<void> {
+  const password = 'Demo!2026'
+  const hash = await argon2.hash(password, { type: argon2.argon2id })
+
+  for (const d of DEMO_USERS) {
+    const user = await prisma.user.upsert({
+      where: { email: d.email },
+      update: {
+        name: d.name,
+        passwordHash: hash,
+        emailVerifiedAt: new Date(),
+        role: 'user',
+        plan: 'starter',
+        companyName: d.companyName,
+        businessCategory: d.category,
+        targetMarkets: d.markets as unknown as object,
+        onboardedAt: new Date(),
+      },
+      create: {
+        email: d.email,
+        name: d.name,
+        passwordHash: hash,
+        emailVerifiedAt: new Date(),
+        role: 'user',
+        plan: 'starter',
+        companyName: d.companyName,
+        businessCategory: d.category,
+        targetMarkets: d.markets as unknown as object,
+        onboardedAt: new Date(),
+      },
+    })
+    await prisma.userCredits.upsert({
+      where: { userId: user.id },
+      update: { balance: 1_500, lifetimeEarned: 1_500 },
+      create: { userId: user.id, balance: 1_500, lifetimeEarned: 1_500 },
+    })
+    const site = await prisma.site.upsert({
+      where: { subdomain: d.site.subdomain },
+      update: {
+        userId: user.id,
+        name: d.companyName,
+        dnaId: d.site.dnaId,
+        status: 'published',
+        publishedAt: new Date(),
+      },
+      create: {
+        userId: user.id,
+        name: d.companyName,
+        subdomain: d.site.subdomain,
+        dnaId: d.site.dnaId,
+        status: 'published',
+        publishedAt: new Date(),
+      },
+    })
+    await prisma.brandKit.upsert({
+      where: { siteId: site.id },
+      update: {
+        name: `${d.companyName} Brand Kit`,
+      },
+      create: {
+        userId: user.id,
+        siteId: site.id,
+        name: `${d.companyName} Brand Kit`,
+        logoVariants: {} as unknown as object,
+        colors: {
+          primary: '#2D2A26',
+          accent: '#8B5A3C',
+          neutral: '#F4F0E6',
+        } as unknown as object,
+        fonts: { display: 'Fraunces', body: 'Inter' } as unknown as object,
+        voice: d.markets as unknown as object,
+        imageStyle: { dnaId: d.site.dnaId } as unknown as object,
+      },
+    })
+  }
+  console.info(`✓ Seeded ${DEMO_USERS.length} demo users + sites + brand kits`)
+  console.info(`  Login: demo+coffee@forgely.dev / ${password} (etc.)`)
+}
+
 async function main(): Promise<void> {
   console.info('▶ Seeding Forgely database…')
   await seedPlans()
   await seedCreditsPackages()
   await seedVisualDna()
   await seedSuperAdmin()
+  await seedDemoUsers()
   console.info('✔ Seed complete.')
+  console.info('  ⓘ Product/Order/Customer fixtures live in Medusa — run')
+  console.info('    pnpm --filter @forgely/medusa seed to populate those.')
 }
 
 main()

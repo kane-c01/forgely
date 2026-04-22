@@ -64,6 +64,15 @@ model User {
   /// UI 语言偏好（zh-CN / zh-HK / zh-TW / en）。
   locale            String    @default("zh-CN")
 
+  /// 完成欢迎引导（公司名/类目/市场）的时间戳；为空时中间件强制跳 /onboarding。
+  onboardedAt       DateTime?
+  /// Onboarding 填写的公司名（docs/SPRINT-3-DISPATCH.md W2）。
+  companyName       String?
+  /// 经营类目 slug — apparel / beauty / food / ...
+  businessCategory  String?
+  /// 目标市场国家码（"US","DE","JP"...） — JSON 数组。
+  targetMarkets     Json?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Icon } from '@/components/ui/icons'
 import type { Site } from '@/lib/types'
 
+import { LocaleSwitcher } from './locale-switcher'
 import { SiteSwitcher } from './site-switcher'
 
 interface TopBarProps {
@@ -48,6 +49,7 @@ export function TopBar({ currentSite, sites, credits, onMenuClick }: TopBarProps
       </button>
 
       <div className="flex items-center gap-2">
+        <LocaleSwitcher />
         <Badge tone="forge" dot className="hidden sm:inline-flex">
           {credits.toLocaleString()} credits
         </Badge>

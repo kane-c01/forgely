@@ -132,8 +132,63 @@ export const authRouter = router({
       emailVerifiedAt: ctx.user.emailVerifiedAt,
       totpEnabledAt: ctx.user.totpEnabledAt,
       createdAt: ctx.user.createdAt,
+      onboardedAt: ctx.user.onboardedAt,
+      companyName: ctx.user.companyName,
+      businessCategory: ctx.user.businessCategory,
+      targetMarkets: ctx.user.targetMarkets,
     }
   }),
+
+  /**
+   * Complete first-run onboarding.
+   *
+   * Writes `companyName / businessCategory / targetMarkets` onto the user,
+   * stamps `onboardedAt = now()` and gifts 100 credits (docs/SPRINT-3-DISPATCH.md
+   * W2 — "完成后送 100 积分"). Idempotent: if `onboardedAt` is already set
+   * we skip the gift to prevent replay.
+   */
+  completeOnboarding: protectedProcedure
+    .input(
+      z.object({
+        companyName: z.string().trim().min(1).max(120),
+        businessCategory: z.string().trim().min(1).max(60),
+        targetMarkets: z.array(z.string().length(2).toUpperCase()).min(1).max(10),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const alreadyOnboarded = ctx.user.onboardedAt != null
+      await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
+          companyName: input.companyName,
+          businessCategory: input.businessCategory,
+          targetMarkets: input.targetMarkets,
+          onboardedAt: alreadyOnboarded ? ctx.user.onboardedAt : new Date(),
+        },
+      })
+      if (!alreadyOnboarded) {
+        const { creditWallet } = await import('../credits/wallet.js')
+        await creditWallet({
+          userId: ctx.user.id,
+          amount: 100,
+          type: 'gift',
+          description: 'Welcome bonus — onboarding complete',
+          metadata: { source: 'onboarding' },
+        })
+      }
+      return { onboardedAt: new Date(), creditsGranted: alreadyOnboarded ? 0 : 100 }
+    }),
+
+  /** Persist the UI locale choice from the topbar `<LocaleSwitcher>`. */
+  updateLocale: protectedProcedure
+    .input(z.object({ locale: z.enum(['zh-CN', 'zh-HK', 'zh-TW', 'en']) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { locale: input.locale },
+      })
+      return { locale: input.locale }
+    }),
 
   // ── Sessions ────────────────────────────────────────────────────────
   /** All active sessions for the calling user. */
