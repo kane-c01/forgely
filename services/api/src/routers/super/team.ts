@@ -21,7 +21,7 @@ import { inviteTeamMemberInput, updateTeamRoleInput, userIdInput } from './_sche
 /** Synthetic tenant id for the platform-wide super team. */
 export const SUPER_TENANT_ID = 'forgely_super'
 
-interface SuperTeamRow {
+export interface SuperTeamRow {
   id: string
   email: string
   role: 'OWNER' | 'ADMIN' | 'SUPPORT'

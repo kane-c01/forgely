@@ -25,6 +25,7 @@ import { superFinanceRouter } from './finance.js'
 import { superHealthRouter } from './health.js'
 import { superMarketingRouter } from './marketing.js'
 import { superPluginsRouter } from './plugins.js'
+import { superSettingsRouter } from './settings.js'
 import { superTeamRouter } from './team.js'
 import { superUsersRouter } from './users.js'
 
@@ -36,6 +37,7 @@ export const superRouter = router({
   marketing: superMarketingRouter,
   plugins: superPluginsRouter,
   health: superHealthRouter,
+  settings: superSettingsRouter,
 })
 
 export type SuperRouter = typeof superRouter

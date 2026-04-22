@@ -41,8 +41,8 @@ export const SUPER_NAV: SuperNavItem[] = [
     label: 'Sites',
     icon: 'ST',
     shortcut: '⌘3',
-    group: 'v1',
-    status: 'soon',
+    group: 'mvp',
+    status: 'live',
     minRole: 'SUPPORT',
   },
   {
@@ -59,8 +59,8 @@ export const SUPER_NAV: SuperNavItem[] = [
     label: 'AI Ops',
     icon: 'AI',
     shortcut: '⌘5',
-    group: 'v1',
-    status: 'soon',
+    group: 'mvp',
+    status: 'live',
     minRole: 'ADMIN',
   },
   {
@@ -69,7 +69,7 @@ export const SUPER_NAV: SuperNavItem[] = [
     icon: 'CN',
     shortcut: '⌘6',
     group: 'v1',
-    status: 'soon',
+    status: 'live',
     minRole: 'ADMIN',
   },
   {
@@ -86,8 +86,8 @@ export const SUPER_NAV: SuperNavItem[] = [
     label: 'Analytics',
     icon: 'AN',
     shortcut: '⌘8',
-    group: 'v2',
-    status: 'planned',
+    group: 'v1',
+    status: 'live',
     minRole: 'ADMIN',
   },
   {
@@ -104,8 +104,8 @@ export const SUPER_NAV: SuperNavItem[] = [
     label: 'Support',
     icon: 'SP',
     shortcut: '⇧1',
-    group: 'v1',
-    status: 'soon',
+    group: 'mvp',
+    status: 'live',
     minRole: 'SUPPORT',
   },
   {
@@ -114,7 +114,7 @@ export const SUPER_NAV: SuperNavItem[] = [
     icon: 'PS',
     shortcut: '⇧2',
     group: 'v1',
-    status: 'soon',
+    status: 'live',
     minRole: 'OWNER',
   },
   {

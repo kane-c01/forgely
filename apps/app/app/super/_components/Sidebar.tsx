@@ -3,20 +3,26 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/components/super-ui'
+import { useT } from '@/lib/i18n'
 import { SUPER_NAV } from '@/lib/super'
-import type { SuperRole } from '@/lib/super'
+import type { SuperRole, SuperNavItem } from '@/lib/super'
 
-const GROUP_LABEL: Record<'mvp' | 'v1' | 'v2', string> = {
-  mvp: 'MVP',
-  v1: 'V1',
-  v2: 'V2',
+const NAV_LABEL_KEY: Record<string, string> = {
+  '/super': 'overview',
+  '/super/users': 'users',
+  '/super/sites': 'sites',
+  '/super/finance': 'finance',
+  '/super/ai-ops': 'aiOps',
+  '/super/content': 'content',
+  '/super/plugins': 'plugins',
+  '/super/analytics': 'analytics',
+  '/super/marketing': 'marketing',
+  '/super/support': 'support',
+  '/super/settings': 'settings',
+  '/super/audit': 'audit',
+  '/super/team': 'team',
+  '/super/health': 'health',
 }
-
-const STATUS_HINT = {
-  live: '',
-  soon: 'soon',
-  planned: 'planned',
-} as const
 
 function canSeeItem(role: SuperRole, minRole?: SuperRole): boolean {
   if (!minRole) return true
@@ -25,8 +31,27 @@ function canSeeItem(role: SuperRole, minRole?: SuperRole): boolean {
   return minRole === 'SUPPORT'
 }
 
+function labelFor(item: SuperNavItem, t: ReturnType<typeof useT>): string {
+  const section = NAV_LABEL_KEY[item.href]
+  if (!section) return item.label
+  const s = t.super[section as keyof typeof t.super] as { title?: string } | undefined
+  return s?.title ?? item.label
+}
+
 export function SuperSidebar({ role }: { role: SuperRole }) {
   const pathname = usePathname() ?? '/super'
+  const t = useT()
+
+  const groupLabel: Record<'mvp' | 'v1' | 'v2', string> = {
+    mvp: t.super.sidebar.groupMvp,
+    v1: t.super.sidebar.groupV1,
+    v2: t.super.sidebar.groupV2,
+  }
+  const statusHint: Record<'live' | 'soon' | 'planned', string> = {
+    live: '',
+    soon: t.super.sidebar.statusSoon,
+    planned: t.super.sidebar.statusPlanned,
+  }
 
   const grouped = (['mvp', 'v1', 'v2'] as const).map((group) => ({
     group,
@@ -34,16 +59,18 @@ export function SuperSidebar({ role }: { role: SuperRole }) {
   }))
 
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-deep md:flex">
-      <div className="flex h-14 items-center gap-2 border-b border-border-subtle px-5">
-        <div className="grid h-7 w-7 place-items-center border border-forge-ember bg-forge-orange/10 font-mono text-caption text-forge-amber">
+    <aside className="border-border-subtle bg-bg-deep hidden w-56 shrink-0 flex-col border-r md:flex">
+      <div className="border-border-subtle flex h-14 items-center gap-2 border-b px-5">
+        <div className="border-forge-ember bg-forge-orange/10 text-caption text-forge-amber grid h-7 w-7 place-items-center border font-mono">
           F
         </div>
         <div>
-          <div className="font-mono text-caption uppercase tracking-[0.2em] text-text-secondary">
-            Super
+          <div className="text-caption text-text-secondary font-mono uppercase tracking-[0.2em]">
+            {t.super.sidebar.superTitle}
           </div>
-          <div className="font-mono text-caption text-text-muted">v0.1 · MVP</div>
+          <div className="text-caption text-text-muted font-mono">
+            {t.super.sidebar.superSubtitle}
+          </div>
         </div>
       </div>
 
@@ -51,15 +78,13 @@ export function SuperSidebar({ role }: { role: SuperRole }) {
         {grouped.map(({ group, items }) =>
           items.length === 0 ? null : (
             <div key={group} className="mb-4">
-              <div className="px-5 py-2 font-mono text-caption uppercase tracking-[0.22em] text-text-muted">
-                {GROUP_LABEL[group]}
+              <div className="text-caption text-text-muted px-5 py-2 font-mono uppercase tracking-[0.22em]">
+                {groupLabel[group]}
               </div>
               <ul className="space-y-[2px] px-2">
                 {items.map((item) => {
                   const active =
-                    item.href === '/super'
-                      ? pathname === '/super'
-                      : pathname.startsWith(item.href)
+                    item.href === '/super' ? pathname === '/super' : pathname.startsWith(item.href)
                   const disabled = item.status !== 'live'
                   const rowClasses = cn(
                     'group flex items-center gap-3 px-3 py-2 transition-colors',
@@ -72,7 +97,7 @@ export function SuperSidebar({ role }: { role: SuperRole }) {
                   const iconBox = (
                     <span
                       className={cn(
-                        'grid h-6 w-6 place-items-center border font-mono text-caption tracking-tight',
+                        'text-caption grid h-6 w-6 place-items-center border font-mono tracking-tight',
                         active
                           ? 'border-forge-ember bg-forge-orange/15 text-forge-amber'
                           : 'border-border-subtle text-text-muted',
@@ -81,13 +106,15 @@ export function SuperSidebar({ role }: { role: SuperRole }) {
                       {item.icon}
                     </span>
                   )
-                  const label = <span className="flex-1 truncate text-small">{item.label}</span>
+                  const label = (
+                    <span className="text-small flex-1 truncate">{labelFor(item, t)}</span>
+                  )
                   const trailing = disabled ? (
-                    <span className="font-mono text-caption uppercase tracking-[0.16em] text-text-subtle">
-                      {STATUS_HINT[item.status]}
+                    <span className="text-caption text-text-subtle font-mono uppercase tracking-[0.16em]">
+                      {statusHint[item.status]}
                     </span>
                   ) : (
-                    <span className="font-mono text-caption text-text-subtle">{item.shortcut}</span>
+                    <span className="text-caption text-text-subtle font-mono">{item.shortcut}</span>
                   )
 
                   return (
@@ -114,8 +141,8 @@ export function SuperSidebar({ role }: { role: SuperRole }) {
         )}
       </nav>
 
-      <div className="border-t border-border-subtle px-5 py-3 font-mono text-caption uppercase tracking-[0.18em] text-text-muted">
-        ROLE · <span className="text-text-secondary">{role}</span>
+      <div className="border-border-subtle text-caption text-text-muted border-t px-5 py-3 font-mono uppercase tracking-[0.18em]">
+        {t.super.sidebar.role} · <span className="text-text-secondary">{role}</span>
       </div>
     </aside>
   )

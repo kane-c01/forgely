@@ -1,3 +1,5 @@
+import { isDemoFallbackEnabled } from './demo-mode'
+
 /**
  * Hybrid data source — try tRPC first, fall back to in-memory mocks.
  *
@@ -32,14 +34,35 @@ interface QueryLike<T> {
   error: unknown
 }
 
+function emptyLike<T>(fallback: T): T {
+  if (Array.isArray(fallback)) return [] as unknown as T
+  return fallback
+}
+
 export function selectDataSource<T>(query: QueryLike<T>, fallback: T): DataSourceResult<T> {
+  const demo = isDemoFallbackEnabled()
+
   if (!query.isError && query.data !== undefined) {
     return { data: query.data, isLoading: query.isLoading, source: 'trpc', error: null }
   }
   if (query.isError) {
+    if (!demo) {
+      return {
+        data: emptyLike(fallback),
+        isLoading: false,
+        source: 'trpc',
+        error: query.error,
+      }
+    }
     return { data: fallback, isLoading: false, source: 'mock', error: query.error }
   }
-  // Loading: show fallback immediately so the page paints fast; once
-  // tRPC resolves the data switches over.
+  if (!demo) {
+    return {
+      data: emptyLike(fallback),
+      isLoading: query.isLoading,
+      source: 'trpc',
+      error: null,
+    }
+  }
   return { data: fallback, isLoading: query.isLoading, source: 'mock', error: null }
 }

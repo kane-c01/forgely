@@ -13,8 +13,8 @@ import {
 
 import { trpc } from '@/lib/trpc'
 
-import type { CopilotMessage, CopilotPageContext, ToolCall, ToolName } from './types'
-import { fakeAssistant } from './fake-assistant'
+import type { CopilotLocale, CopilotMessage, CopilotPageContext, ToolCall, ToolName } from './types'
+import { defaultLocale, fakeAssistant } from './fake-assistant'
 
 /**
  * A tool runner is a real callback that mutates app state when a Copilot
@@ -31,10 +31,12 @@ interface CopilotState {
   context: CopilotPageContext
   messages: CopilotMessage[]
   pending: boolean
+  locale: CopilotLocale
 
   setOpen: (open: boolean) => void
   toggle: () => void
   setContext: (context: CopilotPageContext) => void
+  setLocale: (locale: CopilotLocale) => void
   send: (text: string) => Promise<void>
   confirmTool: (messageId: string, toolId: string) => void
   cancelTool: (messageId: string, toolId: string) => void
@@ -84,19 +86,50 @@ export function useRegisterCopilotTool(name: ToolName, runner: ToolRunner) {
 
 interface ProviderProps {
   children: ReactNode
+  /** Override default locale (browser default = zh-CN unless Accept-Language starts with `en`) */
+  locale?: CopilotLocale
+  /** Initial seed message override (per-surface custom intro) */
+  seedMessage?: string
+  /** Initial context (e.g. set to a super-* kind on /super layout) */
+  initialContext?: CopilotPageContext
 }
 
 let nextId = 1
 const id = (prefix: string) => `${prefix}_${nextId++}`
 
-export function CopilotProvider({ children }: ProviderProps) {
+const SEED_ZH =
+  '你好，我是 Forgely Copilot。我能帮你分析销量、改写文案、重生成主视觉视频、修改主题区块、跑合规与 SEO 审查等。随时按 ⌘J / Ctrl+J 把我唤出来。'
+const SEED_ZH_SUPER =
+  '你好，超级管理员。我能查 MRR / DAU / AI 成本、查找用户、强制退款、封禁/解封、发全员公告、冻结站点、导出对账。先问句「本月 MRR」试试。'
+const SEED_EN =
+  "Hi — I'm your Forgely Copilot. I can analyze sales, rewrite product copy, regenerate hero videos, change theme blocks, and more. Press ⌘J anywhere to summon me."
+const SEED_EN_SUPER =
+  "Hi, super-admin. I can query MRR / DAU / AI cost, look up users, force refunds, ban/unban accounts, broadcast announcements, freeze sites, and export finance reports. Try 'how is MRR this month'."
+
+export function CopilotProvider({
+  children,
+  locale: localeProp,
+  seedMessage,
+  initialContext,
+}: ProviderProps) {
   const [open, setOpen] = useState(false)
-  const [context, setContext] = useState<CopilotPageContext>({ kind: 'global' })
+  const [context, setContext] = useState<CopilotPageContext>(initialContext ?? { kind: 'global' })
+  const [locale, setLocale] = useState<CopilotLocale>(localeProp ?? defaultLocale())
+
+  useEffect(() => {
+    if (localeProp && localeProp !== locale) {
+      setLocale(localeProp)
+    }
+  }, [localeProp]) // eslint-disable-line react-hooks/exhaustive-deps
+  const isSuper = (initialContext?.kind ?? '').startsWith('super-')
+  const seedText =
+    seedMessage ??
+    (locale === 'en' ? (isSuper ? SEED_EN_SUPER : SEED_EN) : isSuper ? SEED_ZH_SUPER : SEED_ZH)
   const [messages, setMessages] = useState<CopilotMessage[]>([
     {
       id: 'm_seed',
       role: 'assistant',
-      text: "Hi — I'm your Forgely Copilot. I can analyze sales, rewrite product copy, regenerate hero videos, change theme blocks, and more. Ask me anything, or hit ⌘J anywhere to summon me.",
+      text: seedText,
       createdAt: new Date().toISOString(),
     },
   ])
@@ -162,6 +195,12 @@ export function CopilotProvider({ children }: ProviderProps) {
     }
   }, [])
 
+  // Real LLM mutation — DeepSeek > Qwen > Anthropic > Mock per region.
+  // We don't pass a callback signature into trpc here because we want
+  // to fall back to fakeAssistant on **any** failure (network, auth,
+  // missing API keys), not just on TRPCErrors.
+  const chatMutation = trpc.copilot.chat.useMutation()
+
   const send = useCallback(
     async (text: string) => {
       if (!text.trim() || pending) return
@@ -173,33 +212,73 @@ export function CopilotProvider({ children }: ProviderProps) {
       }
       setMessages((m) => [...m, userMsg])
       setPending(true)
-      // Best-effort persist the user's turn.
       void persistMessage(userMsg)
 
-      // TODO(W3): swap this for `await trpc.copilot.chat.mutateAsync({...})`
-      // once the chat endpoint lands. The fakeAssistant return shape
-      // already mirrors the planned `{ text, toolCalls }` payload.
-      await new Promise((r) => setTimeout(r, 650))
-      const reply = fakeAssistant(text.trim(), contextRef.current)
-      const assistantMsg: CopilotMessage = {
-        id: id('m'),
-        role: 'assistant',
-        text: reply.text,
-        toolCalls: reply.toolCalls?.map((c) => ({
-          ...c,
-          id: id('tc'),
-          status: 'pending' as const,
-        })),
-        createdAt: new Date().toISOString(),
+      const surface: 'user' | 'super' = contextRef.current.kind.startsWith('super-')
+        ? 'super'
+        : 'user'
+
+      // Build the rolling chat history the server expects. We send the
+      // last 12 turns (≈6 user + 6 assistant) — enough for context, not
+      // enough to blow past the model's window or the 4000-char cap.
+      const history = [...messagesRef.current, userMsg]
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-12)
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          text: m.text.slice(0, 3800),
+        }))
+
+      let assistantMsg: CopilotMessage
+
+      try {
+        const reply = await chatMutation.mutateAsync({
+          surface,
+          context: contextRef.current as unknown as Record<string, unknown>,
+          messages: history,
+          locale,
+          creditsCost: 2,
+        })
+
+        assistantMsg = {
+          id: id('m'),
+          role: 'assistant',
+          text: reply.text,
+          toolCalls: reply.toolCalls?.map((c) => ({
+            id: c.id || id('tc'),
+            name: c.name as ToolName,
+            arguments: c.arguments,
+            destructive: c.destructive,
+            estimatedCredits: c.estimatedCredits,
+            status: 'pending' as const,
+          })),
+          createdAt: new Date().toISOString(),
+        }
+      } catch {
+        // Graceful degradation: when the API is unreachable, the server
+        // is missing API keys, or credits are exhausted, fall back to
+        // the canned assistant so the UX never feels broken in dev
+        // or under partial outage.
+        await new Promise((r) => setTimeout(r, 500))
+        const fallback = fakeAssistant(text.trim(), contextRef.current, locale)
+        assistantMsg = {
+          id: id('m'),
+          role: 'assistant',
+          text: fallback.text,
+          toolCalls: fallback.toolCalls?.map((c) => ({
+            ...c,
+            id: id('tc'),
+            status: 'pending' as const,
+          })),
+          createdAt: new Date().toISOString(),
+        }
       }
+
       setMessages((m) => [...m, assistantMsg])
       setPending(false)
-      // Best-effort persist the assistant turn (charges 1 credit
-      // server-side; clamps to [1,20] there). No-op if persistence
-      // failed earlier.
       void persistMessage(assistantMsg)
     },
-    [pending, persistMessage],
+    [pending, persistMessage, locale, chatMutation],
   )
 
   const updateTool = useCallback((messageId: string, toolId: string, patch: Partial<ToolCall>) => {
@@ -261,11 +340,11 @@ export function CopilotProvider({ children }: ProviderProps) {
       {
         id: 'm_seed',
         role: 'assistant',
-        text: "Cleared. What's next?",
+        text: locale === 'en' ? "Cleared. What's next?" : '已清空，接下来想做什么？',
         createdAt: new Date().toISOString(),
       },
     ])
-  }, [])
+  }, [locale])
 
   const toggle = useCallback(() => setOpen((v) => !v), [])
 
@@ -287,16 +366,30 @@ export function CopilotProvider({ children }: ProviderProps) {
       context,
       messages,
       pending,
+      locale,
       setOpen,
       toggle,
       setContext,
+      setLocale,
       send,
       confirmTool,
       cancelTool,
       clear,
       registerTool,
     }),
-    [open, context, messages, pending, toggle, send, confirmTool, cancelTool, clear, registerTool],
+    [
+      open,
+      context,
+      messages,
+      pending,
+      locale,
+      toggle,
+      send,
+      confirmTool,
+      cancelTool,
+      clear,
+      registerTool,
+    ],
   )
 
   return <CopilotContext.Provider value={value}>{children}</CopilotContext.Provider>

@@ -164,7 +164,8 @@ export async function consumeLoginAsTicket(
       where: { id: input.ticketId },
       data: { status: 'expired' },
     })
-    throw new TRPCError({ code: 'GONE', message: 'Ticket expired.' })
+    // tRPC v10 has no GONE — TIMEOUT is the closest semantic match.
+    throw new TRPCError({ code: 'TIMEOUT', message: 'Ticket expired.' })
   }
   const target = await prisma.user.findUnique({ where: { id: ticket.targetUserId } })
   if (!target || target.deletedAt) {
@@ -176,7 +177,14 @@ export async function consumeLoginAsTicket(
   const jwt = await signJwt(
     {
       sub: target.id,
-      role: target.role as 'user' | 'super_admin' | 'system',
+      // signJwt's role union is { user, super_admin, support, admin } —
+      // map our schema 'system' role onto 'admin' for the token, since
+      // 'system' is an internal sentinel and should never be impersonated.
+      role: (target.role === 'system' ? 'admin' : target.role) as
+        | 'user'
+        | 'super_admin'
+        | 'support'
+        | 'admin',
       sid,
     },
     { expiresInSeconds: ttlSeconds },

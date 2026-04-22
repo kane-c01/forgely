@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 export interface DataTableColumn<T> {
@@ -30,17 +31,23 @@ export function DataTable<T>({
   empty,
   className,
 }: DataTableProps<T>) {
+  const t = useT()
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-border-subtle bg-bg-surface', className)}>
-      <table className="w-full text-left text-small">
-        <thead className="border-b border-border-subtle bg-bg-deep">
+    <div
+      className={cn(
+        'border-border-subtle bg-bg-surface overflow-hidden rounded-lg border',
+        className,
+      )}
+    >
+      <table className="text-small w-full text-left">
+        <thead className="border-border-subtle bg-bg-deep border-b">
           <tr>
             {columns.map((c) => (
               <th
                 key={c.key}
                 style={{ width: c.width }}
                 className={cn(
-                  'px-4 py-3 font-mono text-caption uppercase tracking-[0.12em] text-text-muted',
+                  'text-caption text-text-muted px-4 py-3 font-mono uppercase tracking-[0.12em]',
                   c.align === 'right' && 'text-right',
                   c.align === 'center' && 'text-center',
                 )}
@@ -54,9 +61,7 @@ export function DataTable<T>({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-12">
-                {empty ?? (
-                  <p className="text-center text-text-muted">No data.</p>
-                )}
+                {empty ?? <p className="text-text-muted text-center">{t.dataTable.noData}</p>}
               </td>
             </tr>
           ) : (
@@ -65,15 +70,15 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
-                  'border-b border-border-subtle/60 last:border-b-0 transition-colors',
-                  onRowClick && 'cursor-pointer hover:bg-bg-elevated/60',
+                  'border-border-subtle/60 border-b transition-colors last:border-b-0',
+                  onRowClick && 'hover:bg-bg-elevated/60 cursor-pointer',
                 )}
               >
                 {columns.map((c) => (
                   <td
                     key={c.key}
                     className={cn(
-                      'px-4 py-3 align-middle text-text-primary',
+                      'text-text-primary px-4 py-3 align-middle',
                       c.align === 'right' && 'text-right',
                       c.align === 'center' && 'text-center',
                       c.className,

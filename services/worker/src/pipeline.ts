@@ -56,13 +56,25 @@ export interface PipelineHooks {
   mockArtist?: boolean
 }
 
+/**
+ * 12 UI-facing step ids for the cinematic /generating page.
+ *
+ * The true backend work only happens in 7 of these (analyzing through
+ * deploying) — connecting / scraping / compositing / optimising are UX
+ * polish events we fire around the real work so the 12-card grid fills
+ * in linearly.
+ */
 export type PipelineStep =
+  | 'connecting'
+  | 'scraping'
   | 'analyzing'
   | 'planning'
   | 'directing'
   | 'copywriting'
   | 'generating_assets'
+  | 'compositing'
   | 'compiling'
+  | 'optimising'
   | 'deploying'
   | 'finished'
 
@@ -87,6 +99,15 @@ export async function runPipeline(
 ): Promise<PipelineResult> {
   const startedAt = Date.now()
   const tally = { credits: 0 }
+
+  // 0a. Connecting — secure handshake to the source store.
+  hooks.onStep?.('connecting', 0.02)
+  await sleep(hooks.mockArtist ? 200 : 400)
+
+  // 0b. Scraping — the data is already on `input.scraped` but we still
+  // fire a UX-level event so the 12-card grid shows the step as done.
+  hooks.onStep?.('scraping', 0.05)
+  await sleep(hooks.mockArtist ? 200 : 400)
 
   // 1. Analyze
   hooks.onStep?.('analyzing', 0.1)
@@ -126,18 +147,35 @@ export async function runPipeline(
     {
       momentId: input.selectedHeroMomentId,
       slot: 'hero',
-      product: { id: products[0]!.id, title: products[0]!.title, description: products[0]!.description, category: products[0]!.category, imageUrls: [products[0]!.imageUrl] },
+      product: {
+        id: products[0]!.id,
+        title: products[0]!.title,
+        description: products[0]!.description,
+        category: products[0]!.category,
+        imageUrls: [products[0]!.imageUrl],
+      },
     },
     ...products.slice(1, 4).map(
       (p) =>
         ({
           momentId: input.selectedHeroMomentId,
           slot: 'value_prop' as const,
-          product: { id: p.id, title: p.title, description: p.description, category: p.category, imageUrls: [p.imageUrl] },
+          product: {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            category: p.category,
+            imageUrls: [p.imageUrl],
+          },
         }) satisfies MomentSlot,
     ),
   ]
-  const director = await direct({ provider: hooks.llm, brand, dna: input.selectedDnaId as never, moments })
+  const director = await direct({
+    provider: hooks.llm,
+    brand,
+    dna: input.selectedDnaId as never,
+    moments,
+  })
   tally.credits += director.creditsUsed
   void DIRECTOR_CREDIT_PER_SCENE
 
@@ -152,7 +190,12 @@ export async function runPipeline(
   if (!hooks.mockArtist) {
     const tasks = director.scenes.map(async (scene) => {
       const result = await generateAsset(
-        { type: 'video', prompt: scene.videoPrompt, negative: scene.negative, durationSec: scene.durationSec },
+        {
+          type: 'video',
+          prompt: scene.videoPrompt,
+          negative: scene.negative,
+          durationSec: scene.durationSec,
+        },
         { region: input.region ?? 'global' },
       )
       tally.credits += ASSET_CREDIT_PER_VIDEO
@@ -173,9 +216,19 @@ export async function runPipeline(
     }
   }
 
+  // 5b. Compositing — stitch generated media into the DSL (the loop
+  // above already did the wiring; this event is UX-level).
+  hooks.onStep?.('compositing', 0.8)
+  await sleep(hooks.mockArtist ? 200 : 400)
+
   // 6. Compile DSL → Next.js project.
   hooks.onStep?.('compiling', 0.85)
   const compiled = compile({ dsl, subdomain: input.subdomain, products })
+
+  // 6b. Optimising — CDN + edge cache plumbing (done by deploy() under
+  // the hood; we surface it as a distinct UI step for clarity).
+  hooks.onStep?.('optimising', 0.9)
+  await sleep(hooks.mockArtist ? 200 : 400)
 
   // 7. Deploy to Cloudflare Pages.
   hooks.onStep?.('deploying', 0.95)
@@ -192,4 +245,8 @@ export async function runPipeline(
     totalCreditsUsed: tally.credits,
     totalDurationMs: Date.now() - startedAt,
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

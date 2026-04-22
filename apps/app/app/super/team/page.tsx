@@ -2,10 +2,11 @@ import { SectionCard, SuperButton } from '@/components/super-ui'
 import { getSuperSession, getTeamMembers } from '@/lib/super'
 import type { SuperRole } from '@/lib/super'
 
+import { I18nHeader, RestrictedBanner } from '../_components/I18nHeader'
 import { TeamClient } from './_components/TeamClient'
 
 export const metadata = {
-  title: 'Team · Forgely Command',
+  title: 'Forgely Command · Team',
 }
 
 const ROLE_DESC: Record<SuperRole, string> = {
@@ -17,19 +18,7 @@ const ROLE_DESC: Record<SuperRole, string> = {
 export default async function SuperTeamPage() {
   const session = await getSuperSession()
   if (session.role !== 'OWNER') {
-    return (
-      <div className="grid h-[60vh] place-items-center text-center">
-        <div>
-          <div className="text-caption text-error font-mono uppercase tracking-[0.22em]">
-            Restricted
-          </div>
-          <p className="text-small text-text-muted mt-2 max-w-md">
-            Team management is owner-only. Your current role is{' '}
-            <span className="text-text-secondary font-mono">{session.role}</span>.
-          </p>
-        </div>
-      </div>
-    )
+    return <RestrictedBanner role={session.role} level="owner" />
   }
 
   const members = getTeamMembers()
@@ -45,18 +34,7 @@ export default async function SuperTeamPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-caption text-text-muted font-mono uppercase tracking-[0.22em]">
-            Internal
-          </div>
-          <h1 className="font-display text-h2 text-text-primary">Team</h1>
-        </div>
-        <p className="text-small text-text-muted max-w-md">
-          Three-tier role model from docs/MASTER.md §20.2. Promotions and removals are recorded in
-          the audit log.
-        </p>
-      </header>
+      <I18nHeader section="team" />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <RoleStat label="OWNER" count={counts.OWNER} accent="forge" desc={ROLE_DESC.OWNER} />

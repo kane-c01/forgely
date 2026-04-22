@@ -1,8 +1,7 @@
 /**
  * Forgely Deployer — uploads a compiled tenant project to Cloudflare Pages.
  *
- * Source: docs/MASTER.md §13, §21, §29 (CN pivot keeps Cloudflare for
- * generated stores because the audience is overseas).
+ * Source: docs/MASTER.md §13, §21, §29 + docs/PIVOT-CN.md §6.2–§6.4
  *
  * Two-stage:
  *   1. `prepare()` — write the compiled file map to a temp dir, install
@@ -21,29 +20,38 @@ import { dirname, join } from 'node:path'
 
 import type { CompiledProject } from '@forgely/dsl'
 
+// ─────────────────────────────────────────────────────────────────────────
+//  Hosting region config (PIVOT-CN §6.3)
+// ─────────────────────────────────────────────────────────────────────────
+
+export type HostingRegion = 'auto' | 'us' | 'eu' | 'apac'
+
+const REGION_PLACEMENT: Record<
+  Exclude<HostingRegion, 'auto'>,
+  { hint: string; r2Jurisdiction: string }
+> = {
+  us: { hint: 'wnam', r2Jurisdiction: 'us' },
+  eu: { hint: 'weur', r2Jurisdiction: 'eu' },
+  apac: { hint: 'apac', r2Jurisdiction: 'apac' },
+}
+
 export interface DeployOptions {
-  /** Cloudflare account id. */
   accountId: string
-  /** Cloudflare API token with Pages:Edit scope. */
   apiToken: string
-  /** Cloudflare Pages project name (auto-created if missing). */
   projectName: string
-  /** Target subdomain `.forgely.app` — used for branch + DNS. */
   subdomain: string
-  /** Optional custom apex / subdomain owned by the user. */
   customDomain?: string
-  /** Region label for telemetry. */
-  region?: 'cn-built' | 'global-built'
+  hostingRegion?: HostingRegion
 }
 
 export interface DeployResult {
   url: string
   customDomainStatus?: 'pending' | 'active' | 'unsupported'
   cloudflareDeploymentId: string
+  hostingRegion: HostingRegion
   durationMs: number
 }
 
-/** Materialise a CompiledProject onto a tmp dir. */
 export function materialise(project: CompiledProject): string {
   const dir = mkdtempSync(join(tmpdir(), `forgely-${project.subdomain}-`))
   for (const [rel, content] of project.files.entries()) {
@@ -54,10 +62,13 @@ export function materialise(project: CompiledProject): string {
   return dir
 }
 
-/** Create or update a Cloudflare Pages project (REST). */
 async function ensureProject(opts: DeployOptions): Promise<void> {
   const url = `https://api.cloudflare.com/client/v4/accounts/${opts.accountId}/pages/projects`
-  const payload = {
+
+  const region = opts.hostingRegion ?? 'auto'
+  const placement = region !== 'auto' ? REGION_PLACEMENT[region] : undefined
+
+  const payload: Record<string, unknown> = {
     name: opts.projectName,
     production_branch: 'main',
     build_config: {
@@ -66,6 +77,13 @@ async function ensureProject(opts: DeployOptions): Promise<void> {
       root_dir: '/',
     },
   }
+
+  if (placement) {
+    payload.deployment_configs = {
+      production: { placement: { mode: 'smart', hint: placement.hint } },
+    }
+  }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -74,25 +92,18 @@ async function ensureProject(opts: DeployOptions): Promise<void> {
     },
     body: JSON.stringify(payload),
   })
-  // 409 = project exists, 200 = created — both are fine.
   if (res.status !== 200 && res.status !== 409) {
     const text = await res.text()
     throw new Error(`Cloudflare project create failed: HTTP ${res.status} ${text}`)
   }
 }
 
-/** Upload built artefacts via the direct-upload API. */
 async function uploadArtefact(opts: DeployOptions, _projectDir: string): Promise<string> {
-  // Production: tar.gz the project dir and POST to:
-  //   POST /accounts/:account_id/pages/projects/:project_name/deployments
-  // For the MVP scaffold we emit the request and return a synthetic id —
-  // the real upload step is done by the Forgely worker that has access
-  // to the build container.
   const url = `https://api.cloudflare.com/client/v4/accounts/${opts.accountId}/pages/projects/${opts.projectName}/deployments`
   const res = await fetch(url, {
     method: 'POST',
     headers: { authorization: `Bearer ${opts.apiToken}` },
-    body: new FormData(), // populated from project_dir in production
+    body: new FormData(),
   })
   if (!res.ok) {
     throw new Error(`Cloudflare deploy failed: HTTP ${res.status}`)
@@ -101,12 +112,12 @@ async function uploadArtefact(opts: DeployOptions, _projectDir: string): Promise
   return json.result?.id ?? `deployment_${Date.now()}`
 }
 
-/** Top-level deploy: prepare → ensureProject → upload → return URL. */
 export async function deploy(
   project: CompiledProject,
   options: DeployOptions,
 ): Promise<DeployResult> {
   const startedAt = Date.now()
+  const region = options.hostingRegion ?? 'auto'
   const dir = materialise(project)
   await ensureProject(options)
   const deploymentId = await uploadArtefact(options, dir)
@@ -116,19 +127,138 @@ export async function deploy(
       : `https://${options.subdomain}.forgely.app`,
     customDomainStatus: options.customDomain ? 'pending' : undefined,
     cloudflareDeploymentId: deploymentId,
+    hostingRegion: region,
     durationMs: Date.now() - startedAt,
   }
 }
 
-/**
- * One-shot helper used by the worker pipeline:
- *   compile DSL → upload to Cloudflare → return final URL.
- */
 export async function compileAndDeploy(
   project: CompiledProject,
   options: DeployOptions,
 ): Promise<DeployResult> {
   return deploy(project, options)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Custom domain management (PIVOT-CN §6.4)
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface CustomDomainSetupOptions {
+  accountId: string
+  apiToken: string
+  /** The Cloudflare zone id that hosts *.forgely.app. */
+  zoneId: string
+  domain: string
+  siteSubdomain: string
+}
+
+export interface CustomDomainStatus {
+  domain: string
+  cnameTarget: string
+  dnsVerified: boolean
+  sslStatus: 'pending' | 'active' | 'failed' | 'unknown'
+  cfCustomHostnameId?: string
+}
+
+/**
+ * Register a custom domain via Cloudflare for SaaS (Custom Hostnames API).
+ * The user must point their domain's CNAME to `{subdomain}.forgely.app`.
+ */
+export async function registerCustomDomain(
+  opts: CustomDomainSetupOptions,
+): Promise<CustomDomainStatus> {
+  const cnameTarget = `${opts.siteSubdomain}.forgely.app`
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${opts.zoneId}/custom_hostnames`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${opts.apiToken}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        hostname: opts.domain,
+        ssl: {
+          method: 'http',
+          type: 'dv',
+          settings: { min_tls_version: '1.2' },
+        },
+      }),
+    },
+  )
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Custom hostname registration failed: HTTP ${res.status} ${text}`)
+  }
+
+  const json = (await res.json()) as {
+    result?: { id?: string; ssl?: { status?: string } }
+  }
+
+  return {
+    domain: opts.domain,
+    cnameTarget,
+    dnsVerified: false,
+    sslStatus: (json.result?.ssl?.status as CustomDomainStatus['sslStatus']) ?? 'pending',
+    cfCustomHostnameId: json.result?.id,
+  }
+}
+
+/**
+ * Check the verification + SSL status of a previously registered custom domain.
+ */
+export async function verifyCustomDomain(opts: {
+  apiToken: string
+  zoneId: string
+  cfCustomHostnameId: string
+}): Promise<{ dnsVerified: boolean; sslStatus: string; ownershipVerified: boolean }> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${opts.zoneId}/custom_hostnames/${opts.cfCustomHostnameId}`,
+    {
+      headers: { authorization: `Bearer ${opts.apiToken}` },
+    },
+  )
+
+  if (!res.ok) {
+    return { dnsVerified: false, sslStatus: 'unknown', ownershipVerified: false }
+  }
+
+  const json = (await res.json()) as {
+    result?: {
+      status?: string
+      ssl?: { status?: string }
+      ownership_verification?: { type?: string }
+    }
+  }
+
+  const status = json.result?.status ?? 'pending'
+  return {
+    dnsVerified: status === 'active' || status === 'pending_deployment',
+    sslStatus: json.result?.ssl?.status ?? 'pending',
+    ownershipVerified: status === 'active',
+  }
+}
+
+/**
+ * Remove a custom domain binding (user unbinds or admin removes).
+ */
+export async function removeCustomDomain(opts: {
+  apiToken: string
+  zoneId: string
+  cfCustomHostnameId: string
+}): Promise<void> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${opts.zoneId}/custom_hostnames/${opts.cfCustomHostnameId}`,
+    {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${opts.apiToken}` },
+    },
+  )
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Custom hostname removal failed: HTTP ${res.status}`)
+  }
 }
 
 export type { CompiledProject } from '@forgely/dsl'

@@ -107,20 +107,21 @@ interface PaymentProvider {
 | 图像 | Flux 1.1 Pro + Ideogram 3.0 | 通义万相 / Recraft / Flux（保留） |
 | 3D | Meshy + Tripo | Meshy（保留） + Vega3D |
 
-## 6. 部署 / CDN / 存储 — **两层不同**
+## 6. 部署 / CDN / 存储
 
-### 6.1 Forgely 平台基础设施（B 端付费用户在国内访问）
+### 6.1 Forgely 平台基础设施（含超管后台）
 
-| 层 | 实现 |
-|---|---|
-| 前端托管（forgely.cn / app.forgely.cn） | **Vercel 中国节点 + EdgeOne**（腾讯云 CDN，备 ICP）/ 阿里云 OSS+CDN |
-| Workers / Edge | 腾讯云 SCF / 阿里云 FC |
-| 对象存储（用户上传素材） | **阿里云 OSS**（国内访问快） |
-| Redis | 阿里云 Redis 标准版 |
-| Postgres | **阿里云 PolarDB-PG** |
-| 邮件（B 端通知） | 阿里云邮件推送 + 短信 OTP |
-| 监控 | Sentry + 神策 |
-| ICP 备案 | forgely.cn 平台域名必备 |
+> **决策变更（2026-04-19）**：超管后台（/super）**不需要**境内服务器，与用户独立站共用海外基础设施。仅 B 端用户面向的 forgely.cn 官网 / app.forgely.cn 后台走国内节点。
+
+| 层 | B 端用户入口（forgely.cn / app.forgely.cn） | 超管后台（/super） |
+|---|---|---|
+| 前端托管 | **Vercel 中国节点 + EdgeOne**（腾讯云 CDN，备 ICP）/ 阿里云 OSS+CDN | **Cloudflare Pages / Vercel 全球节点**（不需要境内部署） |
+| Workers / Edge | 腾讯云 SCF / 阿里云 FC | **Cloudflare Workers** |
+| 对象存储 | **阿里云 OSS**（国内访问快） | **Cloudflare R2** |
+| Redis | 阿里云 Redis 标准版 | 共享（通过 API 访问） |
+| Postgres | **阿里云 PolarDB-PG** | 共享（通过 API 访问） |
+| ICP 备案 | forgely.cn 平台域名必备 | **不需要** |
+| 监控 | Sentry + 神策 | Sentry |
 
 ### 6.2 用户独立站基础设施（站点给海外消费者访问）
 
@@ -129,9 +130,47 @@ interface PaymentProvider {
 | 前端托管 | **Cloudflare Pages**（保留 v1.2 决策，全球 200+ 节点） |
 | Workers / Edge | **Cloudflare Workers** |
 | 对象存储 | **Cloudflare R2**（同区域低延迟） |
-| 域名 | `*.forgely.app` 通配符 + 用户绑定自定义海外域名 |
+| 域名 | `*.forgely.app` 通配符 + 用户绑定自定义域名（见 §6.4） |
 | 监控 | Sentry + Plausible（GDPR 友好） |
 | ICP 备案 | **不需要**（站点不在中国，托管在 Cloudflare）|
+
+### 6.3 站点托管区域选择（付费增值服务）
+
+> **决策（2026-04-19）**：用户可以把整个站点托管到 Forgely 平台，并额外付费选择海外服务器区域。
+
+用户创建站点时默认使用 **Cloudflare 自动路由**（全球就近节点），如需指定区域可付费选择：
+
+| 区域 | 标识 | 主要覆盖 | 增值费用 |
+|---|---|---|---|
+| 自动（默认） | `auto` | Cloudflare 全球 200+ 节点自动路由 | **免费**（含在订阅内） |
+| 北美 | `us` | US West / US East / Canada | **¥49/月** per site |
+| 欧洲 | `eu` | Frankfurt / London / Amsterdam | **¥49/月** per site |
+| 亚太 | `apac` | Tokyo / Singapore / Sydney | **¥49/月** per site |
+
+**技术实现**：
+- Cloudflare Pages 本身就是全球分发，区域选择影响的是 **Workers 计算节点** 和 **R2 存储桶位置**
+- 选定区域后，Workers 优先在该区域执行 SSR，R2 存储桶在该区域创建
+- `Site.hostingRegion` 字段记录选择；`SiteHostingAddon` 追踪付费状态
+
+### 6.4 自定义域名关联
+
+> **决策（2026-04-19）**：用户需要自行注册域名，Forgely 后台提供一键关联和 SSL 自动签发。
+
+**用户流程**：
+1. 用户在 Forgely 后台「站点设置 → 域名」页面填入自定义域名（如 `www.mybrand.com`）
+2. Forgely 后台生成一条 CNAME 记录指引：`www.mybrand.com → CNAME → {siteId}.forgely.app`
+3. 用户去自己的域名注册商配置该 CNAME 记录
+4. Forgely 后台轮询验证 DNS 是否生效（每 30s 检测一次，最长等 24h）
+5. 验证通过后，自动通过 Cloudflare 签发 SSL 证书（免费，使用 Cloudflare for SaaS）
+6. 域名状态变为 `active`，用户的自定义域名正式启用
+
+**后台管理**：超管可以在 `/super/sites` 直接为用户关联域名，跳过用户自助流程。
+
+**技术实现**：
+- `SiteCustomDomain` 模型追踪域名验证状态和 SSL 证书信息
+- Cloudflare for SaaS（原 SSL for SaaS）实现自定义域名 + 自动 SSL
+- DNS 验证通过 `dns.resolve` + Cloudflare API 双重检查
+- 每个站点最多绑定 **1 个自定义域名**（Agency/Enterprise 可绑多个）
 
 ## 7. 爬虫源站（**核心场景：中国老板抓自己/竞品的源 SKU 重建海外独立站**）
 
@@ -219,6 +258,8 @@ W5 已经启动 i18n 框架（`apps/web/i18n/` + `[locale]` 路由 + locale-swit
 | 积分包 Standard | $20/2,800 | **¥149/2,800** |
 | 一次性服务 Code Export | $499 | **¥2,999** |
 | 一次性服务 DFY Launch | $1,999 | **¥12,800** |
+| **托管增值：指定区域** | — | **¥49/月** per site（选 US/EU/APAC 专属区域） |
+| **托管增值：自定义域名** | — | **免费**（需自行注册域名；Agency 以上含多域名绑定） |
 
 **注**：定价是 Forgely 平台对**中国 B 端用户**收的钱（用微信支付/支付宝结算）。**用户独立站对海外 C 端消费者收的钱**（USD/EUR）走 Stripe Connect，平台可选抽成 0%/1%（订阅版）或更高（白牌）。
 

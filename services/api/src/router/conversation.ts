@@ -44,8 +44,14 @@ const AnswerSchema = z.union([
   z.object({ kind: z.literal('confirm'), confirmed: z.boolean() }),
 ])
 
-/** Persist conversation state in `AiConversation` table. */
-async function loadCtx(conversationId: string): Promise<{ ctx: ConversationContext; userId: string; siteId: string | null }> {
+async function getUserLocale(userId: string): Promise<'zh-CN' | 'en'> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { locale: true } })
+  return user?.locale === 'en' ? 'en' : 'zh-CN'
+}
+
+async function loadCtx(
+  conversationId: string,
+): Promise<{ ctx: ConversationContext; userId: string; siteId: string | null }> {
   const row = await prisma.aiConversation.findUnique({ where: { id: conversationId } })
   if (!row) throw errors.notFound('conversation')
   return {
@@ -65,10 +71,11 @@ async function saveCtx(conversationId: string, ctx: ConversationContext): Promis
 export const conversationRouter = router({
   /** Start a new generation conversation. */
   start: publicProcedure
-    .input(z.object({ siteId: z.string().optional() }))
+    .input(z.object({ siteId: z.string().optional(), locale: z.enum(['zh-CN', 'en']).optional() }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user?.id) throw errors.unauthorized()
       const userId = ctx.user.id
+      const userLocale = input.locale ?? (await getUserLocale(userId))
       const conv = await prisma.aiConversation.create({
         data: {
           userId,
@@ -77,10 +84,13 @@ export const conversationRouter = router({
           messages: [] as unknown as object,
         },
       })
-      // 自动生成首轮（"choose path"）
       const turn = await nextAssistantTurn(startConversation(), {
         provider: resolveProvider(),
-        scripted: !process.env.DEEPSEEK_API_KEY && !process.env.DASHSCOPE_API_KEY && !process.env.ANTHROPIC_API_KEY,
+        scripted:
+          !process.env.DEEPSEEK_API_KEY &&
+          !process.env.DASHSCOPE_API_KEY &&
+          !process.env.ANTHROPIC_API_KEY,
+        locale: userLocale,
       })
       const updated: ConversationContext = {
         ...startConversation(),
@@ -102,10 +112,15 @@ export const conversationRouter = router({
   nextTurn: publicProcedure
     .input(z.object({ conversationId: z.string() }))
     .query(async ({ input }) => {
-      const { ctx } = await loadCtx(input.conversationId)
+      const { ctx, userId } = await loadCtx(input.conversationId)
+      const userLocale = await getUserLocale(userId)
       const turn = await nextAssistantTurn(ctx, {
         provider: resolveProvider(),
-        scripted: !process.env.DEEPSEEK_API_KEY && !process.env.DASHSCOPE_API_KEY && !process.env.ANTHROPIC_API_KEY,
+        scripted:
+          !process.env.DEEPSEEK_API_KEY &&
+          !process.env.DASHSCOPE_API_KEY &&
+          !process.env.ANTHROPIC_API_KEY,
+        locale: userLocale,
       })
       return turn
     }),
@@ -119,38 +134,50 @@ export const conversationRouter = router({
         rawText: z.string().min(1).max(2000),
       }),
     )
-    .mutation(async ({ input }): Promise<{ context: ConversationContext; nextTurn: AssistantTurn }> => {
-      const { ctx } = await loadCtx(input.conversationId)
-      // We need the *previous* assistant turn to know what stage to apply to.
-      const lastAssistant = [...ctx.messages].reverse().find((m) => m.role === 'assistant')
-      if (!lastAssistant) throw new ForgelyError('VALIDATION_ERROR', '会话还没开始。', 400, { field: 'lastAssistant' })
-      const inferredTurn: AssistantTurn = {
-        stage: ctx.stage,
-        message: lastAssistant.content,
-        reasoning: lastAssistant.reasoning ?? '',
-        expects: { kind: 'text' },
-      }
-      const updated = ingestUser(ctx, inferredTurn, input.answer as UserAnswer, input.rawText)
-      const nextTurn = await nextAssistantTurn(updated, {
-        provider: resolveProvider(),
-        scripted: !process.env.DEEPSEEK_API_KEY && !process.env.DASHSCOPE_API_KEY && !process.env.ANTHROPIC_API_KEY,
-      })
-      const updatedWithAssistant: ConversationContext = {
-        ...updated,
-        stage: nextTurn.stage,
-        messages: [
-          ...updated.messages,
-          {
-            role: 'assistant',
-            content: nextTurn.message,
-            reasoning: nextTurn.reasoning,
-            createdAt: new Date().toISOString(),
-          },
-        ],
-      }
-      await saveCtx(input.conversationId, updatedWithAssistant)
-      return { context: updatedWithAssistant, nextTurn }
-    }),
+    .mutation(
+      async ({ input }): Promise<{ context: ConversationContext; nextTurn: AssistantTurn }> => {
+        const { ctx, userId } = await loadCtx(input.conversationId)
+        const userLocale = await getUserLocale(userId)
+        const lastAssistant = [...ctx.messages].reverse().find((m) => m.role === 'assistant')
+        if (!lastAssistant)
+          throw new ForgelyError(
+            'VALIDATION_ERROR',
+            userLocale === 'en' ? 'Conversation not started.' : '会话还没开始。',
+            400,
+            { field: 'lastAssistant' },
+          )
+        const inferredTurn: AssistantTurn = {
+          stage: ctx.stage,
+          message: lastAssistant.content,
+          reasoning: lastAssistant.reasoning ?? '',
+          expects: { kind: 'text' },
+        }
+        const updated = ingestUser(ctx, inferredTurn, input.answer as UserAnswer, input.rawText)
+        const nextTurn = await nextAssistantTurn(updated, {
+          provider: resolveProvider(),
+          scripted:
+            !process.env.DEEPSEEK_API_KEY &&
+            !process.env.DASHSCOPE_API_KEY &&
+            !process.env.ANTHROPIC_API_KEY,
+          locale: userLocale,
+        })
+        const updatedWithAssistant: ConversationContext = {
+          ...updated,
+          stage: nextTurn.stage,
+          messages: [
+            ...updated.messages,
+            {
+              role: 'assistant',
+              content: nextTurn.message,
+              reasoning: nextTurn.reasoning,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }
+        await saveCtx(input.conversationId, updatedWithAssistant)
+        return { context: updatedWithAssistant, nextTurn }
+      },
+    ),
 
   /** Commit the conversation — kicks the runPipeline job. */
   commit: publicProcedure
@@ -167,9 +194,17 @@ export const conversationRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const { ctx } = await loadCtx(input.conversationId)
+      const { ctx, userId } = await loadCtx(input.conversationId)
       if (!isReadyToGenerate(ctx)) {
-        throw new ForgelyError('VALIDATION_ERROR', '请先完成所有步骤再生成。', 400, { field: 'conversation' })
+        const uLocale = await getUserLocale(userId)
+        throw new ForgelyError(
+          'VALIDATION_ERROR',
+          uLocale === 'en'
+            ? 'Please complete all steps before generating.'
+            : '请先完成所有步骤再生成。',
+          400,
+          { field: 'conversation' },
+        )
       }
       const pipelineInput = toPipelineInput(ctx, {
         siteId: input.siteId,
@@ -210,12 +245,10 @@ export const conversationRouter = router({
     }),
 
   /** Read the full conversation transcript (for replay / sharing). */
-  get: publicProcedure
-    .input(z.object({ conversationId: z.string() }))
-    .query(async ({ input }) => {
-      const { ctx, userId, siteId } = await loadCtx(input.conversationId)
-      return { context: ctx, userId, siteId }
-    }),
+  get: publicProcedure.input(z.object({ conversationId: z.string() })).query(async ({ input }) => {
+    const { ctx, userId, siteId } = await loadCtx(input.conversationId)
+    return { context: ctx, userId, siteId }
+  }),
 })
 
 export type ConversationRouter = typeof conversationRouter

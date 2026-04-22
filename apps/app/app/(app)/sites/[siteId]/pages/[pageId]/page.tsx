@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, Input, Textarea } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { getCmsPage, type CmsStatus } from '@/lib/cms-mocks'
 import { formatDateTime } from '@/lib/format'
 
@@ -22,6 +23,7 @@ const STATUS_TONE = {
 } as const
 
 export default function PageEditorPage({ params }: { params: { siteId: string; pageId: string } }) {
+  const t = useT()
   const initial = getCmsPage(params.pageId)
   useCopilotContext({ kind: 'global' })
   const copilot = useCopilot()
@@ -37,7 +39,6 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
   if (!initial) return notFound()
 
   const onSave = () => {
-    // Mock save — once trpc.cms.update lands, replace with mutateAsync.
     setSavedAt(new Date().toISOString())
     setDirty(false)
   }
@@ -47,11 +48,17 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
     void copilot.send(prompt)
   }
 
+  const statusLabel = {
+    draft: t.pageDetail.draft,
+    published: t.pageDetail.published,
+    archived: t.pageDetail.archived,
+  }
+
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       <div className="text-caption text-text-muted flex items-center gap-2 font-mono">
         <Link href={`/sites/${params.siteId}/pages`} className="hover:text-text-primary">
-          Pages
+          {t.pageDetail.breadcrumb}
         </Link>
         <Icon.ChevronRight size={12} />
         <span className="text-text-secondary">{initial.title}</span>
@@ -59,20 +66,20 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
 
       <PageHeader
         eyebrow={`/${slug.replace(/^\//, '')}`}
-        title={title || '(untitled page)'}
+        title={title || t.pageDetail.untitled}
         meta={
           <>
             <Badge tone={STATUS_TONE[status]} dot={status !== 'archived'}>
-              {status}
+              {statusLabel[status]}
             </Badge>
             <span>·</span>
-            <span>last saved</span>
+            <span>{t.pageDetail.lastSaved}</span>
             <span className="text-text-secondary">{savedAt ? formatDateTime(savedAt) : '—'}</span>
             {dirty ? (
               <>
                 <span>·</span>
                 <Badge tone="warning" dot>
-                  unsaved
+                  {t.pageDetail.unsaved}
                 </Badge>
               </>
             ) : null}
@@ -81,13 +88,13 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Eye size={14} /> Preview
+              <Icon.Eye size={14} /> {t.pageDetail.preview}
             </Button>
             <Button variant="secondary" onClick={onSave} disabled={!dirty}>
-              <Icon.Check size={14} /> Save draft
+              <Icon.Check size={14} /> {t.pageDetail.saveDraft}
             </Button>
             <Button>
-              <Icon.Sparkle size={14} /> Publish
+              <Icon.Sparkle size={14} /> {t.pageDetail.publish}
             </Button>
           </>
         }
@@ -98,13 +105,13 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Page body</CardTitle>
+              <CardTitle>{t.pageDetail.pageBody}</CardTitle>
               <Button
                 size="xs"
                 variant="ghost"
                 onClick={() => askCopilot(`Rewrite this page in a warmer voice: ${title}`)}
               >
-                <Icon.Sparkle size={12} /> Rewrite with AI
+                <Icon.Sparkle size={12} /> {t.pageDetail.rewriteWithAi}
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -114,7 +121,7 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
                   setBody(html)
                   setDirty(true)
                 }}
-                placeholder="Start writing the page body…"
+                placeholder={t.pageDetail.bodyPlaceholder}
                 className="rounded-none border-0"
               />
             </CardContent>
@@ -125,10 +132,10 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Meta</CardTitle>
+              <CardTitle>{t.pageDetail.meta}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <Field label="Title" required>
+              <Field label={t.pageDetail.titleLabel} required>
                 <Input
                   value={title}
                   onChange={(e) => {
@@ -137,7 +144,7 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
                   }}
                 />
               </Field>
-              <Field label="Slug" hint="Used in the URL.">
+              <Field label={t.pageDetail.slug} hint={t.pageDetail.slugHint}>
                 <Input
                   value={slug}
                   onChange={(e) => {
@@ -146,7 +153,7 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
                   }}
                 />
               </Field>
-              <Field label="Status">
+              <Field label={t.pageDetail.status}>
                 <select
                   value={status}
                   onChange={(e) => {
@@ -155,9 +162,9 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
                   }}
                   className="border-border-strong bg-bg-deep text-small text-text-primary focus:border-forge-orange/60 h-9 w-full rounded-md border px-3 focus:outline-none"
                 >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
+                  <option value="draft">{t.pageDetail.draft}</option>
+                  <option value="published">{t.pageDetail.published}</option>
+                  <option value="archived">{t.pageDetail.archived}</option>
                 </select>
               </Field>
             </CardContent>
@@ -165,13 +172,13 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
 
           <Card>
             <CardHeader>
-              <CardTitle>SEO</CardTitle>
+              <CardTitle>{t.pageDetail.seo}</CardTitle>
               <Badge tone="info" className="!text-[10px]">
-                auto
+                {t.pageDetail.auto}
               </Badge>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <Field label="Meta description" hint="120-160 characters works best.">
+              <Field label={t.pageDetail.metaDescription} hint={t.pageDetail.metaDescriptionHint}>
                 <Textarea
                   value={description}
                   onChange={(e) => {
@@ -188,21 +195,22 @@ export default function PageEditorPage({ params }: { params: { siteId: string; p
                   askCopilot(`Suggest SEO meta title + description for this page: ${title}`)
                 }
               >
-                <Icon.Sparkle size={12} /> Generate w/ AI
+                <Icon.Sparkle size={12} /> {t.pageDetail.generateWithAi}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Activity</CardTitle>
+              <CardTitle>{t.pageDetail.activity}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-small text-text-secondary">
-                Authored by <strong className="text-text-primary">{initial.author}</strong>
+                {t.pageDetail.authoredBy}{' '}
+                <strong className="text-text-primary">{initial.author}</strong>
               </p>
               <p className="text-caption text-text-muted mt-1 font-mono">
-                Created {formatDateTime(initial.updatedAt)}
+                {t.pageDetail.created} {formatDateTime(initial.updatedAt)}
               </p>
             </CardContent>
           </Card>

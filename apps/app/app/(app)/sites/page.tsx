@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 import { useCopilotContext } from '@/components/copilot/copilot-provider'
+import { useT } from '@/lib/i18n'
 import { PageHeader } from '@/components/shell/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,7 @@ function adaptTrpcSite(row: ApiSiteRow): Site {
 
 export default function SitesIndex() {
   useCopilotContext({ kind: 'global' })
+  const t = useT()
 
   const query = trpc.sites.list.useQuery({ limit: 50 }, { retry: false })
 
@@ -87,21 +89,21 @@ export default function SitesIndex() {
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       <PageHeader
-        eyebrow="Workspace"
-        title="Sites"
-        description="Each site is a fully forged, independently hosted brand store. Pro plans support up to 5 sites."
+        eyebrow={t.sites.eyebrow}
+        title={t.sites.title}
+        description={t.sites.description}
         meta={
           ds.source === 'mock' ? (
-            <Badge tone="outline">demo data — sign in to see your sites</Badge>
+            <Badge tone="outline">{t.sites.demoData}</Badge>
           ) : (
             <Badge tone="success" dot>
-              live data
+              {t.sites.liveData}
             </Badge>
           )
         }
         actions={
           <Button>
-            <Icon.Plus size={14} /> Forge a new site
+            <Icon.Plus size={14} /> {t.sites.forgeNew}
           </Button>
         }
       />
@@ -128,19 +130,19 @@ export default function SitesIndex() {
               </div>
               <div className="text-small grid grid-cols-3 gap-2">
                 <div>
-                  <p className="text-caption text-text-muted font-mono">Revenue 30d</p>
+                  <p className="text-caption text-text-muted font-mono">{t.sites.revenue30d}</p>
                   <p className="font-display text-text-primary tabular-nums">
                     {formatCurrency(s.metrics.revenue30d)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-caption text-text-muted font-mono">Orders</p>
+                  <p className="text-caption text-text-muted font-mono">{t.sites.ordersLabel}</p>
                   <p className="font-display text-text-primary tabular-nums">
                     {formatNumber(s.metrics.orders30d)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-caption text-text-muted font-mono">Visitors</p>
+                  <p className="text-caption text-text-muted font-mono">{t.sites.visitors}</p>
                   <p className="font-display text-text-primary tabular-nums">
                     {formatNumber(s.metrics.visitors30d)}
                   </p>
@@ -148,8 +150,8 @@ export default function SitesIndex() {
               </div>
               <p className="text-caption text-text-muted font-mono">
                 {s.publishedAt
-                  ? `Published ${relativeTime(s.publishedAt)}`
-                  : 'Building — not yet published'}
+                  ? `${t.sites.published} ${relativeTime(s.publishedAt)}`
+                  : t.sites.building}
               </p>
             </div>
           </Link>
@@ -160,7 +162,9 @@ export default function SitesIndex() {
           className="border-border-strong bg-bg-deep text-text-muted hover:border-forge-orange/40 hover:text-forge-amber flex aspect-[1] min-h-[280px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed transition-colors"
         >
           <Icon.Plus size={28} />
-          <span className="text-caption font-mono uppercase tracking-[0.18em]">Forge new site</span>
+          <span className="text-caption font-mono uppercase tracking-[0.18em]">
+            {t.sites.forgeNew}
+          </span>
         </button>
       </div>
     </div>

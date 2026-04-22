@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 
 import { Icon } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 import { defaultSite } from '@/lib/mocks'
 
@@ -31,6 +32,7 @@ interface SidebarNavProps {
  */
 export function SidebarNav({ siteId: siteIdProp, mobileOpen, onMobileClose }: SidebarNavProps) {
   const pathname = usePathname()
+  const t = useT()
   const inferred = pathname.match(/^\/sites\/([^/]+)/)?.[1]
   const siteId = siteIdProp ?? inferred ?? defaultSite.id
 
@@ -85,9 +87,9 @@ export function SidebarNav({ siteId: siteIdProp, mobileOpen, onMobileClose }: Si
 
         <nav className="flex-1 overflow-y-auto py-3">
           {navGroups.map((group) => (
-            <div key={group.label} className="mb-2">
+            <div key={group.labelKey} className="mb-2">
               <p className="text-text-subtle px-4 pb-1 pt-3 font-mono text-[10px] uppercase tracking-[0.18em] opacity-100 transition-opacity duration-[var(--motion-short,200ms)] md:opacity-0 md:group-hover/sidebar:opacity-100">
-                {group.label}
+                {t.nav[group.labelKey]}
               </p>
               <ul className="flex flex-col">
                 {group.items.map((item) => {
@@ -98,7 +100,7 @@ export function SidebarNav({ siteId: siteIdProp, mobileOpen, onMobileClose }: Si
                     (href !== '/dashboard' && pathname === href)
                   const I = Icon[item.icon]
                   return (
-                    <li key={item.label}>
+                    <li key={item.labelKey}>
                       <Link
                         href={href}
                         className={cn(
@@ -115,7 +117,7 @@ export function SidebarNav({ siteId: siteIdProp, mobileOpen, onMobileClose }: Si
                           <I size={18} />
                         </span>
                         <span className="overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-[var(--motion-short,200ms)] md:opacity-0 md:group-hover/sidebar:opacity-100">
-                          {item.label}
+                          {t.nav[item.labelKey]}
                         </span>
                       </Link>
                     </li>
@@ -134,7 +136,7 @@ export function SidebarNav({ siteId: siteIdProp, mobileOpen, onMobileClose }: Si
             <Icon.User size={16} />
           </span>
           <span className="overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-[var(--motion-short,200ms)] md:opacity-0 md:group-hover/sidebar:opacity-100">
-            Account
+            {t.nav.account}
           </span>
         </Link>
       </aside>

@@ -17,6 +17,7 @@ import {
   confirmTotpEnrollment,
   consumePasswordReset,
   disableTotp,
+  hashPassword,
   requestPasswordReset,
   revokeSession,
   sendEmailVerification,
@@ -24,8 +25,10 @@ import {
   signoutAll,
   signupWithPassword,
   verifyEmail,
+  verifyPassword,
 } from '../auth/index.js'
 import { consumeRateLimit } from '../credits/rate-limit.js'
+import { ForgelyError } from '../errors.js'
 
 import { protectedProcedure, publicProcedure, router } from './trpc.js'
 
@@ -78,6 +81,11 @@ const VerifyEmailInputSchema = z.object({
 
 const TotpCodeInput = z.object({
   code: z.string().regex(/^\d{6}$/),
+})
+
+const ChangePasswordInput = z.object({
+  currentPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(1).max(256),
 })
 
 export const authRouter = router({
@@ -188,6 +196,38 @@ export const authRouter = router({
         userAgent: ctx.userAgent,
       }),
     ),
+
+  /**
+   * Authenticated change password. Requires the current password (defence in
+   * depth — even with a hijacked session, attacker can't lock the user out
+   * of their account without knowing the existing secret). All other sessions
+   * are revoked on success so any compromised device loses access immediately.
+   */
+  changePassword: protectedProcedure.input(ChangePasswordInput).mutation(async ({ ctx, input }) => {
+    const userRow = await ctx.prisma.user.findUniqueOrThrow({
+      where: { id: ctx.user.id },
+      select: { passwordHash: true },
+    })
+    const ok = await verifyPassword(input.currentPassword, userRow.passwordHash)
+    if (!ok) {
+      throw new ForgelyError('INVALID_CREDENTIALS', 'Current password is incorrect.', 401)
+    }
+    const newHash = await hashPassword(input.newPassword)
+    await ctx.prisma.user.update({
+      where: { id: ctx.user.id },
+      data: { passwordHash: newHash },
+    })
+    // Best-effort: revoke every *other* session. Keep the caller's session
+    // alive so the page they're on doesn't immediately break.
+    const currentId = ctx.session?.id && ctx.session.id !== 'preauthorized' ? ctx.session.id : null
+    await ctx.prisma.session.deleteMany({
+      where: {
+        userId: ctx.user.id,
+        ...(currentId ? { NOT: { id: currentId } } : {}),
+      },
+    })
+    return { ok: true as const }
+  }),
 
   // ── Email verification ─────────────────────────────────────────────
   /** Resend the verification link to the signed-in user's email. */

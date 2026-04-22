@@ -28,6 +28,8 @@ import { conversationRouter } from './conversation.js'
 import { copilotOpsRouter } from './copilot-ops.js'
 import { creditsRouter } from './credits.js'
 import { seoRouter } from './seo.js'
+import { settingsRouter } from './settings.js'
+import { pluginsRouter } from './plugins.js'
 import { router } from './trpc.js'
 
 /**
@@ -49,6 +51,8 @@ export const appRouter = router({
   billing: billingRouter,
   compliance: complianceRouter,
   seo: seoRouter,
+  settings: settingsRouter,
+  plugins: pluginsRouter,
   // Tenant-scoped (W3 routers/*)
   sites: sitesRouter,
   products: productsRouter,
@@ -60,7 +64,7 @@ export const appRouter = router({
   generation: generationRouter,
   copilot: copilotRouter,
   copilotOps: copilotOpsRouter,
-  // Super-admin / platform ops — RBAC re-enforced per procedure.
+  // Super-admin (W7 Sprint 3) — RBAC re-enforced per procedure.
   super: superRouter,
 })
 

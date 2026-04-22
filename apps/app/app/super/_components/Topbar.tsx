@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { StatusDot } from '@/components/super-ui'
+import { useT } from '@/lib/i18n'
 import { formatTimestamp } from '@/lib/super'
 import type { SuperSession } from '@/lib/super'
+
+import { SuperLocaleSwitcher } from './LocaleSwitcher'
 
 const ROLE_TONE = {
   OWNER: 'text-forge-orange',
@@ -12,6 +15,7 @@ const ROLE_TONE = {
 } as const
 
 export function SuperTopbar({ session }: { session: SuperSession }) {
+  const t = useT()
   const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
@@ -21,30 +25,30 @@ export function SuperTopbar({ session }: { session: SuperSession }) {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-6 border-b border-border-subtle bg-bg-deep/95 px-6 backdrop-blur">
+    <header className="border-border-subtle bg-bg-deep/95 sticky top-0 z-30 flex h-14 items-center justify-between gap-6 border-b px-6 backdrop-blur">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="font-display text-h3 text-forge-orange">⌬</span>
-          <span className="font-mono text-small uppercase tracking-[0.24em] text-text-primary">
+          <span className="text-small text-text-primary font-mono uppercase tracking-[0.24em]">
             Forgely Command
           </span>
         </div>
         <div className="hidden items-center gap-2 md:flex">
           <StatusDot tone="ok" />
-          <span className="font-mono text-caption uppercase tracking-[0.18em] text-success">
-            All systems ok
+          <span className="text-caption text-success font-mono uppercase tracking-[0.18em]">
+            {t.super.health.statusAllSystemsOk}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-5">
+        <SuperLocaleSwitcher />
+
         <div className="hidden items-center gap-2 md:flex">
           <StatusDot tone="live" pulse />
-          <span className="font-mono text-caption uppercase tracking-[0.18em] text-info">
-            LIVE
-          </span>
+          <span className="text-caption text-info font-mono uppercase tracking-[0.18em]">LIVE</span>
           <span
-            className="ml-2 font-mono text-caption tabular-nums text-text-secondary"
+            className="text-caption text-text-secondary ml-2 font-mono tabular-nums"
             suppressHydrationWarning
           >
             {now ? formatTimestamp(now) + ' UTC' : '—'}
@@ -55,12 +59,12 @@ export function SuperTopbar({ session }: { session: SuperSession }) {
           <div className="text-right">
             <div className="text-small text-text-primary">{session.name}</div>
             <div
-              className={`font-mono text-caption uppercase tracking-[0.18em] ${ROLE_TONE[session.role]}`}
+              className={`text-caption font-mono uppercase tracking-[0.18em] ${ROLE_TONE[session.role]}`}
             >
               {session.role}
             </div>
           </div>
-          <div className="grid h-9 w-9 place-items-center border border-border-strong bg-bg-elevated font-mono text-small text-forge-amber">
+          <div className="border-border-strong bg-bg-elevated text-small text-forge-amber grid h-9 w-9 place-items-center border font-mono">
             {session.name
               .split(' ')
               .map((p) => p[0])

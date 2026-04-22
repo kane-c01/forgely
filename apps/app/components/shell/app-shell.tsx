@@ -8,6 +8,7 @@ import { CommandPaletteProvider } from '@/components/command/command-palette-con
 import { CopilotDrawer } from '@/components/copilot/copilot-drawer'
 import { CopilotLauncher } from '@/components/copilot/copilot-launcher'
 import { CopilotProvider } from '@/components/copilot/copilot-provider'
+import { useLocale } from '@/lib/i18n'
 import { defaultSite, sites } from '@/lib/mocks'
 
 import { SidebarNav } from './sidebar-nav'
@@ -21,11 +22,12 @@ const CREDITS_BALANCE = 4_231
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname()
+  const { locale } = useLocale()
   const inferredSiteId = pathname.match(/^\/sites\/([^/]+)/)?.[1]
   const current = (inferredSiteId && sites.find((s) => s.id === inferredSiteId)) || defaultSite
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   return (
-    <CopilotProvider>
+    <CopilotProvider locale={locale}>
       <CommandPaletteProvider>
         <SidebarNav
           siteId={current.id}

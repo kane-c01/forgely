@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Icon } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 import type { DevicePreset } from '@/lib/types'
 
 import { useEditor } from './editor-store'
@@ -20,6 +21,7 @@ type RenderMode = 'inline' | 'iframe'
 
 export function EditorPreview() {
   const editor = useEditor()
+  const t = useT()
   const width = DEVICE_WIDTH[editor.device]
   const [mode, setMode] = useState<RenderMode>('inline')
 
@@ -33,21 +35,21 @@ export function EditorPreview() {
             value="desktop"
             onClick={editor.setDevice}
             icon="Desktop"
-            label="Desktop"
+            label={t.editor.desktop}
           />
           <DeviceButton
             current={editor.device}
             value="tablet"
             onClick={editor.setDevice}
             icon="Tablet"
-            label="Tablet"
+            label={t.editor.tablet}
           />
           <DeviceButton
             current={editor.device}
             value="mobile"
             onClick={editor.setDevice}
             icon="Mobile"
-            label="Mobile"
+            label={t.editor.mobile}
           />
           <span className="bg-border-subtle mx-1 h-4 w-px" aria-hidden />
           <ModeToggle mode={mode} onChange={setMode} />
@@ -56,7 +58,7 @@ export function EditorPreview() {
           {editor.activePage.name} · {width}px
         </p>
         <div className="text-caption text-text-muted flex items-center gap-3 font-mono">
-          <span>autosave</span>
+          <span>{t.editor.autosave}</span>
           <span className="text-text-secondary inline-flex items-center gap-1.5">
             <span
               className={cn(
@@ -64,7 +66,7 @@ export function EditorPreview() {
                 editor.unsaved ? 'bg-warning animate-pulse' : 'bg-success',
               )}
             />
-            {editor.unsaved ? 'unsaved' : 'all good'}
+            {editor.unsaved ? t.editor.unsaved : t.editor.allGood}
           </span>
         </div>
       </div>
@@ -91,7 +93,7 @@ export function EditorPreview() {
               </div>
               <div className="text-text-muted flex items-center gap-1">
                 <Icon.Eye size={12} />
-                <span className="text-caption font-mono">PREVIEW</span>
+                <span className="text-caption font-mono">{t.editor.preview}</span>
               </div>
             </div>
 
@@ -121,6 +123,7 @@ export function EditorPreview() {
 /* ───────────────────── Iframe live-preview ──────────────────────── */
 
 function IframePreview({ width }: { width: number }) {
+  const t = useT()
   const editor = useEditor()
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [ready, setReady] = useState(false)
@@ -177,7 +180,7 @@ function IframePreview({ width }: { width: number }) {
       <iframe
         ref={iframeRef}
         src={initialSrc}
-        title="Storefront live preview"
+        title={t.editor.storefrontPreview}
         className="block h-full w-full border-0 bg-white"
         style={{ width: width + 'px', maxWidth: '100%' }}
         sandbox="allow-scripts allow-same-origin"
@@ -185,7 +188,7 @@ function IframePreview({ width }: { width: number }) {
       {!ready ? (
         <div className="bg-bg-void/60 pointer-events-none absolute inset-0 grid place-items-center backdrop-blur-sm">
           <Badge tone="forge" dot>
-            connecting preview…
+            {t.editor.connectingPreview}
           </Badge>
         </div>
       ) : null}
@@ -196,6 +199,11 @@ function IframePreview({ width }: { width: number }) {
 /* ───────────────────── Toolbar pieces ──────────────────────────── */
 
 function ModeToggle({ mode, onChange }: { mode: RenderMode; onChange: (m: RenderMode) => void }) {
+  const t = useT()
+  const modeLabels: Record<RenderMode, string> = {
+    inline: t.editor.inline,
+    iframe: t.editor.iframe,
+  }
   return (
     <div className="border-border-subtle bg-bg-elevated inline-flex items-center rounded-md border p-0.5">
       {(['inline', 'iframe'] as RenderMode[]).map((m) => (
@@ -209,7 +217,7 @@ function ModeToggle({ mode, onChange }: { mode: RenderMode; onChange: (m: Render
             mode === m ? 'bg-bg-deep text-forge-amber' : 'text-text-muted hover:text-text-primary',
           )}
         >
-          {m}
+          {modeLabels[m]}
         </button>
       ))}
     </div>

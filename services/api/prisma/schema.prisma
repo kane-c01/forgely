@@ -94,6 +94,7 @@ model User {
   generations        Generation[]
   loginEvents        LoginEvent[]
   phoneOtps          PhoneOtp[]
+  notificationPrefs  NotificationPreference?
 
   @@index([email])
   @@index([role])
@@ -101,6 +102,73 @@ model User {
   @@index([stripeCustomerId])
   @@index([phoneE164])
   @@index([wechatUnionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// NOTIFICATION PREFERENCES (Sprint 3 — user can toggle per-channel emails
+// and push from /settings → Notifications. One row per user; default values
+// are written lazily on first read so we don't need to backfill.)
+// ─────────────────────────────────────────────────────────────────────────
+
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailOrders     Boolean @default(true)
+  emailMarketing  Boolean @default(false)
+  emailSecurity   Boolean @default(true)
+  emailBilling    Boolean @default(true)
+  pushEnabled     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CN PAYMENTS — pending checkout tracking for WeChat Pay / Alipay (Forgely
+// platform billing only, see PIVOT-CN.md §3.1). One row per checkout
+// attempt. Status is driven by the corresponding webhook handler:
+//   pending → paid (success), expired (timeout), failed (declined),
+//             refunded (after a separate Refund row is processed).
+// ─────────────────────────────────────────────────────────────────────────
+
+model CnPayment {
+  id     String @id @default(cuid())
+  userId String
+
+  /// `wechat` | `alipay`
+  channel String
+  /// `subscription` | `credit_pack`
+  kind    String
+  /// `pending` | `paid` | `expired` | `failed` | `refunded`
+  status  String @default("pending")
+
+  /// References the catalog row (Plan.slug or CreditsPackage.slug).
+  itemSlug    String
+  /// `monthly` | `yearly` (subscription only).
+  cadence     String?
+  amountCents Int
+  currency    String  @default("CNY")
+
+  /// QR code payload for Native checkout.
+  qrCode      String? @db.Text
+  /// H5 / PC redirect URL for Wap/Page checkout.
+  redirectUrl String? @db.Text
+
+  /// Provider-side identifier (wechat prepay_id / alipay out_trade_no).
+  externalId String?
+  expiresAt  DateTime
+  paidAt     DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([channel, externalId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -260,6 +328,10 @@ model Site {
   subdomain    String  @unique
   customDomain String? @unique
 
+  /// Hosting region: `auto` (Cloudflare global), `us`, `eu`, `apac`.
+  /// Non-auto regions require a SiteHostingAddon subscription (see §6.3).
+  hostingRegion String @default("auto")
+
   status         String  @default("draft")
   sourceUrl      String?
   sourcePlatform String?
@@ -276,6 +348,18 @@ model Site {
 
   medusaSalesChannelId String? @unique
 
+  /// Per-site operational settings (storefront-facing config the user manages
+  /// from /sites/[id]/settings). Schema is owned by the SiteSettings Zod type
+  /// in `services/api/src/router/settings.ts`. Free-form JSON so we can ship
+  /// new toggles without a migration. Default to empty `{}` on Site create.
+  ///   {
+  ///     payments?:  { providers: ['stripe' | 'paypal' | 'apple_pay' | 'google_pay' | 'nowpayments'], stripeAccountId?, paypalEmail?, ... }
+  ///     shipping?:  { zones: [{ name, regions: [...], rates: [{ label, amountCents, etaDays }] }] }
+  ///     tax?:       { mode: 'auto' | 'manual', defaultRate?, includedInPrice?, regions?: {...} }
+  ///     storefront?:{ defaultLocale, enabledLocales: string[], defaultCurrency, supportEmail?, contactPhone?, address? }
+  ///   }
+  settings Json @default("{}")
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -287,9 +371,72 @@ model Site {
   pages             Page[]
   installedPlugins  InstalledPlugin[]
   complianceRecords ComplianceRecord[]
+  customDomainConfig SiteCustomDomain?
+  hostingAddon       SiteHostingAddon?
 
   @@index([userId, status])
   @@index([status, updatedAt])
+  @@index([hostingRegion])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SITE HOSTING — custom domain verification + region add-on (PIVOT-CN §6.3/§6.4)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Tracks custom domain verification and SSL provisioning for a site.
+/// Lifecycle:  pending_verification → verified → ssl_provisioning → active | failed
+model SiteCustomDomain {
+  id     String @id @default(cuid())
+  siteId String @unique
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  domain        String @unique
+  /// CNAME target: `{siteId}.forgely.app`
+  cnameTarget   String
+  /// pending_verification | verified | ssl_provisioning | active | failed | removed
+  status        String @default("pending_verification")
+
+  /// Cloudflare for SaaS custom hostname id.
+  cfCustomHostnameId String?
+  /// SSL certificate status from Cloudflare.
+  sslStatus          String?
+  /// Last DNS verification check result.
+  lastVerifiedAt     DateTime?
+  /// Number of verification attempts.
+  verifyAttempts     Int      @default(0)
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([domain])
+}
+
+/// Paid add-on for dedicated hosting region (non-auto). One row per site
+/// with a non-auto region. Status tracks the billing lifecycle.
+model SiteHostingAddon {
+  id     String @id @default(cuid())
+  siteId String @unique
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  /// `us` | `eu` | `apac`
+  region         String
+  /// active | past_due | canceled | pending
+  status         String @default("pending")
+  /// Monthly price in CNY cents.
+  priceMonthly   Int    @default(4900)
+
+  /// Payment linkage (WeChat/Alipay CnPayment id or Stripe subscription).
+  paymentRef     String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([region, status])
 }
 
 model ThemeVersion {
@@ -973,6 +1120,55 @@ model EmailCampaign {
 
   @@index([status, scheduledAt])
   @@index([provider, status])
+}
+
+/// Platform-wide settings — single-row "singleton" pattern. The seed
+/// script or the first `/super/settings` visit inserts the row; every
+/// subsequent save is an update (see services/api/src/router/super/settings.ts).
+model PlatformSetting {
+  id              String   @id @default("singleton")
+  platformName    String   @default("Forgely")
+  platformDomain  String   @default("forgely.cn")
+  defaultLocale   String   @default("zh-CN")
+  defaultRegion   String   @default("cn")
+  maintenanceMode Boolean  @default(false)
+  signupEnabled   Boolean  @default(true)
+  /// Free-form JSON blob for future settings we don't want migrations for.
+  extra           Json?
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+}
+
+/// Platform feature flag. Each row is one boolean toggle surfaced in
+/// /super/settings > Feature Flags. `id` is the same string the UI /
+/// backend uses (wechatLogin, phoneOtp, wechatPay, …).
+model PlatformFeatureFlag {
+  id                  String   @id
+  enabled             Boolean  @default(false)
+  /// True when a working .env credential is required for the flag to
+  /// actually take effect at runtime (purely informational for the UI).
+  requiresCredential  Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+  updatedBy           String?
+}
+
+/// Super-admin-visible secret. The real value lives in `.env` (the
+/// production deploy uses a Secrets Manager). This row stores ONLY a
+/// masked preview + rotation history so a super-admin can see which
+/// provider is configured without the backend serving the plaintext.
+/// Rotation is an audit-logged event; applying the value to runtime
+/// still needs an env deploy.
+model PlatformSecret {
+  /// Matches the .env key name (e.g. `DEEPSEEK_API_KEY`).
+  envVar         String   @id
+  /// Human label (DeepSeek / 通义千问 / ...).
+  label          String
+  /// Masked preview — first 2 + last 4 characters with dots in between.
+  maskedPreview  String?
+  configured     Boolean  @default(false)
+  rotatedAt      DateTime?
+  rotatedBy      String?
+  updatedAt      DateTime @updatedAt
 }
 
 /// Direct push (web push, in-app, optional WeChat / Mini-App template

@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 const SEVERITY_TONE: Record<Severity, 'error' | 'warning' | 'info'> = {
@@ -38,25 +39,25 @@ const SEVERITY_TONE: Record<Severity, 'error' | 'warning' | 'info'> = {
   info: 'info',
 }
 
-const VERDICT_LABEL: Record<
-  'pass' | 'warning' | 'fail',
-  { label: string; tone: 'success' | 'warning' | 'error'; helper: string }
-> = {
-  pass: {
-    label: 'Ready to deploy',
-    tone: 'success',
-    helper: 'No critical findings — green light for the deployer.',
-  },
-  warning: {
-    label: 'Optional improvements',
-    tone: 'warning',
-    helper: 'No blockers, but several findings would improve trust + reach.',
-  },
-  fail: {
-    label: 'Deployment blocked',
-    tone: 'error',
-    helper: 'Resolve every critical finding before the next deploy run.',
-  },
+function useVerdictLabel() {
+  const t = useT()
+  return {
+    pass: {
+      label: t.compliance.readyToDeploy,
+      tone: 'success' as const,
+      helper: t.compliance.readyToDeployHelper,
+    },
+    warning: {
+      label: t.compliance.optionalImprovements,
+      tone: 'warning' as const,
+      helper: t.compliance.optionalImprovementsHelper,
+    },
+    fail: {
+      label: t.compliance.deploymentBlocked,
+      tone: 'error' as const,
+      helper: t.compliance.deploymentBlockedHelper,
+    },
+  }
 }
 
 const REGIONS: Region[] = [
@@ -107,6 +108,8 @@ function buildDemoContent(siteId: string): ComplianceContent {
 }
 
 export default function CompliancePage({ params }: { params: { siteId: string } }) {
+  const t = useT()
+  const VERDICT_LABEL = useVerdictLabel()
   const [regionFilter, setRegionFilter] = useState<'all' | Region>('all')
   const [severityFilter, setSeverityFilter] = useState<'all' | Severity>('all')
   const [resolvedRules, setResolvedRules] = useState<Set<string>>(new Set())
@@ -135,19 +138,19 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
   const columns: DataTableColumn<ComplianceFinding>[] = [
     {
       key: 'severity',
-      header: 'Severity',
+      header: t.compliance.colSeverity,
       width: '110px',
       render: (f) => <Badge tone={SEVERITY_TONE[f.severity]}>{f.severity}</Badge>,
     },
     {
       key: 'region',
-      header: 'Region',
+      header: t.compliance.colRegion,
       width: '130px',
       render: (f) => <Badge tone="outline">{f.region}</Badge>,
     },
     {
       key: 'rule',
-      header: 'Rule',
+      header: t.compliance.colRule,
       render: (f) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-caption text-text-muted font-mono">{f.rule}</span>
@@ -157,7 +160,7 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
     },
     {
       key: 'location',
-      header: 'Location',
+      header: t.compliance.colLocation,
       width: '230px',
       render: (f) => (
         <code className="bg-bg-deep text-caption text-forge-amber block break-all rounded px-1.5 py-0.5 font-mono">
@@ -167,7 +170,7 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
     },
     {
       key: 'snippet',
-      header: 'Content',
+      header: t.compliance.colContent,
       render: (f) => (
         <p className="text-small text-text-secondary line-clamp-2">
           “{f.content.trim().slice(0, 180)}
@@ -184,12 +187,12 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
         f.autoFixable ? (
           <Button size="sm" variant="primary" onClick={() => applySingleFix(f)}>
             <Icon.Check size={14} />
-            Auto-fix
+            {t.compliance.autoFix}
           </Button>
         ) : (
           <Button size="sm" variant="ghost">
             <Icon.Sparkle size={14} />
-            AI rewrite
+            {t.compliance.aiRewrite}
           </Button>
         ),
     },
@@ -199,29 +202,31 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
     <div className="flex flex-col gap-6">
       <ComplianceCopilotBridge siteId={params.siteId} />
       <PageHeader
-        eyebrow="Compliance"
-        title="Compliance center"
-        description="Every site goes through a 9-step legal review (FTC / FDA / GDPR / Prop 65 / CPSIA / DSA / ASA / CASL + category rules) before it ships."
+        eyebrow={t.compliance.eyebrow}
+        title={t.compliance.title}
+        description={t.compliance.description}
         meta={
           <>
             <span>schema {report.schemaVersion}</span>
             <span>·</span>
             <span>
-              {report.findings.length} findings · {report.durationMs}ms
+              {report.findings.length} {t.compliance.findings} · {report.durationMs}ms
             </span>
             <span>·</span>
-            <span>{ALL_RULES.length} rules active</span>
+            <span>
+              {ALL_RULES.length} {t.compliance.rulesActive}
+            </span>
           </>
         }
         actions={
           <>
             <Button variant="ghost">
               <Icon.History size={14} />
-              History
+              {t.compliance.history}
             </Button>
             <Button variant="primary">
               <Icon.Sparkle size={14} />
-              Re-run review
+              {t.compliance.rerunReview}
             </Button>
           </>
         }
@@ -230,21 +235,21 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <VerdictCard
           tone={verdict.tone}
-          eyebrow="Overall verdict"
+          eyebrow={t.compliance.overallVerdict}
           value={verdict.label}
           helper={verdict.helper}
         />
         <MetricCard
-          label="Critical"
+          label={t.compliance.critical}
           value={report.mustFix}
           tone="error"
-          hint="must be resolved before deploy"
+          hint={t.compliance.mustResolve}
         />
         <MetricCard
-          label="Warnings"
+          label={t.compliance.warnings}
           value={report.shouldFix}
           tone="warning"
-          hint="recommended but not blocking"
+          hint={t.compliance.recommendedNotBlocking}
         />
       </div>
 
@@ -262,7 +267,7 @@ export default function CompliancePage({ params }: { params: { siteId: string } 
         empty={
           <div className="text-text-muted flex flex-col items-center justify-center gap-2 py-8">
             <Icon.Check size={28} />
-            <p className="text-body">No findings match the current filters.</p>
+            <p className="text-body">{t.compliance.noFindings}</p>
           </div>
         }
       />
@@ -333,19 +338,20 @@ function FilterBar({
   severity: 'all' | Severity
   onSeverity: (s: 'all' | Severity) => void
 }) {
+  const t = useT()
   return (
     <div className="border-border-subtle bg-bg-surface flex flex-wrap items-center gap-3 rounded-lg border p-3">
       <div className="flex items-center gap-2">
         <Icon.Filter size={14} />
         <span className="text-caption text-text-muted font-mono uppercase tracking-[0.12em]">
-          Filter
+          {t.compliance.filter}
         </span>
       </div>
       <Select
         value={region}
         onChange={(v) => onRegion(v as 'all' | Region)}
         options={[
-          { value: 'all', label: 'All regions' },
+          { value: 'all', label: t.compliance.allRegions },
           ...REGIONS.map((r) => ({ value: r, label: r })),
         ]}
       />
@@ -353,10 +359,10 @@ function FilterBar({
         value={severity}
         onChange={(v) => onSeverity(v as 'all' | Severity)}
         options={[
-          { value: 'all', label: 'All severities' },
-          { value: 'critical', label: 'Critical' },
-          { value: 'warning', label: 'Warning' },
-          { value: 'info', label: 'Info' },
+          { value: 'all', label: t.compliance.allSeverities },
+          { value: 'critical', label: t.compliance.critical },
+          { value: 'warning', label: t.compliance.warning },
+          { value: 'info', label: t.compliance.info },
         ]}
       />
     </div>

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cmsPagesForSite, type CmsPage } from '@/lib/cms-mocks'
@@ -24,6 +25,7 @@ const STATUS_TONE = {
 export default function PagesIndex({ params }: { params: { siteId: string } }) {
   useCopilotContext({ kind: 'global' })
   const router = useRouter()
+  const t = useT()
   const [filter, setFilter] = useState<'all' | CmsPage['status']>('all')
   const [query, setQuery] = useState('')
 
@@ -43,7 +45,7 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
   const columns: DataTableColumn<CmsPage>[] = [
     {
       key: 'title',
-      header: 'Page',
+      header: t.cmsPages.colPage,
       render: (p) => (
         <Link
           href={`/sites/${params.siteId}/pages/${p.id}`}
@@ -56,7 +58,7 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t.cmsPages.colStatus,
       width: '120px',
       render: (p) => (
         <Badge tone={STATUS_TONE[p.status]} dot={p.status !== 'archived'}>
@@ -66,20 +68,20 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
     },
     {
       key: 'description',
-      header: 'Summary',
+      header: t.cmsPages.colSummary,
       render: (p) => (
         <span className="text-small text-text-secondary line-clamp-1">{p.description ?? '—'}</span>
       ),
     },
     {
       key: 'author',
-      header: 'Author',
+      header: t.cmsPages.colAuthor,
       width: '120px',
       render: (p) => <span className="text-caption text-text-muted font-mono">{p.author}</span>,
     },
     {
       key: 'updated',
-      header: 'Updated',
+      header: t.cmsPages.colUpdated,
       width: '140px',
       align: 'right',
       render: (p) => (
@@ -91,16 +93,16 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6">
       <PageHeader
-        eyebrow="Content"
-        title="CMS pages"
-        description="Long-form pages outside the storefront — About, Press, Policies, FAQ."
+        eyebrow={t.cmsPages.eyebrow}
+        title={t.cmsPages.title}
+        description={t.cmsPages.description}
         actions={
           <>
             <Button variant="ghost">
-              <Icon.Sparkle size={14} /> Generate w/ AI
+              <Icon.Sparkle size={14} /> {t.cmsPages.generateAi}
             </Button>
             <Button>
-              <Icon.Plus size={14} /> New page
+              <Icon.Plus size={14} /> {t.cmsPages.newPage}
             </Button>
           </>
         }
@@ -109,10 +111,12 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={filter} onChange={(v) => setFilter(v as typeof filter)}>
           <TabsList>
-            <TabsTrigger value="all">All · {all.length}</TabsTrigger>
-            <TabsTrigger value="published">Published</TabsTrigger>
-            <TabsTrigger value="draft">Draft</TabsTrigger>
-            <TabsTrigger value="archived">Archived</TabsTrigger>
+            <TabsTrigger value="all">
+              {t.cmsPages.all} · {all.length}
+            </TabsTrigger>
+            <TabsTrigger value="published">{t.cmsPages.published}</TabsTrigger>
+            <TabsTrigger value="draft">{t.cmsPages.draft}</TabsTrigger>
+            <TabsTrigger value="archived">{t.cmsPages.archived}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -124,7 +128,7 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title, slug or author"
+            placeholder={t.cmsPages.searchPlaceholder}
             className="w-72 pl-8"
           />
         </div>
@@ -138,7 +142,7 @@ export default function PagesIndex({ params }: { params: { siteId: string } }) {
         empty={
           <div className="text-text-muted flex flex-col items-center gap-2">
             <Icon.Globe size={28} />
-            <p>No pages match these filters.</p>
+            <p>{t.cmsPages.noMatch}</p>
           </div>
         }
       />

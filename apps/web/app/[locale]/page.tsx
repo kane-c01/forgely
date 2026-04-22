@@ -1,3 +1,5 @@
+import { hasLocale } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import { SiteNav } from '@/components/site/nav'
 import { Hero } from '@/components/site/hero'
 import { SocialProof } from '@/components/site/social-proof'
@@ -12,19 +14,20 @@ import { SiteFooter } from '@/components/site/footer'
 // `@/lib/faq` exports `getFaqItems(locale)` (async) post-T27f — we render
 // it inside <Faq /> rather than computing it here.
 import { buildMetadata } from '@/lib/seo'
-import { siteConfig } from '@/lib/site'
+import { routing, type Locale } from '@/i18n/routing'
 
-export const metadata = buildMetadata({
-  title: 'Brand operating system for the AI era',
-  description:
-    'Forgely turns any product link into a cinematic, fully-stocked brand site — designed by AI, hosted on us, ready to sell in 5 minutes.',
-  ogAlternateLocales: ['zh_CN'],
-  hreflang: {
-    en: siteConfig.url,
-    'zh-CN': `${siteConfig.url}/zh`,
-    'x-default': siteConfig.url,
-  },
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const safeLocale: Locale = hasLocale(routing.locales, locale)
+    ? (locale as Locale)
+    : routing.defaultLocale
+  const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.home' })
+  return buildMetadata({
+    locale: safeLocale,
+    title: t('title'),
+    description: t('description'),
+  })
+}
 
 export default function HomePage() {
   return (

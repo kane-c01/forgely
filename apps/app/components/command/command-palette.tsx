@@ -8,6 +8,7 @@ import { useCommandPalette } from '@/components/command/command-palette-context'
 import { useCopilot } from '@/components/copilot/copilot-provider'
 import { Icon, type IconKey } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 import {
   customers as MOCK_CUSTOMERS,
   defaultSite,
@@ -40,15 +41,6 @@ interface CommandItem {
   keywords?: string
 }
 
-const HINT_BY_GROUP: Record<CommandItem['group'], string> = {
-  actions: 'Action',
-  navigate: 'Page',
-  sites: 'Site',
-  products: 'Product',
-  orders: 'Order',
-  customers: 'Customer',
-}
-
 function tokensMatch(haystack: string, query: string): boolean {
   if (!query.trim()) return true
   const h = haystack.toLowerCase()
@@ -61,6 +53,7 @@ function tokensMatch(haystack: string, query: string): boolean {
 
 export function CommandPalette() {
   const palette = useCommandPalette()
+  const t = useT()
   const open = palette.open
   const setOpen = palette.setOpen
   const [query, setQuery] = useState('')
@@ -68,6 +61,15 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const copilot = useCopilot()
+
+  const hintByGroup: Record<CommandItem['group'], string> = {
+    actions: t.commandPalette.hintAction,
+    navigate: t.commandPalette.hintPage,
+    sites: t.commandPalette.hintSite,
+    products: t.commandPalette.hintProduct,
+    orders: t.commandPalette.hintOrder,
+    customers: t.commandPalette.hintCustomer,
+  }
 
   const close = () => {
     setOpen(false)
@@ -87,8 +89,8 @@ export function CommandPalette() {
       {
         id: 'a:copilot',
         group: 'actions',
-        label: 'Open Copilot',
-        hint: 'Ask AI to do something',
+        label: t.commandPalette.openCopilot,
+        hint: t.commandPalette.askAiHint,
         icon: 'Sparkle',
         shortcut: '⌘J',
         run: () => {
@@ -99,7 +101,7 @@ export function CommandPalette() {
       {
         id: 'a:copilot.sales',
         group: 'actions',
-        label: 'Ask Copilot: how are sales this month?',
+        label: t.commandPalette.askSales,
         icon: 'Sparkle',
         run: () => {
           copilot.setOpen(true)
@@ -110,7 +112,7 @@ export function CommandPalette() {
       {
         id: 'a:copilot.discount',
         group: 'actions',
-        label: 'Ask Copilot: create a launch discount',
+        label: t.commandPalette.askDiscount,
         icon: 'Sparkle',
         run: () => {
           copilot.setOpen(true)
@@ -121,7 +123,7 @@ export function CommandPalette() {
       {
         id: 'a:copilot.hero',
         group: 'actions',
-        label: 'Ask Copilot: regenerate hero video',
+        label: t.commandPalette.askHero,
         icon: 'Sparkle',
         run: () => {
           copilot.setOpen(true)
@@ -132,14 +134,14 @@ export function CommandPalette() {
       {
         id: 'a:new-product',
         group: 'actions',
-        label: 'New product…',
+        label: t.commandPalette.newProduct,
         icon: 'Plus',
         run: () => navigate(`/sites/${defaultSite.id}/products`),
       },
       {
         id: 'a:new-site',
         group: 'actions',
-        label: 'Forge a new site',
+        label: t.commandPalette.forgeNewSite,
         icon: 'Plus',
         run: () => navigate('/sites'),
       },
@@ -147,16 +149,76 @@ export function CommandPalette() {
 
     // ---------- navigate
     list.push(
-      { id: 'n:dashboard', group: 'navigate', label: 'Dashboard', icon: 'Dashboard', run: () => navigate('/dashboard') },
-      { id: 'n:sites', group: 'navigate', label: 'Sites', icon: 'Sites', run: () => navigate('/sites') },
-      { id: 'n:products', group: 'navigate', label: 'Products', icon: 'Box', run: () => navigate(`/sites/${defaultSite.id}/products`) },
-      { id: 'n:orders', group: 'navigate', label: 'Orders', icon: 'Cart', run: () => navigate(`/sites/${defaultSite.id}/orders`) },
-      { id: 'n:customers', group: 'navigate', label: 'Customers', icon: 'Users', run: () => navigate(`/sites/${defaultSite.id}/customers`) },
-      { id: 'n:editor', group: 'navigate', label: 'Theme Editor', icon: 'Editor', run: () => navigate(`/sites/${defaultSite.id}/editor`) },
-      { id: 'n:media', group: 'navigate', label: 'Media library', icon: 'Image', run: () => navigate(`/sites/${defaultSite.id}/media`) },
-      { id: 'n:brand', group: 'navigate', label: 'Brand kits', icon: 'Brand', run: () => navigate('/brand-kits') },
-      { id: 'n:billing', group: 'navigate', label: 'Billing', icon: 'Wallet', run: () => navigate('/billing') },
-      { id: 'n:settings', group: 'navigate', label: 'Settings', icon: 'Settings', run: () => navigate('/settings') },
+      {
+        id: 'n:dashboard',
+        group: 'navigate',
+        label: t.commandPalette.navDashboard,
+        icon: 'Dashboard',
+        run: () => navigate('/dashboard'),
+      },
+      {
+        id: 'n:sites',
+        group: 'navigate',
+        label: t.commandPalette.navSites,
+        icon: 'Sites',
+        run: () => navigate('/sites'),
+      },
+      {
+        id: 'n:products',
+        group: 'navigate',
+        label: t.commandPalette.navProducts,
+        icon: 'Box',
+        run: () => navigate(`/sites/${defaultSite.id}/products`),
+      },
+      {
+        id: 'n:orders',
+        group: 'navigate',
+        label: t.commandPalette.navOrders,
+        icon: 'Cart',
+        run: () => navigate(`/sites/${defaultSite.id}/orders`),
+      },
+      {
+        id: 'n:customers',
+        group: 'navigate',
+        label: t.commandPalette.navCustomers,
+        icon: 'Users',
+        run: () => navigate(`/sites/${defaultSite.id}/customers`),
+      },
+      {
+        id: 'n:editor',
+        group: 'navigate',
+        label: t.commandPalette.navThemeEditor,
+        icon: 'Editor',
+        run: () => navigate(`/sites/${defaultSite.id}/editor`),
+      },
+      {
+        id: 'n:media',
+        group: 'navigate',
+        label: t.commandPalette.navMediaLibrary,
+        icon: 'Image',
+        run: () => navigate(`/sites/${defaultSite.id}/media`),
+      },
+      {
+        id: 'n:brand',
+        group: 'navigate',
+        label: t.commandPalette.navBrandKits,
+        icon: 'Brand',
+        run: () => navigate('/brand-kits'),
+      },
+      {
+        id: 'n:billing',
+        group: 'navigate',
+        label: t.commandPalette.navBilling,
+        icon: 'Wallet',
+        run: () => navigate('/billing'),
+      },
+      {
+        id: 'n:settings',
+        group: 'navigate',
+        label: t.commandPalette.navSettings,
+        icon: 'Settings',
+        run: () => navigate('/settings'),
+      },
     )
 
     // ---------- entities
@@ -210,7 +272,7 @@ export function CommandPalette() {
     // refs (router / palette setOpen) — re-creating them on each render
     // would invalidate the entire item list. Safe to omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [copilot, router])
+  }, [copilot, router, t])
 
   const filtered = useMemo(() => {
     return items.filter((i) => tokensMatch(`${i.label} ${i.hint ?? ''} ${i.keywords ?? ''}`, query))
@@ -277,16 +339,16 @@ export function CommandPalette() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
-      className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh] px-4"
+      aria-label={t.commandPalette.ariaLabel}
+      className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]"
     >
       <button
-        aria-label="Close command palette"
+        aria-label={t.commandPalette.closeAria}
         onClick={close}
-        className="absolute inset-0 bg-bg-void/80 backdrop-blur-sm"
+        className="bg-bg-void/80 absolute inset-0 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-border-subtle bg-bg-surface shadow-[0_24px_64px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)_inset] animate-[cmdk-pop_180ms_ease-out]">
-        <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
+      <div className="border-border-subtle bg-bg-surface relative w-full max-w-2xl animate-[cmdk-pop_180ms_ease-out] overflow-hidden rounded-xl border shadow-[0_24px_64px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+        <div className="border-border-subtle flex items-center gap-3 border-b px-4 py-3">
           <Icon.Search size={16} className="text-text-muted" />
           <input
             ref={inputRef}
@@ -294,22 +356,24 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Type a command, page or anything…"
-            className="flex-1 bg-transparent text-body text-text-primary outline-none placeholder:text-text-muted"
+            placeholder={t.commandPalette.placeholder}
+            className="text-body text-text-primary placeholder:text-text-muted flex-1 bg-transparent outline-none"
           />
-          <kbd className="rounded border border-border-strong px-1.5 py-0.5 font-mono text-caption text-text-muted">
+          <kbd className="border-border-strong text-caption text-text-muted rounded border px-1.5 py-0.5 font-mono">
             ESC
           </kbd>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto py-2">
           {filtered.length === 0 ? (
-            <p className="px-5 py-8 text-center text-small text-text-muted">No matches.</p>
+            <p className="text-small text-text-muted px-5 py-8 text-center">
+              {t.commandPalette.noMatches}
+            </p>
           ) : (
             (Object.keys(grouped) as CommandItem['group'][]).map((g) => (
               <section key={g} className="mb-2">
-                <p className="px-4 pb-1 pt-2 font-mono text-caption uppercase tracking-[0.18em] text-text-subtle">
-                  {HINT_BY_GROUP[g]} · {grouped[g]!.length}
+                <p className="text-caption text-text-subtle px-4 pb-1 pt-2 font-mono uppercase tracking-[0.18em]">
+                  {hintByGroup[g]} · {grouped[g]!.length}
                 </p>
                 {grouped[g]!.map((it) => {
                   const idx = flatIds.indexOf(it.id)
@@ -322,25 +386,25 @@ export function CommandPalette() {
                       onMouseEnter={() => setActive(idx)}
                       onClick={() => it.run()}
                       className={cn(
-                        'flex w-full items-center gap-3 px-4 py-2 text-left text-small transition-colors',
+                        'text-small flex w-full items-center gap-3 px-4 py-2 text-left transition-colors',
                         isActive
                           ? 'bg-bg-elevated text-text-primary'
                           : 'text-text-secondary hover:bg-bg-elevated/60',
                       )}
                     >
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-bg-deep text-text-muted">
+                      <span className="bg-bg-deep text-text-muted grid h-7 w-7 shrink-0 place-items-center rounded-md">
                         <I size={14} />
                       </span>
                       <span className="flex flex-1 items-center justify-between gap-2 truncate">
-                        <span className="truncate text-text-primary">{it.label}</span>
+                        <span className="text-text-primary truncate">{it.label}</span>
                         {it.hint ? (
-                          <span className="hidden truncate font-mono text-caption text-text-muted sm:inline">
+                          <span className="text-caption text-text-muted hidden truncate font-mono sm:inline">
                             {it.hint}
                           </span>
                         ) : null}
                       </span>
                       {it.shortcut ? (
-                        <kbd className="hidden shrink-0 rounded border border-border-strong px-1.5 py-0.5 font-mono text-caption text-text-muted sm:inline">
+                        <kbd className="border-border-strong text-caption text-text-muted hidden shrink-0 rounded border px-1.5 py-0.5 font-mono sm:inline">
                           {it.shortcut}
                         </kbd>
                       ) : null}
@@ -353,19 +417,37 @@ export function CommandPalette() {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border-subtle bg-bg-deep px-4 py-2 font-mono text-caption text-text-muted">
+        <div className="border-border-subtle bg-bg-deep text-caption text-text-muted flex items-center justify-between gap-3 border-t px-4 py-2 font-mono">
           <span className="flex items-center gap-3">
-            <span><kbd className="rounded border border-border-strong px-1">↑</kbd>/<kbd className="rounded border border-border-strong px-1">↓</kbd> move</span>
-            <span><kbd className="rounded border border-border-strong px-1">↵</kbd> run</span>
-            <span><kbd className="rounded border border-border-strong px-1">esc</kbd> close</span>
+            <span>
+              <kbd className="border-border-strong rounded border px-1">↑</kbd>/
+              <kbd className="border-border-strong rounded border px-1">↓</kbd>{' '}
+              {t.commandPalette.move}
+            </span>
+            <span>
+              <kbd className="border-border-strong rounded border px-1">↵</kbd>{' '}
+              {t.commandPalette.run}
+            </span>
+            <span>
+              <kbd className="border-border-strong rounded border px-1">esc</kbd>{' '}
+              {t.commandPalette.close}
+            </span>
           </span>
-          <span>{filtered.length} results</span>
+          <span>
+            {filtered.length} {t.commandPalette.results}
+          </span>
         </div>
       </div>
       <style jsx global>{`
         @keyframes cmdk-pop {
-          from { transform: translateY(-6px) scale(0.98); opacity: 0; }
-          to   { transform: translateY(0)    scale(1);    opacity: 1; }
+          from {
+            transform: translateY(-6px) scale(0.98);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
         }
       `}</style>
     </div>,

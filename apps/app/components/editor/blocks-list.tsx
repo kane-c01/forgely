@@ -5,11 +5,13 @@ import { useState, type DragEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Icon } from '@/components/ui/icons'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 import { BLOCK_LIBRARY, useEditor } from './editor-store'
 
 export function BlocksList() {
   const editor = useEditor()
+  const t = useT()
   const [showLibrary, setShowLibrary] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -44,7 +46,7 @@ export function BlocksList() {
       {/* Pages */}
       <div className="border-border-subtle border-b px-4 py-3">
         <p className="text-caption text-text-muted mb-2 font-mono uppercase tracking-[0.18em]">
-          Pages
+          {t.editor.pages}
         </p>
         <ul className="flex flex-col gap-0.5">
           {editor.pages.map((p) => (
@@ -73,12 +75,12 @@ export function BlocksList() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <p className="text-caption text-text-muted font-mono uppercase tracking-[0.18em]">
-            Blocks · {editor.activePage.blocks.length}
+            {t.editor.blocks} · {editor.activePage.blocks.length}
           </p>
           <button
             type="button"
             onClick={() => setShowLibrary((v) => !v)}
-            aria-label="Add block"
+            aria-label={t.editor.addBlock}
             className="text-text-secondary hover:bg-bg-elevated hover:text-forge-amber rounded-md p-1"
           >
             <Icon.Plus size={14} />
@@ -128,11 +130,11 @@ export function BlocksList() {
                       {BLOCK_LIBRARY.find((x) => x.type === b.type)?.label ?? b.type}
                     </span>
                     <span className="text-text-muted flex items-center gap-1.5 font-mono text-[10px]">
-                      {!b.visible ? <span>hidden</span> : null}
+                      {!b.visible ? <span>{t.editor.hidden}</span> : null}
                       {hideOn.map((d) => (
                         <span
                           key={d}
-                          title={`Hidden on ${d}`}
+                          title={`${t.editor.hideBlock} (${d})`}
                           className="border-border-strong text-text-subtle rounded border px-1"
                         >
                           ⌀{d[0]}
@@ -145,7 +147,7 @@ export function BlocksList() {
                   <button
                     type="button"
                     onClick={() => editor.toggleBlockVisible(b.id)}
-                    aria-label={b.visible ? 'Hide block' : 'Show block'}
+                    aria-label={b.visible ? t.editor.hideBlock : t.editor.showBlock}
                     className="text-text-muted hover:text-text-primary rounded p-1"
                   >
                     {b.visible ? <Icon.Eye size={12} /> : <Icon.EyeOff size={12} />}
@@ -154,7 +156,7 @@ export function BlocksList() {
                     type="button"
                     disabled={isFirst}
                     onClick={() => editor.reorderBlock(b.id, 'up')}
-                    aria-label="Move up"
+                    aria-label={t.editor.moveUp}
                     className="text-text-muted hover:text-text-primary rounded p-1 disabled:opacity-30"
                   >
                     <Icon.ArrowUp size={12} />
@@ -163,7 +165,7 @@ export function BlocksList() {
                     type="button"
                     disabled={isLast}
                     onClick={() => editor.reorderBlock(b.id, 'down')}
-                    aria-label="Move down"
+                    aria-label={t.editor.moveDown}
                     className="text-text-muted hover:text-text-primary rounded p-1 disabled:opacity-30"
                   >
                     <Icon.ArrowDown size={12} />
@@ -171,7 +173,7 @@ export function BlocksList() {
                   <button
                     type="button"
                     onClick={() => editor.duplicateBlock(b.id)}
-                    aria-label="Duplicate block"
+                    aria-label={t.editor.duplicateBlock}
                     className="text-text-muted hover:text-forge-amber rounded p-1"
                   >
                     <Icon.Plus size={12} />
@@ -179,7 +181,7 @@ export function BlocksList() {
                   <button
                     type="button"
                     onClick={() => editor.removeBlock(b.id)}
-                    aria-label="Delete block"
+                    aria-label={t.editor.deleteBlock}
                     className="text-text-muted hover:text-error rounded p-1"
                   >
                     <Icon.Trash size={12} />
@@ -191,7 +193,7 @@ export function BlocksList() {
           {showLibrary ? (
             <li className="border-border-strong bg-bg-deep mt-2 rounded-md border border-dashed p-2">
               <p className="text-caption text-text-muted mb-2 font-mono uppercase tracking-[0.12em]">
-                Add a block
+                {t.editor.addBlock}
               </p>
               <div className="grid grid-cols-2 gap-1.5">
                 {BLOCK_LIBRARY.map((b) => (
@@ -213,7 +215,7 @@ export function BlocksList() {
           ) : null}
         </ul>
         <Badge tone="outline" className="mx-3 mb-3 self-start">
-          drag rows to reorder
+          {t.editor.dragToReorder}
         </Badge>
       </div>
     </aside>

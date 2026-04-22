@@ -9,10 +9,11 @@ import { useCopilot } from '@/components/copilot/copilot-provider'
 import { useEditor } from './editor-store'
 
 const SUGGESTIONS = [
-  'Make the hero more bold.',
-  'Change palette to warmer tones.',
-  'Add a testimonials block before the footer.',
-  'Tighten spacing on mobile.',
+  '让 Hero 更大胆一些。',
+  '把整站配色改得更暖。',
+  '在 Footer 前加一个用户评价区块。',
+  '收紧移动端的间距。',
+  '把 CTA 按钮改成磨砂玻璃风。',
 ]
 
 /**
@@ -38,12 +39,12 @@ export function EditorAIChat() {
   }
 
   return (
-    <div className="border-t border-border-subtle bg-bg-surface px-4 py-3">
+    <div className="border-border-subtle bg-bg-surface border-t px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="inline-flex items-center gap-1.5 font-mono text-caption uppercase tracking-[0.18em] text-forge-amber">
+        <p className="text-caption text-forge-amber inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.18em]">
           <Icon.Sparkle size={12} /> AI editor
         </p>
-        <span className="font-mono text-caption text-text-muted">
+        <span className="text-caption text-text-muted font-mono">
           {editor.selectedBlock ? editor.selectedBlock.type : 'page-wide'}
         </span>
       </div>
@@ -53,7 +54,7 @@ export function EditorAIChat() {
             key={s}
             type="button"
             onClick={() => dispatch(s)}
-            className="rounded-full border border-border-subtle bg-bg-deep px-2 py-1 text-caption text-text-secondary hover:border-forge-orange/40 hover:text-forge-amber"
+            className="border-border-subtle bg-bg-deep text-caption text-text-secondary hover:border-forge-orange/40 hover:text-forge-amber rounded-full border px-2 py-1"
           >
             {s}
           </button>
@@ -69,7 +70,7 @@ export function EditorAIChat() {
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Tell the AI what to change…"
+          placeholder="告诉 AI 你想改什么……"
           className="min-h-[44px] flex-1 resize-none"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {

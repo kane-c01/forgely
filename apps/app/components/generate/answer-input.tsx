@@ -5,6 +5,7 @@ import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 import { formatCurrency } from '@/lib/format'
 import type { AnswerKind, MockExpects } from '@/lib/conversation-mock'
@@ -33,6 +34,7 @@ interface AnswerInputProps {
  * controlled state inside (e.g. the in-progress text the user typed).
  */
 export function AnswerInput({ expects, pending, onSubmit }: AnswerInputProps) {
+  const t = useT()
   switch (expects.kind) {
     case 'choice':
       return (
@@ -97,7 +99,7 @@ export function AnswerInput({ expects, pending, onSubmit }: AnswerInputProps) {
                   {formatCurrency(p.priceCents)}
                 </p>
                 <Badge tone="forge" className="self-start !text-[10px]">
-                  candidate
+                  {t.answerInput.candidate}
                 </Badge>
               </div>
             </button>
@@ -113,7 +115,7 @@ export function AnswerInput({ expects, pending, onSubmit }: AnswerInputProps) {
             disabled={pending}
             onClick={() => onSubmit({ kind: 'confirm', confirmed: true, rawText: 'confirm' })}
           >
-            <Icon.Sparkle size={14} /> Confirm and forge
+            <Icon.Sparkle size={14} /> {t.answerInput.confirmAndForge}
           </Button>
           <Button
             size="lg"
@@ -121,7 +123,7 @@ export function AnswerInput({ expects, pending, onSubmit }: AnswerInputProps) {
             disabled={pending}
             onClick={() => onSubmit({ kind: 'confirm', confirmed: false, rawText: 'tweak' })}
           >
-            Tweak something first
+            {t.answerInput.tweakFirst}
           </Button>
         </div>
       )
@@ -137,6 +139,7 @@ function UrlInput({
   pending: boolean
   onSubmit: (p: AnswerPayload) => void
 }) {
+  const t = useT()
   const [v, setV] = useState('')
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -154,14 +157,14 @@ function UrlInput({
           value={v}
           onChange={(e) => setV(e.target.value)}
           type="url"
-          placeholder="https://your-store.myshopify.com"
+          placeholder={t.answerInput.urlPlaceholder}
           disabled={pending}
           autoFocus
           className="border-border-strong bg-bg-deep text-body text-text-primary placeholder:text-text-muted focus:border-forge-orange/60 focus:ring-forge-orange/40 h-11 w-full rounded-md border pl-9 pr-3 focus:outline-none focus:ring-1"
         />
       </div>
       <Button type="submit" size="lg" disabled={pending || !v.trim()}>
-        <Icon.Send size={14} /> Send
+        <Icon.Send size={14} /> {t.answerInput.send}
       </Button>
     </form>
   )
@@ -178,6 +181,7 @@ function TextInput({
   multiline?: boolean
   placeholder?: string
 }) {
+  const t = useT()
   const [v, setV] = useState('')
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -197,7 +201,7 @@ function TextInput({
           value={v}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={onKey}
-          placeholder={placeholder ?? 'Tell me more…'}
+          placeholder={placeholder ?? t.answerInput.tellMore}
           disabled={pending}
           autoFocus
           className="border-border-strong bg-bg-deep text-body text-text-primary placeholder:text-text-muted focus:border-forge-orange/60 focus:ring-forge-orange/40 min-h-32 flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-1"
@@ -206,14 +210,14 @@ function TextInput({
         <input
           value={v}
           onChange={(e) => setV(e.target.value)}
-          placeholder={placeholder ?? '…'}
+          placeholder={placeholder ?? t.answerInput.ellipsis}
           disabled={pending}
           autoFocus
           className="border-border-strong bg-bg-deep text-body text-text-primary placeholder:text-text-muted focus:border-forge-orange/60 focus:ring-forge-orange/40 h-11 flex-1 rounded-md border px-3 focus:outline-none focus:ring-1"
         />
       )}
       <Button type="submit" size="lg" disabled={pending || !v.trim()}>
-        <Icon.Send size={14} /> Send
+        <Icon.Send size={14} /> {t.answerInput.send}
       </Button>
     </form>
   )
@@ -228,17 +232,18 @@ function TagsInput({
   onSubmit: (p: AnswerPayload) => void
   suggestions?: string[]
 }) {
+  const t = useT()
   const [tags, setTags] = useState<string[]>([])
   const [v, setV] = useState('')
-  const add = (t: string) => {
-    const trim = t.trim()
+  const add = (tag: string) => {
+    const trim = tag.trim()
     if (!trim) return
     if (tags.includes(trim)) return
     if (tags.length >= 8) return
     setTags([...tags, trim])
     setV('')
   }
-  const remove = (t: string) => setTags(tags.filter((x) => x !== t))
+  const remove = (tag: string) => setTags(tags.filter((x) => x !== tag))
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (tags.length === 0) return
@@ -247,16 +252,16 @@ function TagsInput({
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div className="border-border-strong bg-bg-deep focus-within:border-forge-orange/60 flex flex-wrap items-center gap-1.5 rounded-md border p-2">
-        {tags.map((t) => (
+        {tags.map((tag) => (
           <span
-            key={t}
+            key={tag}
             className="bg-forge-orange/15 text-caption text-forge-amber inline-flex items-center gap-1 rounded-full px-2 py-1 font-mono uppercase tracking-[0.08em]"
           >
-            {t}
+            {tag}
             <button
               type="button"
-              onClick={() => remove(t)}
-              aria-label={`Remove ${t}`}
+              onClick={() => remove(tag)}
+              aria-label={`Remove ${tag}`}
               className="hover:text-error rounded p-0.5"
             >
               <Icon.Close size={10} />
@@ -272,7 +277,7 @@ function TagsInput({
               add(v)
             }
           }}
-          placeholder={tags.length === 0 ? 'Type, press Enter…' : 'Add another tag'}
+          placeholder={tags.length === 0 ? t.answerInput.typeEnter : t.answerInput.addTag}
           disabled={pending || tags.length >= 8}
           className="text-body text-text-primary placeholder:text-text-muted min-w-[140px] flex-1 bg-transparent focus:outline-none"
         />
@@ -280,7 +285,7 @@ function TagsInput({
       {suggestions?.length ? (
         <div className="flex flex-wrap gap-1.5">
           <span className="text-caption text-text-muted font-mono uppercase tracking-[0.12em]">
-            Suggestions:
+            {t.answerInput.suggestions}
           </span>
           {suggestions.map((s) => (
             <button
@@ -296,7 +301,7 @@ function TagsInput({
         </div>
       ) : null}
       <Button type="submit" size="lg" disabled={pending || tags.length === 0} className="self-end">
-        <Icon.Send size={14} /> Send {tags.length > 0 ? `(${tags.length})` : ''}
+        <Icon.Send size={14} /> {t.answerInput.send} {tags.length > 0 ? `(${tags.length})` : ''}
       </Button>
     </form>
   )

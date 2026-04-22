@@ -1,9 +1,10 @@
 import { getUserDetail, getUserRows } from '@/lib/super'
 import type { SuperUserDetail } from '@/lib/super'
+import { I18nHeader } from '../_components/I18nHeader'
 import { UsersClient } from './_components/UsersClient'
 
 export const metadata = {
-  title: 'Users · Forgely Command',
+  title: 'Forgely Command · Users',
 }
 
 export default function SuperUsersPage() {
@@ -16,19 +17,7 @@ export default function SuperUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="font-mono text-caption uppercase tracking-[0.22em] text-text-muted">
-            Accounts
-          </div>
-          <h1 className="font-display text-h2 text-text-primary">Users</h1>
-        </div>
-        <p className="max-w-md text-small text-text-muted">
-          Inspect, suspend or impersonate any account. Every action is appended to the
-          audit log with the actor, target and reason.
-        </p>
-      </header>
-
+      <I18nHeader section="users" />
       <UsersClient rows={rows} details={details} />
     </div>
   )

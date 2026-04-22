@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Icon } from '@/components/ui/icons'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 const GRADE_TONE: Record<SeoScore['grade'], 'success' | 'forge' | 'warning' | 'error'> = {
@@ -126,6 +127,7 @@ function buildDemoSite(siteId: string): { site: SiteMeta; pages: PageMeta[] } {
 }
 
 export default function SeoPage({ params }: { params: { siteId: string } }) {
+  const t = useT()
   const [filter, setFilter] = useState<'all' | 'critical' | 'warning' | 'pass'>('all')
 
   const { site, pages } = useMemo(() => buildDemoSite(params.siteId), [params.siteId])
@@ -160,7 +162,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
   const columns: DataTableColumn<ScoredPage>[] = [
     {
       key: 'page',
-      header: 'Page',
+      header: t.seo.colPage,
       render: ({ page }) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-small text-text-primary">{page.title}</span>
@@ -170,7 +172,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
     },
     {
       key: 'score',
-      header: 'Score',
+      header: t.seo.colScore,
       width: '100px',
       align: 'center',
       render: ({ score }) => (
@@ -182,7 +184,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
     },
     {
       key: 'wins',
-      header: 'Passing',
+      header: t.seo.colPassing,
       width: '110px',
       align: 'center',
       render: ({ score }) => {
@@ -196,10 +198,10 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
     },
     {
       key: 'gaps',
-      header: 'Top issues',
+      header: t.seo.colTopIssues,
       render: ({ score }) =>
         score.recommendations.length === 0 ? (
-          <span className="text-small text-text-muted">— clean —</span>
+          <span className="text-small text-text-muted">{t.seo.clean}</span>
         ) : (
           <ul className="flex flex-col gap-0.5">
             {score.recommendations.slice(0, 2).map((c) => (
@@ -210,7 +212,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
             ))}
             {score.recommendations.length > 2 ? (
               <li className="text-caption text-text-muted">
-                +{score.recommendations.length - 2} more
+                +{score.recommendations.length - 2} {t.seo.more}
               </li>
             ) : null}
           </ul>
@@ -224,7 +226,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
       render: () => (
         <Button size="sm" variant="ghost">
           <Icon.Sparkle size={14} />
-          AI optimize
+          {t.seo.aiOptimize}
         </Button>
       ),
     },
@@ -234,25 +236,29 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
     <div className="flex flex-col gap-6">
       <SeoCopilotBridge siteId={params.siteId} />
       <PageHeader
-        eyebrow="SEO + GEO"
-        title="SEO control center"
-        description="Technical SEO + structured data + LLM-readable snapshots are generated automatically for every page. Here you can monitor scores, fix gaps, and tune for both Google and ChatGPT."
+        eyebrow={t.seo.eyebrow}
+        title={t.seo.title}
+        description={t.seo.description}
         meta={
           <>
-            <span>{aggregate.total} pages tracked</span>
+            <span>
+              {aggregate.total} {t.seo.pagesTracked}
+            </span>
             <span>·</span>
-            <span>{aggregate.issues} open issues</span>
+            <span>
+              {aggregate.issues} {t.seo.openIssues}
+            </span>
           </>
         }
         actions={
           <>
             <Button variant="ghost">
               <Icon.Download size={14} />
-              Download artefacts
+              {t.seo.downloadArtefacts}
             </Button>
             <Button variant="primary">
               <Icon.Sparkle size={14} />
-              Re-score site
+              {t.seo.rescoreSite}
             </Button>
           </>
         }
@@ -260,40 +266,38 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <BigStat
-          label="Site SEO"
+          label={t.seo.siteSeo}
           value={`${aggregate.avg}/100`}
-          hint={`${aggregate.a} of ${aggregate.total} pages at A grade`}
+          hint={`${aggregate.a} ${t.seo.ofTotal} ${aggregate.total} ${t.seo.pagesAtAGrade}`}
         />
         <BigStat
-          label="Sitemap"
-          value={sitemapFiles.length === 1 ? '1 file' : `${sitemapFiles.length} files`}
-          hint={`${pages.length} URLs indexed`}
+          label={t.seo.sitemap}
+          value={
+            sitemapFiles.length === 1 ? `1 ${t.seo.file}` : `${sitemapFiles.length} ${t.seo.files}`
+          }
+          hint={`${pages.length} ${t.seo.urlsIndexed}`}
         />
-        <BigStat label="robots.txt" value="OK" hint="AI crawlers allowed (GEO mode)" />
+        <BigStat label="robots.txt" value="OK" hint={t.seo.aiCrawlersAllowed} />
         <BigStat
           label="llms.txt"
           value="OK"
-          hint={`${llmsTxt.split('\n').length} lines · GEO ready`}
+          hint={`${llmsTxt.split('\n').length} ${t.seo.linesGeoReady}`}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <ArtefactCard
           title="sitemap.xml"
-          subtitle={`${sitemapFiles[0]?.filename ?? 'sitemap.xml'} · auto-updates on publish`}
+          subtitle={`${sitemapFiles[0]?.filename ?? 'sitemap.xml'} · ${t.seo.autoUpdatesOnPublish}`}
           body={sitemapFiles[0]?.content ?? ''}
         />
-        <ArtefactCard title="robots.txt" subtitle="AI crawler policy: allow" body={robotsTxt} />
-        <ArtefactCard
-          title="llms.txt"
-          subtitle="AI search context (Perplexity / ChatGPT / Claude)"
-          body={llmsTxt}
-        />
+        <ArtefactCard title="robots.txt" subtitle={t.seo.aiCrawlerPolicyAllow} body={robotsTxt} />
+        <ArtefactCard title="llms.txt" subtitle={t.seo.aiSearchContext} body={llmsTxt} />
         <KeywordResearchCard />
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-h3 text-text-primary">Per-page scores</h2>
+        <h2 className="font-display text-h3 text-text-primary">{t.seo.perPageScores}</h2>
         <FilterPills value={filter} onChange={setFilter} />
       </div>
 
@@ -301,9 +305,7 @@ export default function SeoPage({ params }: { params: { siteId: string } }) {
         columns={columns}
         rows={filtered}
         rowKey={(r) => r.page.path}
-        empty={
-          <p className="text-text-muted py-8 text-center">No pages match the current filter.</p>
-        }
+        empty={<p className="text-text-muted py-8 text-center">{t.seo.noMatch}</p>}
       />
     </div>
   )
@@ -330,6 +332,7 @@ function ArtefactCard({
   subtitle: string
   body: string
 }) {
+  const t = useT()
   return (
     <div className="border-border-subtle bg-bg-surface flex flex-col gap-2 rounded-lg border p-4">
       <div className="flex items-center justify-between gap-3">
@@ -341,7 +344,7 @@ function ArtefactCard({
         </div>
         <Button size="sm" variant="ghost">
           <Icon.Download size={14} />
-          Copy
+          {t.seo.copy}
         </Button>
       </div>
       <pre className="bg-bg-deep text-caption text-text-secondary max-h-48 overflow-auto rounded-md p-3 font-mono">
@@ -353,16 +356,17 @@ function ArtefactCard({
 }
 
 function KeywordResearchCard() {
+  const t = useT()
   return (
     <div className="border-border-subtle bg-bg-surface flex flex-col gap-3 rounded-lg border p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-caption text-forge-amber font-mono uppercase tracking-[0.12em]">
-            Keyword research
+            {t.seo.keywordResearch}
           </div>
-          <p className="text-small text-text-secondary mt-0.5">Powered by DataForSEO</p>
+          <p className="text-small text-text-secondary mt-0.5">{t.seo.poweredBy}</p>
         </div>
-        <Badge tone="outline">demo data</Badge>
+        <Badge tone="outline">{t.seo.demoData}</Badge>
       </div>
       <ul className="flex flex-col gap-2">
         {[
@@ -388,7 +392,7 @@ function KeywordResearchCard() {
       </ul>
       <Button size="sm" variant="ghost">
         <Icon.Search size={14} />
-        Run a new query
+        {t.seo.runNewQuery}
       </Button>
     </div>
   )
@@ -401,11 +405,12 @@ function FilterPills({
   value: 'all' | 'critical' | 'warning' | 'pass'
   onChange: (v: 'all' | 'critical' | 'warning' | 'pass') => void
 }) {
+  const t = useT()
   const items: Array<{ id: 'all' | 'critical' | 'warning' | 'pass'; label: string }> = [
-    { id: 'all', label: 'All' },
-    { id: 'critical', label: 'Critical' },
-    { id: 'warning', label: 'Warnings' },
-    { id: 'pass', label: 'Passing (A/B)' },
+    { id: 'all', label: t.seo.all },
+    { id: 'critical', label: t.seo.critical },
+    { id: 'warning', label: t.seo.warningsFilter },
+    { id: 'pass', label: t.seo.passingFilter },
   ]
   return (
     <div className="border-border-subtle bg-bg-surface flex items-center gap-1 rounded-md border p-1">

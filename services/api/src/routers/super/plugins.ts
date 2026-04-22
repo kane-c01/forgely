@@ -104,7 +104,10 @@ export const superPluginsRouter = router({
         orderBy: { installedAt: 'desc' },
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
-        include: { site: { select: { id: true, name: true, slug: true } } },
+        // `Site.slug` doesn't exist in the current Prisma schema (W3 will
+        // add it). Drop it from the include and we still get id + name,
+        // which is enough for the install-list UI.
+        include: { site: { select: { id: true, name: true } } },
       }),
       ctx.prisma.installedPlugin.count({ where }),
     ])
